@@ -31,6 +31,9 @@
       this.state = state;
       this.rand = mulberry32(opts.seed != null ? opts.seed : (Date.now() & 0xffffff));
       this.improveMs = opts.improveMs != null ? opts.improveMs : 4000;
+      // jika diberi, fasa 2 berhenti selepas sekian cubaan (bukan masa) supaya hasil deterministik
+      this.improveIters = opts.improveIters != null ? opts.improveIters : null;
+      this.itersDone = 0;
       const days = TT.days(state), slots = TT.slots(state);
       this.D = days.length; this.P = slots.length;
       this.limit = TT.dayLimits(state);
@@ -286,12 +289,15 @@
     // ---- fasa 2 ----
     _improve(end, frac0, fracSpan) {
       const mov = this.units.filter((u) => !u.locked && u.day >= 0);
-      if (mov.length < 2) return;
+      const cap = this.improveIters;
+      if (mov.length < 2) { if (cap != null) this.itersDone = cap; return; }
       if (this.curCost == null) this.curCost = this.totalCost();
       const D = this.D;
       let n = 0;
-      while (now() < end) {
-        const frac = Math.min(1, frac0 + fracSpan * Math.min(1, (now() - this._sliceStart) / Math.max(1, this._sliceLen)));
+      while (now() < end && (cap == null || this.itersDone < cap)) {
+        const frac = cap != null ? this.itersDone / cap
+          : Math.min(1, frac0 + fracSpan * Math.min(1, (now() - this._sliceStart) / Math.max(1, this._sliceLen)));
+        if (cap != null) this.itersDone += 200;
         const temp = frac > 0.92 ? 0 : 3 * Math.pow(0.05, frac / 0.92);
         for (let r = 0; r < 200; r++) {
           n++;
@@ -347,6 +353,9 @@
       if (this.phase === 'construct') {
         this._construct(end);
         if (!this.queue.length || this.iter >= this.maxIter) { this.phase = 'improve'; this.improveStart = now(); }
+      } else if (this.phase === 'improve' && this.improveIters != null) {
+        this._improve(end, 0, 0);
+        if (this.itersDone >= this.improveIters || !this.units.some((u) => !u.locked && u.day >= 0)) this.phase = 'done';
       } else if (this.phase === 'improve') {
         const el = now() - this.improveStart;
         this._sliceStart = now(); this._sliceLen = Math.max(1, Math.min(sliceMs, this.improveMs - el));

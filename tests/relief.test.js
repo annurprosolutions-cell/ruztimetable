@@ -10,7 +10,7 @@ const SUN = '2026-10-25'; // Ahad
 
 function setup() {
   const s = TT.sample();
-  s.placements = TT.generate(s, { seed: 4, improveMs: 300 }).placements;
+  s.placements = TT.generate(s, { seed: 4, improveIters: 800000 }).placements;
   return s;
 }
 const T = (s, short) => s.teachers.find((t) => t.short === short);
