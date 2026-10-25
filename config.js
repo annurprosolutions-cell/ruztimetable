@@ -10,5 +10,5 @@ window.APP_CONFIG = {
   // Kosong = tiada semakan lesen (sesuai untuk ujian dan sekolah sendiri).
   licenseUrl: '',
   // Maklumat sokongan yang dipaparkan di halaman Bantuan (pilihan)
-  support: { whatsapp: '', email: '' }
+  support: { whatsapp: '0134874206', email: 'annurprosolutions@gmail.com' }
 };
