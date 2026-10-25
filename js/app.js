@@ -1,0 +1,109 @@
+(function () {
+  'use strict';
+  const { esc, $ } = UI;
+  const CFG = UI.cfg;
+  const NAV = {
+    admin: [['utama', 'Utama', 'grid'], ['data', 'Data', 'users'], ['jadual', 'Jadual', 'table'], ['relief', 'Relief', 'swap'], ['laporan', 'Laporan', 'chart'], ['tetapan', 'Tetapan', 'gear']],
+    guru: [['utama', 'Utama', 'grid'], ['jadualku', 'Jadual saya', 'table'], ['reliefku', 'Relief saya', 'swap'], ['bantuan', 'Bantuan', 'help']]
+  };
+  const ROLE = { admin: 'Pentadbir', guru: 'Guru' };
+
+  function computeItems() {
+    const s = UI.state, today = TT.todayISO();
+    if (UI.isGuru()) { const t = UI.meTeacher(); return t ? TT.teacherActions(s, t.id, today) : []; }
+    return TT.actionItems(s, today, { lastBackup: UI.prefs.lastBackup, sheetLinked: !!(UI.sync && UI.sync.linked()) });
+  }
+
+  function syncPill() {
+    const sy = UI.sync;
+    if (!sy || !sy.configured() || !sy.linked()) return '';
+    const map = { off: ['', 'Sheets'], login: ['warn', 'Sambung semula'], pending: ['', 'Belum disimpan'], saving: ['', 'Menyimpan'], saved: ['ok', 'Disimpan'], error: ['bad', 'Ralat simpan'], conflict: ['bad', 'Konflik data'] };
+    const [tone, text] = map[sy.status] || map.off;
+    return `<button id="syncPill" class="sync ${tone}" data-act="goto" data-p="tetapan" data-s="storan" title="${esc(sy.msg || 'Google Sheets')}">${UI.icon('cloud')}<span>${text}</span></button>`;
+  }
+  UI.refreshSyncPill = () => {
+    const el = $('syncPill'); if (el) el.outerHTML = syncPill();
+    const st = $('syncStatus'); if (st && UI.syncStatusHtml) st.innerHTML = UI.syncStatusHtml();
+  };
+
+  function menu() {
+    const s = UI.state;
+    if (UI.menu === 'role') {
+      const t = UI.meTeacher();
+      return `<div class="menu"><div class="mh">Tukar peranan</div>
+        <button class="mi${!UI.isGuru() ? ' on' : ''}" data-act="setRole" data-r="admin">${UI.icon('shield')}<span><b>Pentadbir jadual</b><small>Urus data, jadual dan relief</small></span></button>
+        <button class="mi${UI.isGuru() ? ' on' : ''}" data-act="setRole" data-r="guru">${UI.icon('user')}<span><b>Guru</b><small>Jadual dan tugas relief sendiri</small></span></button>
+        ${UI.isGuru() ? `<div class="mh">Saya ialah</div><select class="msel" data-chg="setMeSel"><option value="">- Pilih nama -</option>${UI.optHtml(s.teachers.map((x) => ({ v: x.id, t: x.name })), t ? t.id : '')}</select>` : ''}
+        <p class="mnote">Peranan menukar paparan pada peranti ini sahaja. Ia bukan kawalan akses.</p></div>`;
+    }
+    if (UI.menu === 'bell') {
+      const items = UI.items.slice(0, 6);
+      return `<div class="menu wide"><div class="mh">Notifikasi</div>${items.length ? `<div class="act-list">${UI.actList(items)}</div>` : '<p class="mnote">Tiada notifikasi.</p>'}
+        ${UI.items.length > 6 ? `<button class="mi center" data-act="goto" data-p="utama">Lihat semua (${UI.items.length})</button>` : ''}</div>`;
+    }
+    if (UI.menu === 'avatar') {
+      return `<div class="menu"><div class="mh">${esc(UI.displayName())}<small>${ROLE[UI.prefs.role]}${UI.sync && UI.sync.email ? ' · ' + esc(UI.sync.email) : ''}</small></div>
+        ${UI.isGuru() ? '' : `<button class="mi" data-act="goto" data-p="tetapan" data-s="storan">${UI.icon('database')}<span><b>Storan & backup</b></span></button>
+        <button class="mi" data-act="exportJson">${UI.icon('download')}<span><b>Eksport backup JSON</b></span></button>
+        <button class="mi" data-act="goto" data-p="tetapan" data-s="sekolah">${UI.icon('gear')}<span><b>Tetapan</b></span></button>`}
+        <button class="mi" data-act="goto" data-p="bantuan">${UI.icon('help')}<span><b>Bantuan</b></span></button></div>`;
+    }
+    return '';
+  }
+
+  function header() {
+    const role = UI.prefs.role, urgent = UI.items.filter((i) => i.sev !== 'info').length;
+    return `<header class="topbar">
+      <div class="brand"><span class="mark">${UI.icon('calendar')}</span><span class="bname">${esc(CFG.appName || 'Jadual Sekolah')}</span></div>
+      <nav class="seg main">${NAV[role].map(([k, t, ic]) => `<button class="${UI.page === k ? 'on' : ''}" data-act="goto" data-p="${k}">${UI.icon(ic)}<span>${t}</span></button>`).join('')}</nav>
+      <div class="tb-right">${syncPill()}
+        <button class="role${UI.menu === 'role' ? ' open' : ''}" data-act="menu" data-m="role" aria-haspopup="true" aria-expanded="${UI.menu === 'role'}">${UI.icon(role === 'guru' ? 'user' : 'shield')}<span><small>PERANAN</small><b>${ROLE[role]}</b></span>${UI.icon('chevDown')}</button>
+        ${role === 'admin' ? `<button class="iconbtn hide-sm" data-act="goto" data-p="bantuan" aria-label="Bantuan" title="Bantuan">${UI.icon('help')}</button>` : ''}
+        <button class="iconbtn bell" data-act="menu" data-m="bell" aria-label="Notifikasi" title="Notifikasi">${UI.icon('bell')}${urgent ? `<i class="dot">${urgent > 9 ? '9+' : urgent}</i>` : ''}</button>
+        <button class="avatar" data-act="menu" data-m="avatar" aria-label="Akaun">${esc(UI.initials(UI.displayName()))}</button>
+        ${menu()}</div></header>`;
+  }
+
+  UI.render = () => {
+    const y = window.scrollY, s = UI.state;
+    const allowed = NAV[UI.prefs.role].map((x) => x[0]).concat(UI.isGuru() ? [] : ['bantuan']);
+    if (!allowed.includes(UI.page)) UI.page = 'utama';
+    UI.items = computeItems();
+    const where = UI.sync && UI.sync.linked() ? 'dalam pelayar ini dan Google Sheet anda' : 'dalam pelayar ini sahaja';
+    $('app').innerHTML = `${header()}<main class="pg-${UI.page}">${UI.pages[UI.page]()}</main>
+      <footer class="foot">${esc(CFG.appName || 'Jadual Sekolah')} ${esc(CFG.version || '')}${CFG.vendor ? ' · ' + esc(CFG.vendor) : ''} · ${esc(s.school.name)} · Data disimpan ${where}</footer>`;
+    window.scrollTo(0, y);
+  };
+
+  UI.actions.menu = (el, e) => { e.stopPropagation(); UI.menu = UI.menu === el.dataset.m ? null : el.dataset.m; UI.render(); };
+  UI.actions.setRole = (el) => {
+    UI.prefs.role = el.dataset.r; UI.savePrefs();
+    if (UI.prefs.role === 'admin' || UI.meTeacher()) UI.menu = null;
+    UI.page = 'utama'; UI.render();
+  };
+  UI.changes.setMeSel = (el) => { UI.prefs.me = el.value || null; UI.savePrefs(); UI.menu = null; UI.render(); };
+
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-act]');
+    const closing = UI.menu && !e.target.closest('.menu') && !(el && el.dataset.act === 'menu');
+    if (closing) UI.menu = null;
+    if (el) { const f = UI.actions[el.dataset.act]; if (f) f(el, e); }
+    if (closing && !(el && UI.actions[el.dataset.act])) UI.render();
+  });
+  document.addEventListener('change', (e) => {
+    const el = e.target.closest('[data-chg]'); if (!el) return;
+    const f = UI.changes[el.dataset.chg];
+    if (f) f(el, e);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (UI.menu) { UI.menu = null; UI.render(); } else if ($('modal').firstChild && !UI._gen) UI.modalClose();
+    }
+    if (e.key === 'Enter' && e.target.matches('#theForm input:not([type=checkbox])')) { e.preventDefault(); UI.actions.formSave(); }
+  });
+
+  UI.state = UI.load();
+  UI.savePrefs();
+  UI.relief.date = TT.nextSchoolDay(UI.state, UI.relief.date);
+  UI.render();
+})();

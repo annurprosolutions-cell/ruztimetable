@@ -1,0 +1,11 @@
+{
+  "name": "jadual-sekolah",
+  "version": "1.0.0",
+  "description": "Penjana jadual waktu sekolah dan sistem relief guru ganti",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:e2e": "node tests/e2e.js"
+  },
+  "devDependencies": { "playwright": "*" }
+}
