@@ -22,11 +22,13 @@ code{background:#f3f5f9;padding:1px 5px;border-radius:5px;font-size:.9em}
 <p>Jika anda memilih log masuk dengan Google, aplikasi meminta kebenaran berikut:</p>
 <ul>
 <li><b>Identiti asas dan e-mel</b> (<code>openid</code>, <code>email</code>): untuk memaparkan akaun yang sedang digunakan dan menyemak sama ada akaun anda berlesen.</li>
-<li><b>Fail yang dicipta oleh aplikasi</b> (<code>drive.file</code>): untuk mencipta dan mengemas kini satu Google Sheet berjudul "Jadual Sekolah" dalam Google Drive anda. Aplikasi <u>tidak boleh</u> melihat, membuka atau mengubah fail lain dalam Drive anda.</li>
+<li><b>Fail yang dicipta oleh aplikasi</b> (<code>drive.file</code>): untuk mencipta dan mengemas kini dua Google Sheet dalam Google Drive anda: "Jadual Sekolah" (data penuh, peribadi) dan "Jadual Guru" (salinan baca sahaja untuk guru). Aplikasi <u>tidak boleh</u> melihat, membuka atau mengubah fail lain dalam Drive anda.</li>
 </ul>
 
 <h2>3. Data sekolah anda</h2>
 <p>Data seperti nama guru, subjek, kelas, jadual, ketidakhadiran dan agihan relief disimpan di dua tempat sahaja: dalam pelayar peranti anda, dan (jika anda sambungkan) dalam Google Sheet milik akaun Google anda. Data ini <b>tidak</b> dihantar kepada pembekal.</p>
+<p><b>Pautan guru.</b> Sheet "Jadual Guru" dikongsi sebagai "sesiapa yang mempunyai pautan boleh lihat" supaya guru boleh membuka jadual dan tugas relief tanpa log masuk. Ia mengandungi nama guru, jadual dan agihan relief sahaja, tanpa sebab atau catatan cuti dan tanpa kata laluan. Sesiapa yang memegang pautan itu boleh melihatnya, jadi kongsikan dalam kumpulan guru sahaja. Pentadbir boleh menukar perkongsian atau memadam Sheet ini pada bila-bila masa.</p>
+<p>Kata laluan pentadbir tidak disimpan; hanya cincangan (hash) satu hala disimpan bersama data sekolah.</p>
 <p>Aplikasi ini direka tanpa memerlukan data murid. Sila jangan masukkan nombor kad pengenalan, alamat rumah atau maklumat sensitif lain.</p>
 
 <h2>4. Pelayan lesen</h2>
@@ -46,7 +48,7 @@ code{background:#f3f5f9;padding:1px 5px;border-radius:5px;font-size:.9em}
 <h2>7. Menarik balik akses dan memadam data</h2>
 <ul>
 <li>Putuskan akses aplikasi pada bila-bila masa di <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
-<li>Padam Google Sheet "Jadual Sekolah" dari Google Drive anda untuk membuang salinan data di awan. Data dalam pelayar dibuang dengan mengosongkan data tapak web dalam tetapan pelayar.</li>
+<li>Padam Google Sheet "Jadual Sekolah" dan "Jadual Guru" dari Google Drive anda untuk membuang salinan data di awan. Data dalam pelayar dibuang dengan mengosongkan data tapak web dalam tetapan pelayar.</li>
 <li>Untuk memadam rekod langganan anda daripada pelayan lesen, hubungi kami.</li>
 </ul>
 

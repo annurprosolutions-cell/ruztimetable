@@ -51,6 +51,23 @@ Aliran kerja pentadbir:
 - Backup JSON: eksport dan import. Dashboard mengingatkan kalau belum backup lebih 7 hari.
 - **Google Sheets (beta)**: lihat bahagian di bawah.
 
+## Log masuk, peranan dan pautan guru
+
+Sebelum app dibuka, skrin log masuk meminta peranan:
+
+- **Pentadbir**: log masuk Google (bila app dihos di https), kemudian kata laluan pentadbir. Kali pertama, tetapan awal muncul: nama sekolah, warna dan logo, kata laluan, dan data permulaan (contoh, kosong atau import JSON). Google Sheet sekolah dicipta automatik. Di peranti baharu, app mencari Sheet itu sendiri (Google Drive API) dan terus minta kata laluan.
+- **Guru**: buka pautan guru, pilih nama. Tiada kata laluan, tiada log masuk Google. Paparan baca sahaja.
+- Sesi kekal **30 hari** pada peranti itu. Token Google (sah ~1 jam) disimpan supaya muat semula halaman tidak memutuskan sambungan; selepas tamat, satu klik "Sambung semula" (akaun yang sama, tanpa pilih akaun) dan perubahan yang tertangguh dihantar.
+- Kata laluan disimpan sebagai hash PBKDF2-SHA256 (120,000 pusingan) dalam data sekolah. **Ia menghalang orang lain membuka paparan pentadbir, bukan melindungi data**: data sebenar dilindungi oleh akaun Google pemilik Sheet.
+
+**Pautan guru.** Setiap kali pentadbir simpan, app menulis salinan ringkas ke Sheet berasingan "Jadual Guru - (sekolah) (baca sahaja)" dan berkongsi Sheet itu sebagai *sesiapa dengan pautan boleh lihat*. Salinan ini tiada hash kata laluan, tiada sebab atau catatan cuti, dan hanya relief 2 bulan terakhir ke hadapan. Sheet utama kekal peribadi. Guru membaca salinan itu melalui `docs.google.com/.../gviz/tq?tqx=out:csv` tanpa log masuk. Jika domain (contohnya DELIMa) menyekat perkongsian awam, app memaparkan langkah kongsi manual.
+
+## PWA dan notifikasi
+
+- `manifest.webmanifest` + `sw.js`: boleh dipasang ke skrin utama (Android, iPhone melalui Safari > Tambah ke Skrin Utama, komputer) dan dibuka tanpa internet (strategi rangkaian dahulu, cache bila luar talian).
+- Notifikasi: guru dimaklumkan bila ada tugas relief baharu untuk dirinya; pentadbir menerima satu ringkasan sehari bagi perkara mendesak. App menyemak data guru setiap 10 minit ketika dibuka, dan setiap kali app dibuka semula.
+- **Had:** notifikasi hanya keluar bila app dibuka atau masih hidup di latar. Untuk notifikasi ketika app ditutup sepenuhnya perlu Web Push (kunci VAPID + pelayan yang menghantar, contohnya Cloudflare Worker sedia ada). Pada iPhone, notifikasi hanya untuk app yang dipasang ke skrin utama (iOS 16.4+).
+
 ## Google Sheets (beta)
 
 Bila disambung, setiap perubahan disimpan secara automatik (selepas 2.5 saat) ke satu Google Sheet dalam Drive akaun pengguna sendiri. Data tidak melalui server pembekal.
@@ -62,7 +79,7 @@ Bila disambung, setiap perubahan disimpan secara automatik (selepas 2.5 saat) ke
 Penyediaan (sekali sahaja, oleh pembekal atau IT sekolah):
 
 1. Hos app di https (GitHub Pages / Cloudflare Pages / domain sendiri).
-2. Google Cloud Console: cipta projek, aktifkan **Google Sheets API**.
+2. Google Cloud Console: cipta projek, aktifkan **Google Sheets API** dan **Google Drive API** (untuk kongsi pautan guru dan cari Sheet di peranti baharu).
 3. OAuth consent screen: jenis External, isi nama app dan e-mel sokongan, tambah skop `drive.file`, `openid` dan `email`. Dalam mod "Testing", hanya akaun ujian yang didaftarkan boleh log masuk. Untuk semua sekolah, terbitkan ke "In production". Dari ingatan, `drive.file` tergolong skop bukan sensitif, jadi verifikasi penuh tidak diperlukan, tetapi sahkan dalam console.
 4. Credentials > OAuth client ID > Web application. Tambah alamat app (contoh `https://namaanda.github.io`) dalam *Authorized JavaScript origins*.
 5. Salin Client ID ke `config.js` (medan `googleClientId`).
@@ -96,6 +113,10 @@ js/insights.js            data dashboard: perlu tindakan, kalendar, hari guru
 js/sheets.js              format Google Sheets, akses API, log masuk Google
 js/license.js             keputusan lesen di sisi app
 js/brand.js               palet warna dan semakan logo sekolah
+js/access.js              kata laluan (hash), sesi, data guru, CSV, notifikasi relief baharu
+js/ui-gate.js             skrin log masuk, tetapan awal, pilih nama guru
+js/ui-pwa.js              pasang app, notifikasi, muat semula data guru
+manifest.webmanifest, sw.js, icons/   PWA
 worker/                   pelayan lesen (Cloudflare Worker)
 privasi.html, docs/       dasar privasi dan panduan persediaan Google
 js/sample.js              data contoh SMK
@@ -112,17 +133,19 @@ Untuk data contoh, pengoptimuman 6 saat mengurangkan waktu kosong guru dari seki
 ## Ujian
 
 ```bash
-npm test                               # 58 ujian unit, tanpa dependency
+npm test                               # 67 ujian unit, tanpa dependency
 npm i playwright && npm run test:e2e   # klik seluruh aliran dalam Chromium
 ```
 
 - **Ujian unit**: penjana (beberapa seed, waktu dikunci, slot tak boleh, data mustahil, seret rawak), relief (tiada bertindih, had harian, simulasi sebulan dengan sisihan piawai bawah 2.5), dashboard (perlu tindakan, kalendar Isnin-Jumaat dan Ahad-Khamis), Worker, dan Google Sheets (pergi-balik data, suntingan manual dalam Sheets, ralat API) dengan pelayan Sheets palsu.
-- **Ujian e2e**: jam pelayar ditetapkan pada Isnin 26/10/2026 waktu Malaysia. Merangkumi aliran pentadbir atas `file://` (jana dalam Worker, seret, relief, kalendar, cetak), peranan guru (dashboard, slip, susunan telefon), dan aliran Google Sheets atas localhost dengan Google dimock.
+- **Ujian e2e**: jam pelayar ditetapkan pada Isnin 26/10/2026 waktu Malaysia. Merangkumi skrin log masuk dan tetapan awal, kata laluan salah/betul, sesi kekal selepas muat semula, guru baca sahaja; aliran pentadbir atas `file://` (jana dalam Worker, seret, relief, kalendar, cetak); aliran Google Sheets atas localhost dengan Google dimock (lesen, cipta Sheet, Data Guru dikongsi, autosave, konflik); guru di telefon membuka pautan dan menerima notifikasi relief baharu; pentadbir di peranti baharu; dan PWA dibuka semula tanpa internet.
 
 ## Had semasa
 
-- Google Sheets: satu Sheet diurus oleh satu akaun pentadbir. Dengan `drive.file`, akaun lain perlu membuka fail melalui Google Picker, dan itu belum dibina. Guru belum boleh membuka data sekolah dari telefon sendiri melalui app.
-- Peranan bukan kawalan akses. Sesiapa yang ada fail data boleh tukar ke Pentadbir.
+- Google Sheets: satu Sheet diurus oleh satu akaun pentadbir (guna akaun pentadbir jadual yang dikongsi). Dengan `drive.file`, akaun Google lain tidak boleh menyimpan ke Sheet yang sama.
+- Kata laluan pentadbir ialah penghalang paparan, bukan keselamatan data. Pemilik akaun Google dan sesiapa yang memegang fail backup JSON boleh set semula.
+- Guru memilih nama sendiri tanpa pengesahan. Seorang guru boleh melihat jadual guru lain (sama seperti jadual induk yang ditampal di bilik guru).
+- Notifikasi belum dihantar ketika app ditutup sepenuhnya (perlu Web Push melalui pelayan).
 - Setiap pelajaran guna satu bilik tetap. Tiada "mana-mana makmal yang kosong".
 - Tiada kumpulan murid atau blok pilihan (elective) selain pelajaran gabungan serentak.
 - Tiada import terus daripada fail aSc atau Winjaws. Tambah ramai hanya melalui tampal teks.

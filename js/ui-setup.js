@@ -10,14 +10,14 @@
   // ---------------- data sekolah: muat contoh, kosong, backup ----------------
   actions.loadSample = () => {
     const go = () => {
-      UI.state = TT.sample(); UI.lastGen = null; UI.view = { type: 'class', id: null };
+      UI.state = UI.carry(TT.sample()); UI.lastGen = null; UI.view = { type: 'class', id: null };
       UI.relief.date = TT.nextSchoolDay(UI.state, TT.todayISO());
       UI.save(); UI.page = 'utama'; UI.render(); UI.toast('Data contoh dimuatkan. Buka Jadual dan tekan Jana.');
     };
     if (S().teachers.length || S().classes.length) UI.confirm('Ini akan menggantikan semua data semasa dengan data contoh. Teruskan?', go, 'Ganti'); else go();
   };
   actions.newBlank = () => {
-    const go = () => { UI.state = TT.newState(); UI.lastGen = null; UI.save(); UI.render(); };
+    const go = () => { UI.state = UI.carry(TT.newState()); UI.lastGen = null; UI.save(); UI.render(); };
     if (S().teachers.length || S().classes.length) UI.confirm('Semua data semasa akan dipadam. Teruskan?', go, 'Padam semua'); else go();
   };
   actions.exportJson = () => {
@@ -32,7 +32,7 @@
       try {
         const obj = JSON.parse(rd.result);
         if (!obj || !Array.isArray(obj.teachers) || !Array.isArray(obj.lessons)) throw new Error('format');
-        UI.state = TT.migrate(obj); UI.commit(); UI.toast('Import berjaya.');
+        UI.state = TT.migrate(obj); delete UI.state.auth; UI.state.school.guruSheet = ''; UI.state = UI.carry(UI.state); UI.commit(); UI.toast('Import berjaya.');
       } catch (e) { UI.toast('Fail JSON tidak sah atau bukan fail Jadual Sekolah.', 'err'); }
       el.value = '';
     };

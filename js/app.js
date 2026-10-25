@@ -16,10 +16,10 @@
 
   function syncPill() {
     const sy = UI.sync;
-    if (!sy || !sy.configured() || !sy.linked()) return '';
+    if (!sy || !sy.configured() || !sy.linked() || !UI.isAdmin()) return '';
     const map = { off: ['', 'Sheets'], login: ['warn', 'Sambung semula'], pending: ['', 'Belum disimpan'], saving: ['', 'Menyimpan'], saved: ['ok', 'Disimpan'], error: ['bad', 'Ralat simpan'], conflict: ['bad', 'Konflik data'], unlicensed: ['bad', 'Tiada lesen'] };
     const [tone, text] = map[sy.status] || map.off;
-    return `<button id="syncPill" class="sync ${tone}" data-act="goto" data-p="tetapan" data-s="storan" title="${esc(sy.msg || 'Google Sheets')}">${UI.icon('cloud')}<span>${text}</span></button>`;
+    return `<button id="syncPill" class="sync ${tone}" ${sy.status === 'login' ? 'data-act="syncSignIn"' : 'data-act="goto" data-p="tetapan" data-s="storan"'} title="${esc(sy.msg || 'Google Sheets')}">${UI.icon('cloud')}<span>${text}</span></button>`;
   }
   UI.refreshSyncPill = () => {
     const el = $('syncPill'); if (el) el.outerHTML = syncPill();
@@ -30,11 +30,16 @@
     const s = UI.state;
     if (UI.menu === 'role') {
       const t = UI.meTeacher();
-      return `<div class="menu"><div class="mh">Tukar peranan</div>
+      const pick = UI.isGuru() ? `<div class="mh">Saya ialah</div><select class="msel" data-chg="setMeSel"><option value="">- Pilih nama -</option>${UI.optHtml(s.teachers.map((x) => ({ v: x.id, t: x.name })), t ? t.id : '')}</select>` : '';
+      if (!UI.isAdmin()) {
+        return `<div class="menu"><div class="mh">Guru</div>${pick}
+          <button class="mi" data-act="adminLogin">${UI.icon('shield')}<span><b>Log masuk pentadbir</b><small>Perlu kata laluan</small></span></button>
+          <p class="mnote">Paparan guru adalah baca sahaja. Data diurus oleh pentadbir jadual.</p></div>`;
+      }
+      return `<div class="menu"><div class="mh">Paparan</div>
         <button class="mi${!UI.isGuru() ? ' on' : ''}" data-act="setRole" data-r="admin">${UI.icon('shield')}<span><b>Pentadbir jadual</b><small>Urus data, jadual dan relief</small></span></button>
-        <button class="mi${UI.isGuru() ? ' on' : ''}" data-act="setRole" data-r="guru">${UI.icon('user')}<span><b>Guru</b><small>Jadual dan tugas relief sendiri</small></span></button>
-        ${UI.isGuru() ? `<div class="mh">Saya ialah</div><select class="msel" data-chg="setMeSel"><option value="">- Pilih nama -</option>${UI.optHtml(s.teachers.map((x) => ({ v: x.id, t: x.name })), t ? t.id : '')}</select>` : ''}
-        <p class="mnote">Peranan menukar paparan pada peranti ini sahaja. Ia bukan kawalan akses.</p></div>`;
+        <button class="mi${UI.isGuru() ? ' on' : ''}" data-act="setRole" data-r="guru">${UI.icon('user')}<span><b>Lihat sebagai guru</b><small>Pratonton apa yang guru nampak</small></span></button>
+        ${pick}</div>`;
     }
     if (UI.menu === 'bell') {
       const items = UI.items.slice(0, 6);
@@ -42,11 +47,14 @@
         ${UI.items.length > 6 ? `<button class="mi center" data-act="goto" data-p="utama">Lihat semua (${UI.items.length})</button>` : ''}</div>`;
     }
     if (UI.menu === 'avatar') {
-      return `<div class="menu"><div class="mh">${esc(UI.displayName())}<small>${ROLE[UI.prefs.role]}${UI.sync && UI.sync.email ? ' · ' + esc(UI.sync.email) : ''}</small></div>
+      return `<div class="menu"><div class="mh">${esc(UI.displayName())}<small>${ROLE[UI.prefs.role]}${UI.isAdmin() && UI.sync && UI.sync.email ? ' · ' + esc(UI.sync.email) : ''}</small></div>
         ${UI.isGuru() ? '' : `<button class="mi" data-act="goto" data-p="tetapan" data-s="storan">${UI.icon('database')}<span><b>Storan & backup</b></span></button>
         <button class="mi" data-act="exportJson">${UI.icon('download')}<span><b>Eksport backup JSON</b></span></button>
         <button class="mi" data-act="goto" data-p="tetapan" data-s="sekolah">${UI.icon('gear')}<span><b>Tetapan</b></span></button>`}
-        <button class="mi" data-act="goto" data-p="bantuan">${UI.icon('help')}<span><b>Bantuan</b></span></button></div>`;
+        ${UI.canInstall() ? `<button class="mi" data-act="install">${UI.icon('download')}<span><b>Pasang app</b><small>Ke skrin utama telefon atau komputer</small></span></button>` : ''}
+        ${UI.notifyOn() ? `<button class="mi" data-act="notifyDisable">${UI.icon('bell')}<span><b>Matikan notifikasi</b></span></button>` : UI.notifyState() !== 'denied' ? `<button class="mi" data-act="notifyEnable">${UI.icon('bell')}<span><b>Hidupkan notifikasi</b></span></button>` : ''}
+        <button class="mi" data-act="goto" data-p="bantuan">${UI.icon('help')}<span><b>Bantuan</b></span></button>
+        <button class="mi" data-act="logout">${UI.icon('logout')}<span><b>Log keluar</b><small>${UI.isAdmin() ? 'Kata laluan diperlukan untuk masuk semula' : 'Pilih nama semula bila masuk'}</small></span></button></div>`;
     }
     return '';
   }
@@ -57,7 +65,7 @@
       <div class="brand"><span class="mark${TT.validLogo(s.school.logo) ? ' logo' : ''}">${TT.validLogo(s.school.logo) ? `<img src="${s.school.logo}" alt="Logo ${esc(s.school.name)}">` : UI.icon('calendar')}</span><span class="bname">${esc(s.school.name)}<small>${esc(CFG.appName || 'Jadual Sekolah')}</small></span></div>
       <nav class="seg main">${NAV[role].map(([k, t, ic]) => `<button class="${UI.page === k ? 'on' : ''}" data-act="goto" data-p="${k}">${UI.icon(ic)}<span>${t}</span></button>`).join('')}</nav>
       <div class="tb-right">${syncPill()}
-        <button class="role${UI.menu === 'role' ? ' open' : ''}" data-act="menu" data-m="role" aria-haspopup="true" aria-expanded="${UI.menu === 'role'}">${UI.icon(role === 'guru' ? 'user' : 'shield')}<span><small>PERANAN</small><b>${ROLE[role]}</b></span>${UI.icon('chevDown')}</button>
+        <button class="role${UI.menu === 'role' ? ' open' : ''}" data-act="menu" data-m="role" aria-haspopup="true" aria-expanded="${UI.menu === 'role'}">${UI.icon(role === 'guru' ? 'user' : 'shield')}<span><small>PERANAN</small><b>${UI.isAdmin() && role === 'guru' ? 'Pratonton guru' : ROLE[role]}</b></span>${UI.icon('chevDown')}</button>
         ${role === 'admin' ? `<button class="iconbtn hide-sm" data-act="goto" data-p="bantuan" aria-label="Bantuan" title="Bantuan">${UI.icon('help')}</button>` : ''}
         <button class="iconbtn bell" data-act="menu" data-m="bell" aria-label="Notifikasi" title="Notifikasi">${UI.icon('bell')}${urgent ? `<i class="dot">${urgent > 9 ? '9+' : urgent}</i>` : ''}</button>
         <button class="avatar" data-act="menu" data-m="avatar" aria-label="Akaun">${esc(UI.initials(UI.displayName()))}</button>
@@ -67,6 +75,7 @@
   UI.render = () => {
     const y = window.scrollY, s = UI.state;
     UI.applyBrand();
+    if (UI.needGate()) { $('app').innerHTML = UI.gateHtml(); return; }
     const allowed = NAV[UI.prefs.role].map((x) => x[0]).concat(UI.isGuru() ? [] : ['bantuan']);
     if (!allowed.includes(UI.page)) UI.page = 'utama';
     UI.items = computeItems();
@@ -78,11 +87,12 @@
 
   UI.actions.menu = (el, e) => { e.stopPropagation(); UI.menu = UI.menu === el.dataset.m ? null : el.dataset.m; UI.render(); };
   UI.actions.setRole = (el) => {
+    if (!UI.isAdmin()) { UI.logout('admin'); return; } // guru perlu log masuk pentadbir
     UI.prefs.role = el.dataset.r; UI.savePrefs();
     if (UI.prefs.role === 'admin' || UI.meTeacher()) UI.menu = null;
     UI.page = 'utama'; UI.render();
   };
-  UI.changes.setMeSel = (el) => { UI.prefs.me = el.value || null; UI.savePrefs(); UI.menu = null; UI.render(); };
+  UI.changes.setMeSel = (el) => { UI.prefs.me = el.value || null; UI.savePrefs(); UI.menu = null; UI.render(); UI.checkNotices(true); };
 
   document.addEventListener('click', (e) => {
     const el = e.target.closest('[data-act]');
@@ -103,8 +113,22 @@
     if (e.key === 'Enter' && e.target.matches('#theForm input:not([type=checkbox])')) { e.preventDefault(); UI.actions.formSave(); }
   });
 
-  UI.state = UI.load();
+  UI.afterEnter = () => {
+    UI.checkNotices(UI.isGuru() ? false : true);
+    if (UI.isAdmin() && UI.sync && UI.sync.status === 'conflict') UI.actions.syncConflict();
+  };
+
+  // ---------- mula ----------
+  const g = TT.guruIdFrom(new URLSearchParams(location.search).get('g') || '');
+  if (g && UI.guruSrc() !== g) { UI.prefs.guru = { src: g }; if (UI.prefs.session && UI.prefs.session.role === 'guru') UI.prefs.me = null; }
+  const ses = UI.prefs.session, live = TT.sessionValid(ses, Date.now());
+  if (!live) UI.prefs.session = null;
+  if (live && ses.role === 'guru') { UI.prefs.role = 'guru'; UI.useGuruState(); } else UI.state = UI.load();
+  if (live && ses.role === 'admin' && g) UI.toast('Ini pautan guru. Anda sedang log masuk sebagai pentadbir; log keluar untuk masuk sebagai guru.');
   UI.savePrefs();
   UI.relief.date = TT.nextSchoolDay(UI.state, UI.relief.date);
   UI.render();
+  if (!live && g) UI.actions.gateGo({ dataset: { s: 'guru' } });
+  if (live && ses.role === 'guru') UI.guruTick(true).then(() => UI.checkNotices());
+  else if (live) UI.checkNotices();
 })();

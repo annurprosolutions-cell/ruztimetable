@@ -48,7 +48,8 @@
 
   TT.newState = () => ({
     version: 1,
-    school: { name: 'Sekolah Saya', weekMode: 'mon-fri', logo: '', color: '' },
+    school: { name: 'Sekolah Saya', weekMode: 'mon-fri', logo: '', color: '', guruSheet: '' },
+    auth: null, // { admin: 'pbkdf2-sha256$...' } hash kata laluan pentadbir
     periods: TT.defaultPeriods(),
     dayLimits: [8, 8, 8, 8, 6],
     subjects: [], teachers: [], classes: [], rooms: [], lessons: [],

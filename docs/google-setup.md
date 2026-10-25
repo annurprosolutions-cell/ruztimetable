@@ -4,7 +4,7 @@ Dibuat sekali sahaja oleh pembekal, bukan oleh setiap sekolah.
 
 ## 1. Projek dan API
 1. console.cloud.google.com > projek baharu (contoh `jadual-sekolah`).
-2. APIs & Services > Library > aktifkan **Google Sheets API**.
+2. APIs & Services > Library > aktifkan **Google Sheets API** dan **Google Drive API**. Drive API digunakan untuk (a) berkongsi Sheet "Data Guru" melalui pautan, dan (b) mencari Sheet sekolah bila pentadbir log masuk di peranti baharu. Tanpanya app masih berfungsi, tetapi pentadbir perlu kongsi Data Guru secara manual dan tampal pautan Sheet di peranti baharu.
 
 ## 2. OAuth consent screen
 Pilih *External*, kemudian isi:

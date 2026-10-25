@@ -13,8 +13,8 @@ const MON = '2026-10-26';
 const SHOTS = process.env.SHOTS || '';
 const step = (m) => console.log('  ok  ' + m);
 
-async function open(b, url, setup) {
-  const ctx = await b.newContext({ viewport: { width: 1360, height: 1500 }, timezoneId: 'Asia/Kuala_Lumpur', acceptDownloads: true });
+async function open(b, url, setup, extra) {
+  const ctx = await b.newContext(Object.assign({ viewport: { width: 1360, height: 1500 }, timezoneId: 'Asia/Kuala_Lumpur', acceptDownloads: true }, extra || {}));
   const pg = await ctx.newPage();
   await pg.clock.setFixedTime(FIXED);
   const errors = [];
@@ -35,10 +35,32 @@ async function adminAndGuru(b) {
   const { pg, errors, st } = await open(b, 'file://' + path.join(ROOT, 'index.html'));
   const shot = (n) => (SHOTS ? pg.screenshot({ path: path.join(SHOTS, n + '.png'), fullPage: true }) : null);
 
+  // kali pertama: skrin log masuk, tetapan awal pentadbir (tanpa Google kerana file://)
+  assert.ok(await pg.locator('.gate').count());
+  assert.strictEqual(await pg.locator('header.topbar').count(), 0);
+  await pg.click('[data-act="gateGo"][data-s="admin"]');
+  await pg.click('[data-act="gateNext"]');
+  assert.match(await pg.textContent('.gate .err'), /nama sekolah/);
+  await pg.fill('#wName', 'SMK Ujian');
+  await pg.click('[data-act="gateNext"]');
+  await pg.fill('#wPw', 'abc'); await pg.fill('#wPw2', 'abc');
+  await pg.click('[data-act="gateNext"]');
+  assert.match(await pg.textContent('.gate .err'), /sekurang-kurangnya/);
+  await pg.fill('#wPw', 'rahsia123'); await pg.fill('#wPw2', 'rahsia123');
+  await pg.click('[data-act="gateNext"]');
+  await pg.check('input[name="wData"][value="kosong"]');
+  await pg.click('[data-act="gateNext"]');
+  await pg.waitForSelector('header.topbar');
+  assert.strictEqual(await pg.evaluate(() => UI.page), 'data');
+  assert.ok(await pg.evaluate(() => TT.validHash(UI.state.auth.admin) && !JSON.stringify(UI.state).includes('rahsia123')));
+  step('skrin log masuk + tetapan awal: nama sekolah, kata laluan (disahkan, disimpan sebagai hash), mula kosong');
+
+  await pg.click('nav button[data-p="utama"]');
   assert.ok(await pg.locator('.card.dark.today', { hasText: 'Selamat datang' }).count());
   await pg.click('.card.dark.today button[data-act="loadSample"]');
   assert.strictEqual((await st()).teachers.length, 18);
-  step('kad selamat datang + muat data contoh');
+  assert.ok((await st()).auth, 'kata laluan kekal selepas muat data contoh');
+  step('kad selamat datang + muat data contoh (kata laluan kekal)');
 
   await pg.click('nav button[data-p="jadual"]');
   await pg.click('button[data-act="generate"]');
@@ -170,11 +192,11 @@ async function adminAndGuru(b) {
   assert.strictEqual((await st()).school.weekMode, 'sun-thu');
   await pg.selectOption('select[data-chg="weekMode"]', 'mon-fri');
   await pg.click('button[data-act="tab"][data-k="storan"]');
-  assert.ok(await pg.locator('text=belum diaktifkan').count());
+  assert.ok(await pg.locator('text=/belum diaktifkan|hanya berfungsi bila app dibuka/').count());
   const [dl] = await Promise.all([pg.waitForEvent('download'), pg.click('.card button[data-act="exportJson"]')]);
   assert.match(dl.suggestedFilename(), /\.json$/);
   assert.ok(await pg.evaluate(() => UI.prefs.lastBackup));
-  step('tetapan minggu, storan (Sheets belum dikonfigurasi), eksport JSON');
+  step('tetapan minggu, storan (Sheets tidak tersedia pada file://), eksport JSON');
 
   await pg.click('nav button[data-p="utama"]');
   assert.ok(await pg.locator('.card.dark.today h2', { hasText: 'Hari ini' }).count());
@@ -190,9 +212,10 @@ async function adminAndGuru(b) {
   const pp = await pg.context().newPage();
   await pp.goto('file://' + path.join(ROOT, 'privasi.html'));
   assert.ok((await pp.textContent('body')).includes('drive.file'));
-  assert.ok(await pp.isVisible('#warn'), 'amaran e-mel sokongan patut kelihatan bila config kosong');
+  const noMail = /email:\s*''/.test(fs.readFileSync(path.join(ROOT, 'config.js'), 'utf8'));
+  assert.strictEqual(await pp.isVisible('#warn'), noMail, 'amaran e-mel sokongan kelihatan hanya bila config tiada e-mel');
   await pp.close();
-  step('halaman privasi dimuat, amaran e-mel sokongan kosong dipaparkan');
+  step('halaman privasi dimuat, amaran e-mel sokongan ikut config');
 
   await pg.reload();
   assert.strictEqual((await st()).teachers.length, 19);
@@ -227,7 +250,49 @@ async function adminAndGuru(b) {
   assert.ok(yR < yL, 'di telefon, "Hari ini" patut di atas');
   await pg.click('button[data-act="menu"][data-m="role"]');
   await pg.click('button[data-act="setRole"][data-r="admin"]');
-  step('peranan guru: dashboard, slip, jadual saya, relief saya, bantuan, susunan telefon');
+  step('pratonton guru (pentadbir): dashboard, slip, jadual saya, relief saya, bantuan, susunan telefon');
+
+  // log keluar: masuk semula perlu kata laluan
+  await pg.setViewportSize({ width: 1360, height: 1500 });
+  await pg.click('button.avatar');
+  await pg.click('[data-act="logout"]');
+  assert.ok(await pg.locator('.gate').count());
+  await pg.reload();
+  assert.ok(await pg.locator('.gate').count(), 'tiada sesi selepas log keluar');
+  assert.ok((await pg.textContent('.gbrand')).includes('SMK Contoh Jaya'));
+  await pg.click('[data-act="gateGo"][data-s="admin"]');
+  await pg.fill('#gPw', 'salah123');
+  await pg.click('[data-act="gatePw"]');
+  await pg.waitForSelector('.gate .err');
+  assert.match(await pg.textContent('.gate .err'), /salah/);
+  await pg.fill('#gPw', 'rahsia123');
+  await pg.press('#gPw', 'Enter');
+  await pg.waitForSelector('header.topbar');
+  step('log keluar, kata laluan salah ditolak, betul diterima (Enter)');
+
+  // guru: tanpa kata laluan, pilih nama, baca sahaja
+  await pg.click('button.avatar');
+  await pg.click('[data-act="logout"]');
+  await pg.click('[data-act="gateGo"][data-s="guru"]');
+  await pg.fill('#gQ', 'aminah');
+  assert.strictEqual(await pg.locator('.gate .pickbtn:visible').count(), 1);
+  await pg.click('.gate .pickbtn:visible');
+  await pg.waitForSelector('header.topbar');
+  assert.deepStrictEqual(await pg.locator('nav.seg.main button').allTextContents(), ['Utama', 'Jadual saya', 'Relief saya', 'Bantuan']);
+  const before = await pg.evaluate(() => localStorage.getItem(UI.KEY));
+  await pg.evaluate(() => { UI.state.school.name = 'DIUBAH'; UI.save(); });
+  assert.strictEqual(await pg.evaluate(() => localStorage.getItem(UI.KEY)), before, 'guru tidak boleh menulis data');
+  await pg.click('button[data-act="menu"][data-m="role"]');
+  assert.strictEqual(await pg.locator('[data-act="setRole"]').count(), 0);
+  await pg.click('[data-act="adminLogin"]');
+  assert.ok(await pg.locator('#gPw').count(), 'tukar ke pentadbir perlu kata laluan');
+  await pg.click('[data-act="gateGo"][data-s="role"]');
+  await pg.click('[data-act="gateGo"][data-s="guru"]');
+  await pg.click('.gate .pickbtn >> nth=0');
+  await pg.reload();
+  assert.ok(await pg.locator('header.topbar').count(), 'sesi guru kekal selepas muat semula');
+  assert.strictEqual(await pg.evaluate(() => UI.readOnly), true);
+  step('guru: pilih nama (carian), menu terhad, baca sahaja, tukar ke pentadbir perlu kata laluan, sesi kekal');
 
   assert.deepStrictEqual(errors, []);
 }
@@ -250,8 +315,29 @@ async function sheetsFlow(b) {
     ADMIN_TOKEN: 'adm', GOOGLE_CLIENT_ID: 'ujian.apps.googleusercontent.com', ALLOWED_ORIGINS: `http://127.0.0.1:${server.address().port}` };
   const tokeninfo = async () => ({ ok: true, json: async () => ({ email: 'pentadbir@moe-dl.edu.my', email_verified: 'true', aud: 'ujian.apps.googleusercontent.com' }) });
   const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, content-type', 'access-control-allow-methods': 'GET, POST, OPTIONS' };
+  const shared = new Set();
+  const json = (route, body) => route.fulfill({ status: 200, headers: Object.assign({ 'content-type': 'application/json' }, cors), body: JSON.stringify(body) });
+  // Google Drive (kongsi pautan, cari Sheet) dan gviz CSV awam untuk Data Guru
+  const googleExtra = async (page) => {
+    await page.route('https://www.googleapis.com/drive/v3/**', async (route) => {
+      const req = route.request(), u = new URL(req.url());
+      if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+      if (req.headers().authorization !== 'Bearer tok-e2e') return route.fulfill({ status: 401, headers: cors, body: '{}' });
+      const pm = u.pathname.match(/\/files\/([^/]+)\/permissions$/);
+      if (pm && req.method() === 'POST') { shared.add(pm[1]); return json(route, { id: 'anyoneWithLink' }); }
+      if (u.pathname.endsWith('/files')) return json(route, { files: [...fake.db.entries()].filter(([, v]) => v.title.includes('Jadual Sekolah')).map(([id, v]) => ({ id, name: v.title, modifiedTime: '2026-10-26T00:00:00Z' })) });
+      return route.fulfill({ status: 404, headers: cors, body: '{}' });
+    });
+    await page.route('https://docs.google.com/spreadsheets/d/**', async (route) => {
+      const id = new URL(route.request().url()).pathname.split('/')[3], book = fake.db.get(id);
+      if (!book || !shared.has(id)) return route.fulfill({ status: 200, headers: Object.assign({ 'content-type': 'text/html' }, cors), body: '<!DOCTYPE html><html><body>Sign in</body></html>' });
+      const csv = (book.tabs.get('Data') || []).map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+      return route.fulfill({ status: 200, headers: Object.assign({ 'content-type': 'text/csv' }, cors), body: csv });
+    });
+  };
+  const base = `http://127.0.0.1:${server.address().port}/`;
   try {
-    const { pg, errors, st } = await open(b, `http://127.0.0.1:${server.address().port}/index.html`, async (page) => {
+    const mocks = async (page) => {
       await page.route('**/config.js', async (route) => {
         const body = fs.readFileSync(path.join(ROOT, 'config.js'), 'utf8').replace("googleClientId: ''", "googleClientId: 'ujian.apps.googleusercontent.com'").replace("licenseUrl: ''", "licenseUrl: 'https://lesen.test'");
         await route.fulfill({ status: 200, contentType: 'text/javascript', body });
@@ -277,11 +363,29 @@ async function sheetsFlow(b) {
       await page.route('https://www.googleapis.com/oauth2/v3/userinfo', (route) => (route.request().method() === 'OPTIONS'
         ? route.fulfill({ status: 204, headers: cors })
         : route.fulfill({ status: 200, headers: Object.assign({ 'content-type': 'application/json' }, cors), body: JSON.stringify({ email: 'pentadbir@moe-dl.edu.my' }) })));
-    });
+      await googleExtra(page);
+    };
+    // service worker disekat dalam ujian supaya mock rangkaian Playwright berkuat kuasa
+    const NOSW = { serviceWorkers: 'block' };
+    const { pg, errors, st } = await open(b, base + 'index.html', mocks, NOSW);
+    // skrin log masuk: Google dahulu; belum berlesen -> teruskan tanpa Sheets
+    await pg.click('[data-act="gateGo"][data-s="admin"]');
+    await pg.click('[data-act="gateGoogle"]');
+    await pg.waitForSelector('.gate .err');
+    assert.match(await pg.textContent('.gate .err'), /belum berlesen/);
+    await pg.click('[data-act="gateLocal"]');
+    await pg.fill('#wName', 'SMK Awan'); await pg.click('[data-act="gateNext"]');
+    await pg.fill('#wPw', 'rahsia123'); await pg.fill('#wPw2', 'rahsia123'); await pg.click('[data-act="gateNext"]');
+    await pg.check('input[name="wData"][value="kosong"]'); await pg.click('[data-act="gateNext"]');
+    await pg.waitForSelector('header.topbar');
+    assert.strictEqual(fake.db.size, 0);
+    step('log masuk: Google -> semakan lesen gagal -> teruskan setempat dengan tetapan awal');
+    await pg.click('nav button[data-p="utama"]');
     await pg.click('.card.dark.today button[data-act="loadSample"]');
     await pg.evaluate(() => { UI.state.placements = TT.generate(UI.state, { seed: 2, improveMs: 100 }).placements; UI.save(); UI.render(); });
     await pg.click('nav button[data-p="tetapan"]');
     await pg.click('button[data-act="tab"][data-k="storan"]');
+    await pg.evaluate(() => UI.sync.setStatus('off')); // status 'unlicensed' dari skrin log masuk; tunggu semakan baharu selesai
     await pg.click('button[data-act="syncSignIn"]');
     await pg.waitForFunction(() => UI.sync.signedIn());
     await pg.waitForSelector('text=pentadbir@moe-dl.edu.my', { timeout: 10000 });
@@ -306,7 +410,20 @@ async function sheetsFlow(b) {
     assert.strictEqual(book.tabs.get('Guru').length, 19);
     assert.strictEqual(book.tabs.get('Jadual').length, 244);
     assert.strictEqual(await pg.locator('#syncPill').textContent(), 'Disimpan');
-    step('log masuk (mock), cipta Sheet, data ditulis: 18 guru, 243 waktu');
+    assert.ok(/^pbkdf2-sha256\$/.test(book.tabs.get('Sekolah').find((r) => r[0] === 'kata_laluan_pentadbir')[1]));
+    step('log masuk (mock), cipta Sheet, data ditulis: 18 guru, 243 waktu, hash kata laluan');
+    const gid = await pg.evaluate(() => UI.state.school.guruSheet);
+    const gbook = fake.db.get(gid);
+    assert.ok(gbook && gbook.title.includes('Jadual Guru'), 'Sheet Data Guru dicipta');
+    assert.ok(shared.has(gid), 'Data Guru dikongsi melalui pautan');
+    assert.ok(!shared.has([...fake.db.keys()][0]), 'Sheet utama kekal peribadi');
+    const blob = gbook.tabs.get('Data').map((r) => r[0]);
+    assert.strictEqual(blob[0], 'jadual-guru-v1');
+    assert.ok(!blob.join('').includes('pbkdf2'), 'tiada hash kata laluan dalam Data Guru');
+    assert.ok(await pg.locator('.linkbox input').count());
+    const glink = await pg.inputValue('.linkbox input');
+    assert.ok(glink.endsWith('?g=' + gid), glink);
+    step('Sheet Data Guru: dicipta, dikongsi (pautan), tanpa hash, pautan guru dipaparkan');
 
     await pg.click('button[data-act="tab"][data-k="sekolah"]');
     await pg.fill('input[data-chg="schoolName"]', 'SMK Autosave');
@@ -331,11 +448,88 @@ async function sheetsFlow(b) {
     assert.strictEqual((await st()).teachers.length, 18);
     step('konflik dari peranti lain dikesan, Sheet tidak ditulis ganti, muat dari Sheet');
 
+    // ---- guru di telefon: buka pautan, pilih nama, notifikasi relief baharu ----
+    await pg.evaluate(() => UI.sync.push(true));
+    await pg.waitForFunction(() => UI.sync.status === 'saved');
+    const T = await pg.evaluate(() => UI.state.teachers.find((t) => t.short === 'KMR').id);
+    const notes = [];
+    const g = await open(b, glink, async (page) => {
+      await googleExtra(page);
+      await page.exposeFunction('__note', (t, body) => notes.push([t, body]));
+      await page.addInitScript(() => {
+        class N { constructor(t, o) { window.__note(t, (o && o.body) || ''); } }
+        N.permission = 'granted'; N.requestPermission = async () => 'granted';
+        window.Notification = N;
+      });
+    }, Object.assign({ viewport: { width: 412, height: 900 }, isMobile: true, hasTouch: true }, NOSW));
+    await g.pg.waitForSelector('.gate .pickbtn');
+    assert.ok((await g.pg.textContent('.gbrand')).includes('SMK Dari Sheet'));
+    await g.pg.click(`.gate .pickbtn[data-id="${T}"]`);
+    await g.pg.waitForSelector('header.topbar');
+    assert.strictEqual(await g.pg.evaluate(() => UI.readOnly), true);
+    assert.ok(!(await g.pg.evaluate(() => JSON.stringify(UI.state))).includes('pbkdf2'));
+    await g.pg.click('.card.pwa button[data-act="notifyEnable"]');
+    await g.pg.waitForFunction(() => UI.prefs.notify === true);
+    assert.ok(notes.some(([t]) => t === 'Notifikasi dihidupkan'));
+    step('guru (telefon): buka pautan tanpa log masuk, pilih nama, baca sahaja, hidupkan notifikasi');
+
+    await pg.evaluate((tid) => {
+      const s = UI.state, l = s.lessons.find((x) => !x.teacherIds.includes(tid));
+      s.reliefs.push({ id: 'rx1', key: 'kx1', date: '2026-10-28', absentTeacherId: l.teacherIds[0], unitId: '', lessonId: l.id, classIds: l.classIds, subjectId: l.subjectId, periods: [2], status: 'assigned', reliefTeacherId: tid, note: '' });
+      return UI.sync.push(true);
+    }, T);
+    await g.pg.evaluate(() => UI.guruTick(true));
+    await g.pg.waitForFunction(() => UI.state.reliefs.some((r) => r.id === 'rx1'));
+    assert.ok(notes.some(([t, body]) => t === 'Tugas relief baharu' && body.includes('Rabu 28 Okt')), JSON.stringify(notes));
+    const n0 = notes.length;
+    await g.pg.evaluate(() => UI.guruTick(true));
+    assert.strictEqual(notes.length, n0, 'tiada notifikasi berulang');
+    await g.pg.reload();
+    await g.pg.waitForSelector('header.topbar');
+    assert.deepStrictEqual(g.errors, []);
+    await g.ctx.close();
+    step('relief baharu diterbitkan -> guru dimaklumkan sekali (Rabu 28 Okt), sesi guru kekal selepas muat semula');
+
+    // ---- pentadbir di peranti baharu: Google -> Sheet dijumpai automatik -> kata laluan ----
+    const d = await open(b, base, mocks, NOSW);
+    await d.pg.click('[data-act="gateGo"][data-s="admin"]');
+    await d.pg.click('[data-act="gateGoogle"]');
+    await d.pg.waitForSelector('#gPw');
+    assert.ok((await d.pg.textContent('.gate')).includes('pentadbir@moe-dl.edu.my'));
+    await d.pg.fill('#gPw', 'rahsia123');
+    await d.pg.click('[data-act="gatePw"]');
+    await d.pg.waitForSelector('header.topbar');
+    assert.strictEqual((await d.st()).teachers.length, 18);
+    assert.strictEqual(await d.pg.evaluate(() => UI.prefs.sheet.id), [...fake.db.keys()][0]);
+    await d.pg.reload();
+    assert.ok(await d.pg.locator('header.topbar').count(), 'sesi pentadbir kekal selepas muat semula');
+    assert.strictEqual(await d.pg.evaluate(() => UI.sync.signedIn()), true, 'token Google kekal selepas muat semula');
+    assert.strictEqual(await d.pg.locator('#syncPill').textContent(), 'Disimpan');
+    assert.deepStrictEqual(d.errors, []);
+    await d.ctx.close();
+    step('peranti baharu: Google -> Sheet ditemui (Drive) -> kata laluan; sesi dan token kekal selepas muat semula');
+
     await pg.click('button[data-act="syncUnlink"]');
     await pg.click('button[data-act="confirmYes"]');
     assert.strictEqual(await pg.evaluate(() => UI.prefs.sheet), null);
     step('putuskan sambungan');
     assert.deepStrictEqual(errors, []);
+
+    // ---- PWA: manifest, ikon, service worker, buka luar talian ----
+    const w = await open(b, base, async (page) => { await page.route(/accounts\.google\.com/, (r) => r.abort()); });
+    const man = await w.pg.evaluate(async () => (await fetch(document.querySelector('link[rel=manifest]').href)).json());
+    assert.strictEqual(man.display, 'standalone');
+    for (const ic of man.icons) assert.strictEqual(await w.pg.evaluate(async (u) => (await fetch(u)).status, ic.src), 200, ic.src);
+    assert.ok(man.icons.some((i) => i.sizes === '512x512' && i.purpose === 'maskable'));
+    await w.pg.evaluate(() => navigator.serviceWorker.ready);
+    await w.pg.waitForFunction(async () => !!(await caches.match('js/app.js')));
+    await w.ctx.setOffline(true);
+    await w.pg.reload();
+    await w.pg.waitForSelector('.gate');
+    assert.strictEqual(await w.pg.evaluate(() => typeof TT.guruSnapshot), 'function');
+    await w.ctx.setOffline(false);
+    await w.ctx.close();
+    step('PWA: manifest + ikon sah, service worker aktif, app dibuka semula tanpa internet');
   } finally { server.close(); }
 }
 

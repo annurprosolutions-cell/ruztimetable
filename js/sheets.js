@@ -43,7 +43,8 @@
     return {
       Meta: [['kunci', 'nilai'], ['format', FORMAT], ['dikemaskini', meta.updatedAt || ''], ['oleh', meta.by || ''], ['aplikasi', meta.app || '']],
       Sekolah: [['kunci', 'nilai'], ['nama', s.school.name], ['minggu', s.school.weekMode], ['had_waktu_sehari', list(s.dayLimits)], ['tetapan_relief', JSON.stringify(s.settings.relief)],
-        ['warna', TT.validHex(s.school.color) ? s.school.color : ''], ['logo', TT.validLogo(s.school.logo) ? s.school.logo : '']],
+        ['warna', TT.validHex(s.school.color) ? s.school.color : ''], ['logo', TT.validLogo(s.school.logo) ? s.school.logo : ''],
+        ['sheet_guru', s.school.guruSheet || ''], ['kata_laluan_pentadbir', (s.auth && s.auth.admin) || '']],
       Waktu: [['label', 'mula', 'tamat', 'jenis']].concat(s.periods.map((p) => [p.label, p.start, p.end, p.type === 'break' ? 'rehat' : 'belajar'])),
       Subjek: [['id', 'nama', 'kod', 'warna', 'subjek_berat']].concat(s.subjects.map((x) => [x.id, x.name, x.short, x.color, yn(x.heavy)])),
       Guru: [['id', 'nama', 'kod', 'panitia', 'subjek_id', 'had_sehari', 'had_seminggu', 'kecuali_relief', 'tidak_boleh (hari-waktu)', 'subjek (rujukan)']]
@@ -82,6 +83,9 @@
     s.school.weekMode = str(sk.minggu) === 'sun-thu' ? 'sun-thu' : 'mon-fri';
     s.school.color = TT.validHex(str(sk.warna)) ? str(sk.warna) : '';
     s.school.logo = TT.validLogo(str(sk.logo)) ? str(sk.logo) : '';
+    s.school.guruSheet = /^[a-zA-Z0-9_-]{20,}$/.test(str(sk.sheet_guru)) ? str(sk.sheet_guru) : '';
+    const pw = str(sk.kata_laluan_pentadbir);
+    s.auth = /^pbkdf2-sha256\$/.test(pw) ? { admin: pw } : null;
     const lim = split(sk.had_waktu_sehari).map(Number).filter(Number.isFinite);
     if (lim.length) s.dayLimits = lim;
     try { if (str(sk.tetapan_relief)) s.settings.relief = Object.assign(TT.defaultRelief(), JSON.parse(str(sk.tetapan_relief))); } catch (e) { /* kekal nilai asal */ }
@@ -120,6 +124,7 @@
 
   // ---------- akses Google Sheets API (fetch disuntik supaya boleh diuji) ----------
   const API = 'https://sheets.googleapis.com/v4/spreadsheets';
+  const DRIVE = 'https://www.googleapis.com/drive/v3';
   const rangeOf = (t) => encodeURIComponent(`'${t}'`);
 
   class SheetStore {
@@ -138,8 +143,8 @@
       return res.status === 204 ? {} : res.json();
     }
 
-    async create(title) {
-      const r = await this.req('POST', API, { properties: { title }, sheets: TT.SHEET_TABS.map((t) => ({ properties: { title: t } })) });
+    async create(title, tabs) {
+      const r = await this.req('POST', API, { properties: { title }, sheets: (tabs || TT.SHEET_TABS).map((t) => ({ properties: { title: t } })) });
       return { id: r.spreadsheetId, url: r.spreadsheetUrl, title };
     }
 
@@ -181,6 +186,24 @@
       (r.valueRanges || []).forEach((vr, i) => { tabs[want[i]] = vr.values || []; });
       return { state: TT.fromSheets(tabs), meta: TT.sheetMeta(tabs), title: info.title, url: info.url };
     }
+
+    // data guru: satu tab "Data", lajur A sahaja
+    async writeBlob(id, rows) {
+      await this.req('POST', `${API}/${id}/values:batchUpdate`, { valueInputOption: 'RAW', data: [{ range: "'Data'!A1", values: rows }] });
+      await this.req('POST', `${API}/${id}/values:batchClear`, { ranges: [`'Data'!A${rows.length + 1}:Z`] });
+    }
+
+    // kongsi "sesiapa dengan pautan boleh lihat" (perlu Google Drive API diaktifkan dalam projek Cloud)
+    async share(id) {
+      await this.req('POST', `${DRIVE}/files/${id}/permissions?supportsAllDrives=true`, { role: 'reader', type: 'anyone' });
+    }
+
+    // Sheet utama yang pernah dicipta oleh app ini (drive.file hanya nampak fail app sendiri)
+    async findMaster() {
+      const q = "mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and name contains 'Jadual Sekolah'";
+      const r = await this.req('GET', `${DRIVE}/files?q=${encodeURIComponent(q)}&orderBy=modifiedTime%20desc&pageSize=10&fields=${encodeURIComponent('files(id,name,modifiedTime)')}`);
+      return (r.files || []).map((f) => ({ id: f.id, title: f.name, modified: f.modifiedTime }));
+    }
   }
   TT.SheetStore = SheetStore;
 
@@ -193,8 +216,14 @@
   };
 
   // ---------- log masuk Google (Google Identity Services, model token) ----------
-  TT.GoogleAuth = function (clientId, scope) {
-    let token = null, exp = 0;
+  // Token akses Google hanya sah ~1 jam dan tiada refresh token dalam pelayar (tanpa pelayan).
+  // Token disimpan dalam localStorage supaya muat semula halaman tidak memutuskan sambungan;
+  // selepas tamat, sambung semula guna akaun yang sama (hint) tanpa perlu pilih akaun lagi.
+  TT.GoogleAuth = function (clientId, scope, storeKey) {
+    let token = null, exp = 0, mail = '';
+    const ls = () => { try { return root.localStorage; } catch (e) { return null; } };
+    const persist = () => { const s = ls(); if (!s || !storeKey) return; try { if (token) s.setItem(storeKey, JSON.stringify({ token, exp, mail })); else s.removeItem(storeKey); } catch (e) { /* abaikan */ } };
+    try { const v = storeKey && ls() && JSON.parse(ls().getItem(storeKey) || 'null'); if (v) { token = v.token || null; exp = v.exp || 0; mail = v.mail || ''; } } catch (e) { /* abaikan */ }
     const load = () => new Promise((res, rej) => {
       if (root.google && root.google.accounts && root.google.accounts.oauth2) { res(); return; }
       const sc = document.createElement('script');
@@ -204,19 +233,21 @@
       document.head.appendChild(sc);
     });
     this.has = () => !!token && Date.now() < exp - 60000;
+    this.lastEmail = () => mail;
     this.signIn = async (prompt) => {
       await load();
       token = await new Promise((res, rej) => {
         const client = root.google.accounts.oauth2.initTokenClient({
-          client_id: clientId, scope,
+          client_id: clientId, scope, hint: mail || undefined,
           callback: (r) => {
             if (r && r.access_token) { exp = Date.now() + (r.expires_in || 3600) * 1000; res(r.access_token); }
             else rej(new Error((r && (r.error_description || r.error)) || 'Log masuk gagal'));
           },
-          error_callback: (e) => rej(new Error(e && e.type === 'popup_closed' ? 'Tetingkap log masuk ditutup' : (e && (e.message || e.type)) || 'Log masuk gagal'))
+          error_callback: (e) => rej(new Error(e && e.type === 'popup_closed' ? 'Tetingkap log masuk ditutup' : e && e.type === 'popup_failed_to_open' ? 'Popup disekat oleh pelayar. Benarkan popup untuk laman ini.' : (e && (e.message || e.type)) || 'Log masuk gagal'))
         });
         client.requestAccessToken({ prompt: prompt == null ? '' : prompt });
       });
+      persist();
       return token;
     };
     this.token = async () => {
@@ -226,12 +257,13 @@
     this.email = async () => {
       try {
         const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + token } });
-        return r.ok ? (await r.json()).email || '' : '';
-      } catch (e) { return ''; }
+        if (r.ok) { mail = (await r.json()).email || ''; persist(); }
+      } catch (e) { /* abaikan */ }
+      return mail;
     };
     this.signOut = () => {
       if (token && root.google && root.google.accounts) root.google.accounts.oauth2.revoke(token, () => {});
-      token = null; exp = 0;
+      token = null; exp = 0; mail = ''; persist();
     };
   };
 

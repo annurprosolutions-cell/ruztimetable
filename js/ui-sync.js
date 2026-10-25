@@ -16,9 +16,11 @@
   sync.license = { allowed: true, state: 'off', message: '' };
   sync.licensed = () => !LURL || sync.license.allowed;
   if (sync.configured() && typeof TT.GoogleAuth === 'function') {
-    sync.auth = new TT.GoogleAuth(CFG.googleClientId, TT.SHEET_SCOPE);
+    sync.auth = new TT.GoogleAuth(CFG.googleClientId, TT.SHEET_SCOPE, 'jadual-sekolah-gauth');
     sync.store = new TT.SheetStore({ fetch: (u, i) => fetch(u, i), token: () => sync.auth.token() });
-    if (sync.linked()) sync.status = 'login';
+    sync.email = sync.auth.lastEmail();
+    if (sync.linked()) sync.status = sync.signedIn() ? 'saved' : 'login';
+    if (sync.signedIn()) sync.msg = 'Disambung';
   }
 
   sync.checkLicense = async () => {
@@ -39,6 +41,8 @@
   };
 
   sync.schedule = () => {
+    // tanda ada perubahan belum dihantar, supaya ia dihantar sebaik sahaja sambung semula
+    if (sync.linked() && !UI.prefs.sheet.dirty) { UI.prefs.sheet.dirty = true; UI.savePrefs(); }
     if (!sync.licensed() || !sync.linked() || !sync.signedIn() || sync.status === 'conflict' || UI.prefs.sheet.auto === false) return;
     clearTimeout(sync.timer);
     set('pending', 'Perubahan akan disimpan sebentar lagi');
@@ -59,10 +63,12 @@
           return;
         }
       }
+      await ensureGuru();
       const now = new Date().toISOString();
       const r = await sync.store.save(id, S(), { updatedAt: now, by: UI.prefs.deviceId, app: `${CFG.appName || 'Jadual Sekolah'} ${CFG.version || ''}`.trim() });
-      Object.assign(UI.prefs.sheet, { syncedAt: now, url: r.url, title: r.title });
+      Object.assign(UI.prefs.sheet, { syncedAt: now, url: r.url, title: r.title, dirty: false });
       UI.prefs.lastBackup = now; UI.savePrefs();
+      await publishGuru(now);
       set('saved', `Disimpan ${localDate(now)}`);
     } catch (e) { fail(e); } finally {
       sync.busy = false;
@@ -70,13 +76,46 @@
     }
   };
 
+  // ---------- data guru: Sheet berasingan, baca sahaja, dikongsi melalui pautan ----------
+  // Sheet utama (ada sebab cuti dan hash kata laluan) kekal peribadi. Guru hanya membaca salinan ini.
+  async function ensureGuru() {
+    if (S().school.guruSheet) return;
+    try {
+      const g = await sync.store.create(`Jadual Guru - ${S().school.name} (baca sahaja)`, ['Data']);
+      sync.quiet = true; S().school.guruSheet = g.id; UI.save(); sync.quiet = false;
+      UI.prefs.sheet.guruShared = false; UI.savePrefs();
+    } catch (e) { UI.prefs.sheet.guruErr = 'Gagal mencipta Sheet Data Guru: ' + e.message; UI.savePrefs(); }
+  }
+  async function publishGuru(now) {
+    const gid = S().school.guruSheet, sh = UI.prefs.sheet;
+    if (!gid) return;
+    try {
+      if (!sh.guruShared) {
+        try { await sync.store.share(gid); sh.guruShared = true; sh.shareErr = ''; } catch (e) { sh.shareErr = e.message; }
+      }
+      await sync.store.writeBlob(gid, TT.packBlob(TT.guruSnapshot(S(), TT.todayISO(), { at: now, master: sh.id })));
+      sh.guruAt = now; sh.guruErr = '';
+    } catch (e) { sh.guruErr = 'Data guru tidak dikemas kini: ' + e.message; }
+    UI.savePrefs();
+  }
+  sync.guruLink = () => {
+    const gid = S().school.guruSheet;
+    return gid ? `${location.origin}${location.pathname.replace(/index\.html$/, '')}?g=${gid}` : '';
+  };
+  // ditanda sudah dikongsi secara manual oleh pentadbir
+  actions.guruShared = () => { UI.prefs.sheet.guruShared = true; UI.prefs.sheet.shareErr = ''; UI.savePrefs(); UI.render(); };
+  actions.guruCopy = async () => {
+    const ok = await UI.copyText(sync.guruLink());
+    UI.toast(ok ? 'Pautan guru disalin.' : 'Salin pautan secara manual.', ok ? '' : 'err');
+  };
+
   sync.pull = async () => {
     if (!sync.licensed()) { set('unlicensed', sync.license.message); return; }
     set('saving', 'Memuat dari Google Sheets');
     try {
       const r = await sync.store.load(UI.prefs.sheet.id);
-      sync.quiet = true; UI.state = r.state; UI.save(); sync.quiet = false;
-      Object.assign(UI.prefs.sheet, { syncedAt: r.meta.dikemaskini || '', title: r.title, url: r.url }); UI.savePrefs();
+      sync.quiet = true; UI.state = UI.carry(r.state); UI.save(); sync.quiet = false;
+      Object.assign(UI.prefs.sheet, { syncedAt: r.meta.dikemaskini || '', title: r.title, url: r.url, dirty: false }); UI.savePrefs();
       set('saved', 'Dimuat dari Google Sheets'); UI.render(); UI.toast('Data dimuat dari Google Sheets.');
     } catch (e) { sync.quiet = false; fail(e); UI.toast(sync.msg, 'err'); }
   };
@@ -90,7 +129,7 @@
   actions.syncSignIn = async () => {
     if (!guard()) return;
     try {
-      await sync.auth.signIn(sync.linked() ? '' : 'consent');
+      await sync.auth.signIn(sync.linked() || sync.auth.lastEmail() ? '' : 'consent');
       sync.email = await sync.auth.email();
       await sync.checkLicense();
       if (!sync.license.allowed) { set('unlicensed', sync.license.message); UI.render(); return; }
@@ -98,18 +137,23 @@
         const meta = await sync.store.readMeta(UI.prefs.sheet.id);
         if (meta.dikemaskini && meta.dikemaskini !== (UI.prefs.sheet.syncedAt || '') && meta.oleh !== UI.prefs.deviceId) {
           set('conflict', `Sheet dikemas kini dari peranti lain (${localDate(meta.dikemaskini)}).`); conflictModal();
-        } else set('saved', 'Disambung');
+        } else if (UI.prefs.sheet.dirty) await sync.push(true);
+        else set('saved', 'Disambung');
       } else set('off');
       UI.render();
     } catch (e) { fail(e); UI.toast(e.message, 'err'); UI.render(); }
   };
+  sync.setStatus = set;
+  sync.createMaster = async () => {
+    set('saving', 'Mencipta Sheet');
+    const r = await sync.store.create(`Jadual Sekolah - ${S().school.name}`);
+    UI.prefs.sheet = { id: r.id, url: r.url, title: r.title, syncedAt: '', auto: true }; UI.savePrefs();
+    await sync.push(true);
+  };
   actions.syncCreate = async () => {
     if (!guard() || !sync.signedIn() || !sync.licensed()) return;
     try {
-      set('saving', 'Mencipta Sheet');
-      const r = await sync.store.create(`Jadual Sekolah - ${S().school.name}`);
-      UI.prefs.sheet = { id: r.id, url: r.url, title: r.title, syncedAt: '', auto: true }; UI.savePrefs();
-      await sync.push(true);
+      await sync.createMaster();
       UI.render(); UI.toast('Google Sheet dicipta dan data disimpan.');
     } catch (e) { fail(e); UI.toast(sync.msg, 'err'); UI.render(); }
   };
@@ -188,6 +232,22 @@
     }
     return `<section class="card">${head}<p>Disambung ke <a href="${esc(sh.url)}" target="_blank" rel="noopener">${esc(sh.title || 'Google Sheet')} ${UI.icon('external')}</a> sebagai <b>${esc(sync.email || 'akaun Google')}</b>.</p>${status}
       <label class="fld chk"><input type="checkbox" data-chg="syncAuto"${sh.auto !== false ? ' checked' : ''}><span>Simpan automatik setiap kali data berubah</span></label>
-      <div class="row">${sync.status === 'conflict' ? '<button class="btn danger-fill" data-act="syncConflict">Selesaikan konflik</button>' : ''}<button class="btn primary" data-act="syncPush">${UI.icon('upload')} Simpan sekarang</button><button class="btn" data-act="syncPull">${UI.icon('download')} Muat dari Sheet</button><button class="btn" data-act="syncUnlink">Putuskan</button><button class="btn" data-act="syncSignOut">Log keluar</button></div></section>`;
+      <div class="row">${sync.status === 'conflict' ? '<button class="btn danger-fill" data-act="syncConflict">Selesaikan konflik</button>' : ''}<button class="btn primary" data-act="syncPush">${UI.icon('upload')} Simpan sekarang</button><button class="btn" data-act="syncPull">${UI.icon('download')} Muat dari Sheet</button><button class="btn" data-act="syncUnlink">Putuskan</button><button class="btn" data-act="syncSignOut">Log keluar</button></div></section>${UI.guruCard()}`;
+  };
+
+  // ---------- kad pautan guru ----------
+  UI.guruCard = () => {
+    const sh = UI.prefs.sheet, gid = S().school.guruSheet;
+    const head = `<div class="ch"><div><h2>${UI.icon('users')} Pautan guru</h2><small>Guru buka pautan ini, pilih nama, dan nampak jadual serta relief sendiri. Mereka tidak boleh mengubah apa-apa.</small></div></div>`;
+    if (!sh) return '';
+    if (!gid) return `<section class="card">${head}<p class="hint">Pautan guru dicipta automatik pada simpanan seterusnya.${sh.guruErr ? ` <b class="warn">${esc(sh.guruErr)}</b>` : ''}</p></section>`;
+    const link = sync.guruLink(), wa = 'https://wa.me/?text=' + encodeURIComponent(`Jadual waktu & relief ${S().school.name}: buka pautan ini, pilih nama anda, dan tekan "Pasang app" untuk simpan di telefon.\n${link}`);
+    const shareNote = sh.guruShared ? '' : `<div class="banner warn"><b>Satu langkah manual diperlukan.</b> App tidak dapat menetapkan perkongsian secara automatik${sh.shareErr ? ` (${esc(sh.shareErr)})` : ''}.
+      Buka <a href="https://docs.google.com/spreadsheets/d/${esc(gid)}/edit" target="_blank" rel="noopener">Sheet Data Guru ${UI.icon('external')}</a> → <b>Kongsi</b> → Akses umum: <b>Sesiapa yang mempunyai pautan</b>, peranan <b>Pemapar</b>.
+      Jika akaun DELIMa tidak membenarkan, pilih domain sekolah (guru perlu log masuk akaun DELIMa dalam pelayar).
+      <div class="row"><button class="btn" data-act="guruShared">Saya sudah kongsi</button></div></div>`;
+    return `<section class="card">${head}${shareNote}
+      <div class="linkbox"><input readonly value="${esc(link)}" aria-label="Pautan guru"><button class="btn" data-act="guruCopy">Salin</button><a class="btn" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a></div>
+      <p class="hint">Dikemas kini setiap kali data disimpan${sh.guruAt ? ` (terakhir ${localDate(sh.guruAt)})` : ''}. Data guru tidak mengandungi sebab cuti atau kata laluan.${sh.guruErr ? ` <b class="warn">${esc(sh.guruErr)}</b>` : ''}</p></section>`;
   };
 })();

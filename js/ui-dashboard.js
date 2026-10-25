@@ -102,13 +102,13 @@
     const top = urgent.find((i) => TT.URGENT.includes(i.sev));
     const banner = top ? alertBanner(top.title, top.when, `<button class="pill red" ${UI.goAttr(top.go)}>${esc(top.btn)}</button>`) : '';
     return `<div class="dash"><div class="col-l">${sum}${heatCard(TT.monthReliefPeriods(s, UI.heatMonth), 'Aktiviti relief', 'relief')}</div>
-      <div class="col-r">${banner}${empty ? welcomeCard() : todayAdmin()}${actsCard(items.filter((i) => i !== top))}</div></div>`;
+      <div class="col-r">${banner}${empty ? welcomeCard() : todayAdmin()}${actsCard(items.filter((i) => i !== top))}${UI.pwaCard()}</div></div>`;
   }
 
   // ---------------- peranan guru ----------------
-  UI.pickMe = () => `<section class="card"><div class="ch"><h2>Siapa anda?</h2></div><p class="hint">Pilih nama anda untuk melihat jadual dan tugas relief sendiri. Pilihan ini disimpan dalam pelayar ini sahaja.</p>
+  UI.pickMe = () => `<section class="card"><div class="ch"><h2>Siapa anda?</h2></div><p class="hint">Pilih nama anda untuk melihat jadual dan tugas relief sendiri. Pilihan ini disimpan pada peranti ini.</p>
     <div class="pick">${S().teachers.map((t) => `<button class="pickbtn" data-act="setMe" data-id="${t.id}"><span class="av">${esc(UI.initials(t.name))}</span>${esc(t.name)}</button>`).join('') || '<p class="empty">Belum ada guru dalam data. Minta pentadbir jadual kongsikan data sekolah.</p>'}</div></section>`;
-  actions.setMe = (el) => { UI.prefs.me = el.dataset.id; UI.savePrefs(); UI.menu = null; UI.render(); };
+  actions.setMe = (el) => { UI.prefs.me = el.dataset.id; UI.savePrefs(); UI.menu = null; UI.render(); UI.checkNotices(true); };
 
   function todayGuru(t, day, items) {
     const s = S(), today = TT.todayISO();
@@ -156,7 +156,7 @@
     const banner = rel.length ? alertBanner(`Anda ada ${rel.length} tugas relief ${dayWord}`, rel.map((x) => `${x.start} ${x.classes}`).join(' · '), `<button class="pill red" data-act="mySlip" data-date="${day}">Cetak slip</button>`) : '';
     const acts = UI.items.filter((i) => !(rel.length && i.go.act === 'mySlip' && i.go.date === day));
     return `<div class="dash"><div class="col-l">${sum}${heatCard(TT.monthReliefPeriods(s, UI.heatMonth, t.id), 'Aktiviti relief saya', 'reliefku')}</div>
-      <div class="col-r">${banner}${todayGuru(t, day, items)}${actsCard(acts)}</div></div>`;
+      <div class="col-r">${banner}${todayGuru(t, day, items)}${UI.pwaCard()}${actsCard(acts)}</div></div>`;
   }
 
   pages.utama = () => (UI.isGuru() ? guruDash() : adminDash());

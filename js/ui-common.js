@@ -23,22 +23,33 @@
   UI.monthRange = monthRange;
 
   // ---------- data & pilihan peranti ----------
+  UI.KEY = KEY;
   UI.load = () => {
     try { const raw = localStorage.getItem(KEY); if (raw) return TT.migrate(JSON.parse(raw)); } catch (e) { /* storan tiada atau rosak */ }
     return TT.newState();
   };
   UI.save = () => {
+    if (UI.readOnly) return; // paparan guru: data milik pentadbir, tidak ditulis
     try { localStorage.setItem(KEY, JSON.stringify(UI.state)); } catch (e) { UI.toast('Gagal simpan ke pelayar (storan penuh atau disekat). Eksport JSON untuk backup.', 'err'); }
     if (UI.sync && !UI.sync.quiet) UI.sync.schedule();
+  };
+  // kata laluan pentadbir dan pautan guru kekal walaupun data diganti (contoh, import, kosongkan)
+  UI.carry = (next) => {
+    const cur = UI.state || {};
+    if (!next.auth && cur.auth) next.auth = cur.auth;
+    if (!next.school.guruSheet && cur.school && cur.school.guruSheet) next.school.guruSheet = cur.school.guruSheet;
+    return next;
   };
   UI.commit = () => { TT.reconcile(UI.state); TT.prunePlacements(UI.state); UI.save(); UI.render(); };
 
   // pilihan peranti (peranan, siapa saya, Sheet yang disambung) tidak dikongsi melalui fail data
-  const defPrefs = () => ({ role: 'admin', me: null, name: '', deviceId: 'd' + Math.random().toString(36).slice(2, 10), lastBackup: null, sheet: null });
+  // session: { role: 'admin'|'guru', until } kekal 30 hari; guru: { src: id Sheet Data Guru }
+  const defPrefs = () => ({ role: 'admin', me: null, name: '', deviceId: 'd' + Math.random().toString(36).slice(2, 10), lastBackup: null, sheet: null, session: null, guru: null, notify: false, seen: null });
   UI.prefs = (() => { try { return Object.assign(defPrefs(), JSON.parse(localStorage.getItem(PKEY) || '{}')); } catch (e) { return defPrefs(); } })();
   UI.savePrefs = () => { try { localStorage.setItem(PKEY, JSON.stringify(UI.prefs)); } catch (e) { /* abaikan */ } };
 
   UI.isGuru = () => UI.prefs.role === 'guru';
+  UI.isAdmin = () => !!(UI.prefs.session && UI.prefs.session.role === 'admin');
   UI.meTeacher = () => (UI.state.teachers || []).find((t) => t.id === UI.prefs.me) || null;
   UI.displayName = () => (UI.isGuru() ? (UI.meTeacher() || {}).name || 'Guru' : UI.prefs.name || 'Pentadbir');
   UI.greet = () => { const h = new Date().getHours(); return h < 5 ? 'Selamat malam' : h < 12 ? 'Selamat pagi' : h < 14 ? 'Selamat tengah hari' : h < 19 ? 'Selamat petang' : 'Selamat malam'; };
