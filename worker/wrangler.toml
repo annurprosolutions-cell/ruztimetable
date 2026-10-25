@@ -4,7 +4,7 @@ compatibility_date = "2025-01-01"
 
 [vars]
 # Client ID OAuth Google yang sama dengan config.js
-GOOGLE_CLIENT_ID = ""
+GOOGLE_CLIENT_ID = "40784680032-vpri939rkmrq8mbnq2qrph31jl9dla0b.apps.googleusercontent.com"
 # Alamat app (tanpa garis condong hujung), dipisah koma
 ALLOWED_ORIGINS = "https://annurprosolutions-cell.github.io"
 GRACE_DAYS = "7"
