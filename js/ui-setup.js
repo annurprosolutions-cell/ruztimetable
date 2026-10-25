@@ -59,6 +59,13 @@
           <option value="mon-fri"${s.school.weekMode === 'mon-fri' ? ' selected' : ''}>Isnin hingga Jumaat</option>
           <option value="sun-thu"${s.school.weekMode === 'sun-thu' ? ' selected' : ''}>Ahad hingga Khamis (Kedah, Kelantan, Terengganu, Johor)</option></select></label>
       </div></section>
+      <section class="card"><div class="ch"><div><h2>Jenama sekolah</h2><small>Logo dan warna muncul pada header, cetakan dan slip. Disimpan bersama data sekolah.</small></div></div>
+        <div class="brandrow"><div><div class="logobox" id="logoBox">${TT.validLogo(s.school.logo) ? `<img src="${s.school.logo}" alt="Logo sekolah">` : 'Belum ada logo'}</div>
+          <div class="row"><label class="btn sm" for="logoFile">Pilih logo</label><input type="file" id="logoFile" data-chg="logoFile" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
+          ${TT.validLogo(s.school.logo) ? '<button class="btn sm danger" data-act="logoClear">Buang</button>' : ''}</div></div>
+          <div><span class="lbl">Warna utama</span><div class="swatches">${TT.BRAND_PRESETS.map((c) => `<button class="swatch${(s.school.color || TT.BRAND_PRESETS[0]).toLowerCase() === c ? ' on' : ''}" style="background:${c}" data-act="brandPick" data-c="${c}" aria-label="Warna ${c}"></button>`).join('')}</div>
+          <label class="fld sm"><span>Atau pilih sendiri</span><input type="color" data-chg="brandColor" value="${TT.brandPalette(s.school.color).base}"></label>
+          <p class="hint">Warna dilaraskan secara automatik supaya teks putih sentiasa jelas dibaca.</p></div></div></section>
       <section class="card"><div class="ch"><div><h2>Peranti ini</h2><small>Disimpan dalam pelayar ini sahaja, tidak dikongsi</small></div></div>
       <div class="grid2"><label class="fld"><span>Nama anda (untuk sapaan di halaman Utama)</span><input data-chg="prefName" value="${esc(UI.prefs.name)}" placeholder="Contoh: Pn. Rohana"></label></div></section>`;
   }
@@ -100,6 +107,14 @@
       <section class="card"><div class="ch"><h2>Privasi</h2></div><p class="hint">Data sekolah disimpan dalam pelayar peranti ini${UI.sync && UI.sync.linked() ? ' dan dalam Google Sheet milik akaun anda' : ''}. Pembekal sistem tidak menerima atau menyimpan data anda.</p></section>`;
   }
 
+  changes.logoFile = async (el) => {
+    const f = el.files[0]; if (!f) return;
+    try { S().school.logo = await UI.fitLogo(f); UI.commit(); UI.toast('Logo disimpan.'); } catch (e) { UI.toast(e.message, 'err'); }
+    el.value = '';
+  };
+  actions.logoClear = () => { S().school.logo = ''; UI.commit(); };
+  actions.brandPick = (el) => { S().school.color = el.dataset.c; UI.commit(); };
+  changes.brandColor = (el) => { S().school.color = el.value; UI.commit(); };
   changes.schoolName = (el) => { S().school.name = el.value.trim() || 'Sekolah'; UI.commit(); };
   changes.weekMode = (el) => { S().school.weekMode = el.value; UI.commit(); };
   changes.prefName = (el) => { UI.prefs.name = el.value.trim(); UI.savePrefs(); UI.render(); };

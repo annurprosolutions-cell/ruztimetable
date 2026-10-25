@@ -17,7 +17,7 @@
   function syncPill() {
     const sy = UI.sync;
     if (!sy || !sy.configured() || !sy.linked()) return '';
-    const map = { off: ['', 'Sheets'], login: ['warn', 'Sambung semula'], pending: ['', 'Belum disimpan'], saving: ['', 'Menyimpan'], saved: ['ok', 'Disimpan'], error: ['bad', 'Ralat simpan'], conflict: ['bad', 'Konflik data'] };
+    const map = { off: ['', 'Sheets'], login: ['warn', 'Sambung semula'], pending: ['', 'Belum disimpan'], saving: ['', 'Menyimpan'], saved: ['ok', 'Disimpan'], error: ['bad', 'Ralat simpan'], conflict: ['bad', 'Konflik data'], unlicensed: ['bad', 'Tiada lesen'] };
     const [tone, text] = map[sy.status] || map.off;
     return `<button id="syncPill" class="sync ${tone}" data-act="goto" data-p="tetapan" data-s="storan" title="${esc(sy.msg || 'Google Sheets')}">${UI.icon('cloud')}<span>${text}</span></button>`;
   }
@@ -52,9 +52,9 @@
   }
 
   function header() {
-    const role = UI.prefs.role, urgent = UI.items.filter((i) => i.sev !== 'info').length;
+    const s = UI.state, role = UI.prefs.role, urgent = UI.items.filter((i) => i.sev !== 'info').length;
     return `<header class="topbar">
-      <div class="brand"><span class="mark">${UI.icon('calendar')}</span><span class="bname">${esc(CFG.appName || 'Jadual Sekolah')}</span></div>
+      <div class="brand"><span class="mark${TT.validLogo(s.school.logo) ? ' logo' : ''}">${TT.validLogo(s.school.logo) ? `<img src="${s.school.logo}" alt="Logo ${esc(s.school.name)}">` : UI.icon('calendar')}</span><span class="bname">${esc(s.school.name)}<small>${esc(CFG.appName || 'Jadual Sekolah')}</small></span></div>
       <nav class="seg main">${NAV[role].map(([k, t, ic]) => `<button class="${UI.page === k ? 'on' : ''}" data-act="goto" data-p="${k}">${UI.icon(ic)}<span>${t}</span></button>`).join('')}</nav>
       <div class="tb-right">${syncPill()}
         <button class="role${UI.menu === 'role' ? ' open' : ''}" data-act="menu" data-m="role" aria-haspopup="true" aria-expanded="${UI.menu === 'role'}">${UI.icon(role === 'guru' ? 'user' : 'shield')}<span><small>PERANAN</small><b>${ROLE[role]}</b></span>${UI.icon('chevDown')}</button>
@@ -66,6 +66,7 @@
 
   UI.render = () => {
     const y = window.scrollY, s = UI.state;
+    UI.applyBrand();
     const allowed = NAV[UI.prefs.role].map((x) => x[0]).concat(UI.isGuru() ? [] : ['bantuan']);
     if (!allowed.includes(UI.page)) UI.page = 'utama';
     UI.items = computeItems();

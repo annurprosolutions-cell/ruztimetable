@@ -232,9 +232,9 @@
       const homeroom = (m.teacher.get(e.homeroomId) || {}).name;
       legend = `<table class="tbl legend"><thead><tr><th>Subjek</th><th>Guru</th><th>W/mgg</th></tr></thead><tbody>${rows}</tbody></table>${homeroom ? `<p>Guru kelas: ${esc(homeroom)}</p>` : ''}`;
     }
-    return `<section class="sheet"><h2>${esc(s.school.name)}</h2><h3>Jadual Waktu ${NAME[kind]}: ${esc(e.name)}</h3>${UI.gridHtml(kind, id, false)}${legend}</section>`;
+    return `<section class="sheet">${UI.sheetHead()}<h3>Jadual Waktu ${NAME[kind]}: ${esc(e.name)}</h3>${UI.gridHtml(kind, id, false)}${legend}</section>`;
   }
-  const masterSheet = (k) => `<section class="sheet"><h2>${esc(S().school.name)}</h2><h3>Jadual Induk ${k === 'mclass' ? 'Kelas' : 'Guru'}</h3>${UI.masterHtml(k)}</section>`;
+  const masterSheet = (k) => `<section class="sheet">${UI.sheetHead()}<h3>Jadual Induk ${k === 'mclass' ? 'Kelas' : 'Guru'}</h3>${UI.masterHtml(k)}</section>`;
   actions.printView = () => { const v = UI.view; UI.print(isMaster(v.type) ? masterSheet(v.type) : sheet(v.type, v.id)); };
   actions.printAll = (el) => {
     const k = el.dataset.kind;

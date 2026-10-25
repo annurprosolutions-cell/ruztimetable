@@ -170,7 +170,7 @@
       const who = rec && rec.status === 'assigned' ? esc((m.teacher.get(rec.reliefTeacherId) || {}).name) : rec ? (rec.status === 'kendiri' ? 'Kelas kendiri' : 'Gabung kelas') : '<b>BELUM DIAGIH</b>';
       return `<tr><td>${periodText(s, n.periods)}</td><td>${esc(TT.classNames(s, n.classIds))}</td><td>${esc((m.subject.get(n.subjectId) || {}).name)}</td><td>${esc((m.teacher.get(n.absentTeacherId) || {}).name)}</td><td>${who}</td><td>${esc((m.room.get(n.roomId) || {}).name || '')}</td></tr>`;
     };
-    let out = `<section class="sheet"><h2>${esc(s.school.name)}</h2><h3>Agihan Guru Ganti (Relief) &mdash; ${esc(TT.weekdayOf(iso))}, ${TT.fmtDate(iso)}</h3>
+    let out = `<section class="sheet">${UI.sheetHead()}<h3>Agihan Guru Ganti (Relief) &mdash; ${esc(TT.weekdayOf(iso))}, ${TT.fmtDate(iso)}</h3>
       <table class="tbl"><thead><tr><th>Waktu</th><th>Kelas</th><th>Subjek</th><th>Guru tiada</th><th>Guru ganti</th><th>Bilik</th></tr></thead><tbody>${needs.map((n) => line(n, TT.reliefRecord(s, n))).join('')}</tbody></table>
       <p>Disediakan oleh: ____________________ &nbsp; Disahkan: ____________________</p></section>`;
     const by = new Map();

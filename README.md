@@ -69,6 +69,20 @@ Penyediaan (sekali sahaja, oleh pembekal atau IT sekolah):
 
 Status ujian: aliran penuh (log masuk, cipta Sheet, autosave, konflik, muat semula) diuji dengan Google yang dimock. **Belum diuji dengan akaun Google sebenar.** Admin DELIMa mungkin menyekat app pihak ketiga, jadi uji dengan 2-3 sekolah dahulu.
 
+## Lesen sekolah (Cloudflare Worker)
+
+Simpanan Google Sheets hanya aktif untuk akaun yang berlesen. Guna tempatan dalam pelayar tidak disekat. Worker kecil di folder `worker/` mengesahkan token Google dan menyemak senarai pelanggan (e-mel atau seluruh domain, dengan tarikh luput dan tempoh ihsan 7 hari). Jika `licenseUrl` dalam `config.js` kosong, tiada semakan dibuat. Langkah pasang dan arahan daftar sekolah: [worker/README.md](worker/README.md).
+
+Ini penghalang kesesuaian, bukan DRM: kod app terbuka, jadi ia tidak menghalang pihak yang sengaja menyalin dan membuang semakan.
+
+## Jenama sekolah
+
+Tetapan > Sekolah > Jenama sekolah: muat naik logo (dikecilkan automatik supaya muat satu sel Google Sheets) dan pilih warna. Warna dilaraskan supaya teks putih sentiasa jelas. Logo, nama dan warna disimpan bersama data setiap sekolah, jadi satu URL boleh dikongsi semua sekolah dengan jenama masing-masing. Ia muncul pada header, tab pelayar, jadual cetak dan slip relief. Pada skrin sebelum log masuk, jenama hanya kelihatan pada peranti yang sudah pernah memuatkan data sekolah itu.
+
+## Persediaan Google dan halaman privasi
+
+[docs/google-setup.md](docs/google-setup.md): langkah Google Cloud dan teks untuk consent screen. Halaman dasar privasi ada di `privasi.html` (pautan untuk consent screen). Isi `support.email` dalam `config.js` dahulu; halaman memaparkan amaran jika kosong.
+
 ## Susunan kod
 
 ```
@@ -80,6 +94,10 @@ js/runner.js              jalankan penjana dalam Web Worker (fallback main threa
 js/relief.js              keperluan relief, calon, agihan, statistik, mesej
 js/insights.js            data dashboard: perlu tindakan, kalendar, hari guru
 js/sheets.js              format Google Sheets, akses API, log masuk Google
+js/license.js             keputusan lesen di sisi app
+js/brand.js               palet warna dan semakan logo sekolah
+worker/                   pelayan lesen (Cloudflare Worker)
+privasi.html, docs/       dasar privasi dan panduan persediaan Google
 js/sample.js              data contoh SMK
 js/icons.js, ui-*.js, app.js   antara muka
 tests/                    ujian unit (Node) dan e2e (Playwright)
@@ -94,7 +112,7 @@ Untuk data contoh, pengoptimuman 6 saat mengurangkan waktu kosong guru dari seki
 ## Ujian
 
 ```bash
-npm test                               # 40 ujian unit, tanpa dependency
+npm test                               # 58 ujian unit, tanpa dependency
 npm i playwright && npm run test:e2e   # klik seluruh aliran dalam Chromium
 ```
 
@@ -110,4 +128,4 @@ npm i playwright && npm run test:e2e   # klik seluruh aliran dalam Chromium
 - Tiada import terus daripada fail aSc atau Winjaws. Tambah ramai hanya melalui tampal teks.
 - Sekolah dua sesi: buat satu fail data bagi setiap sesi.
 - Penjana ialah heuristik, bukan bukti optimum. Data yang terlalu ketat mungkin tinggalkan beberapa waktu belum diletak; sebabnya dilaporkan.
-- Tiada semakan lesen. Sesiapa yang ada salinan app boleh menggunakannya.
+- Semakan lesen bukan DRM (lihat di atas). Branding sebelum log masuk hanya kelihatan pada peranti yang pernah memuatkan data sekolah.

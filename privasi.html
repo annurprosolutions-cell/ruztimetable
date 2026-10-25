@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ms"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dasar Privasi · Jadual Sekolah</title>
+<style>
+body{font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#0f172a;background:#edf0f5;margin:0}
+main{max-width:760px;margin:0 auto;padding:28px 18px 60px}
+.card{background:#fff;border:1px solid #e4e8ef;border-radius:18px;padding:26px 28px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px rgba(15,23,42,.05)}
+h1{font-size:1.7rem;margin:0 0 4px}h2{font-size:1.1rem;margin:28px 0 6px}p,li{margin:6px 0}ul{padding-left:1.2rem}
+.mute{color:#64748b;font-size:.9rem}a{color:#2747a6}
+.warn{background:#fff2d9;border-left:4px solid #d48a0a;padding:10px 14px;border-radius:8px;display:none}
+code{background:#f3f5f9;padding:1px 5px;border-radius:5px;font-size:.9em}
+</style></head><body><main><div class="card">
+<h1>Dasar Privasi</h1>
+<p class="mute">Jadual Sekolah oleh <span id="vendor">AnnurPro Solutions</span> · Dikemas kini 26/10/2026</p>
+<p class="warn" id="warn"><b>Belum lengkap:</b> isi <code>support.email</code> dalam <code>config.js</code> sebelum menggunakan halaman ini untuk Google OAuth.</p>
+
+<h2>1. Tentang aplikasi ini</h2>
+<p>Jadual Sekolah ialah aplikasi web untuk menyusun jadual waktu sekolah dan mengurus guru ganti (relief). Aplikasi berjalan sepenuhnya dalam pelayar anda. Pembekal tidak menyimpan data jadual sekolah anda.</p>
+
+<h2>2. Maklumat Google yang diakses</h2>
+<p>Jika anda memilih log masuk dengan Google, aplikasi meminta kebenaran berikut:</p>
+<ul>
+<li><b>Identiti asas dan e-mel</b> (<code>openid</code>, <code>email</code>): untuk memaparkan akaun yang sedang digunakan dan menyemak sama ada akaun anda berlesen.</li>
+<li><b>Fail yang dicipta oleh aplikasi</b> (<code>drive.file</code>): untuk mencipta dan mengemas kini satu Google Sheet berjudul "Jadual Sekolah" dalam Google Drive anda. Aplikasi <u>tidak boleh</u> melihat, membuka atau mengubah fail lain dalam Drive anda.</li>
+</ul>
+
+<h2>3. Data sekolah anda</h2>
+<p>Data seperti nama guru, subjek, kelas, jadual, ketidakhadiran dan agihan relief disimpan di dua tempat sahaja: dalam pelayar peranti anda, dan (jika anda sambungkan) dalam Google Sheet milik akaun Google anda. Data ini <b>tidak</b> dihantar kepada pembekal.</p>
+<p>Aplikasi ini direka tanpa memerlukan data murid. Sila jangan masukkan nombor kad pengenalan, alamat rumah atau maklumat sensitif lain.</p>
+
+<h2>4. Pelayan lesen</h2>
+<p>Untuk mengesahkan langganan, aplikasi menghantar token akses Google sementara kepada pelayan lesen kami. Pelayan menghantarnya kepada Google untuk mengesahkan e-mel anda, kemudian menyemak senarai pelanggan. Kami menyimpan: e-mel atau domain e-mel yang dilanggan, nama sekolah, jenis pelan dan tarikh luput. Kami <b>tidak</b> menyimpan token anda dan tidak menerima sebarang data jadual.</p>
+
+<h2>5. Perkara yang tidak kami lakukan</h2>
+<ul>
+<li>Tidak menjual atau berkongsi data anda dengan pihak ketiga.</li>
+<li>Tidak memaparkan iklan dan tidak menggunakan analitik penjejakan.</li>
+<li>Tidak menggunakan data Google anda untuk melatih model kecerdasan buatan atau tujuan lain selain menjalankan fungsi di atas.</li>
+</ul>
+<p>Satu perkara untuk makluman: halaman aplikasi memuat fon daripada Google Fonts, jadi pelayar anda berhubung dengan pelayan Google semasa memuat fon tersebut.</p>
+
+<h2>6. Penggunaan data Google (Limited Use)</h2>
+<p>Penggunaan dan pemindahan maklumat yang diterima daripada API Google oleh aplikasi ini mematuhi <a href="https://developers.google.com/terms/api-services-user-data-policy">Dasar Data Pengguna Perkhidmatan API Google</a>, termasuk keperluan Limited Use.</p>
+
+<h2>7. Menarik balik akses dan memadam data</h2>
+<ul>
+<li>Putuskan akses aplikasi pada bila-bila masa di <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+<li>Padam Google Sheet "Jadual Sekolah" dari Google Drive anda untuk membuang salinan data di awan. Data dalam pelayar dibuang dengan mengosongkan data tapak web dalam tetapan pelayar.</li>
+<li>Untuk memadam rekod langganan anda daripada pelayan lesen, hubungi kami.</li>
+</ul>
+
+<h2>8. Undang-undang</h2>
+<p>Pengendalian maklumat peribadi guru (nama dan e-mel) dilakukan mengikut Akta Perlindungan Data Peribadi 2010 (Malaysia). Pihak sekolah kekal sebagai pengawal data jadual yang mereka masukkan sendiri.</p>
+
+<h2>9. Perubahan dan hubungi kami</h2>
+<p>Jika dasar ini berubah, tarikh di atas akan dikemas kini.</p>
+<p>Pertanyaan: <a id="mail" href="#">(e-mel sokongan)</a><br><span class="mute">Pengendali: <span id="vendor2">AnnurPro Solutions</span>, Nibong Tebal, Pulau Pinang, Malaysia</span></p>
+</div></main>
+<script src="config.js"></script>
+<script>
+(function () {
+  var c = window.APP_CONFIG || {}, e = c.support && c.support.email;
+  if (c.vendor) { document.getElementById('vendor').textContent = c.vendor; document.getElementById('vendor2').textContent = c.vendor; }
+  var a = document.getElementById('mail');
+  if (e) { a.textContent = e; a.href = 'mailto:' + e; } else { document.getElementById('warn').style.display = 'block'; }
+})();
+</script></body></html>

@@ -4,6 +4,7 @@ const TT = require('../js/core.js');
 require('../js/engine.js');
 require('../js/sample.js');
 require('../js/relief.js');
+require('../js/brand.js');
 require('../js/sheets.js');
 
 const { fakeSheets } = require('./helpers/fake-sheets.js');

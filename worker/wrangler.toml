@@ -1,0 +1,15 @@
+name = "jadual-sekolah-lesen"
+main = "index.mjs"
+compatibility_date = "2025-01-01"
+
+[vars]
+# Client ID OAuth Google yang sama dengan config.js
+GOOGLE_CLIENT_ID = ""
+# Alamat app (tanpa garis condong hujung), dipisah koma
+ALLOWED_ORIGINS = "https://annurprosolutions-cell.github.io"
+GRACE_DAYS = "7"
+
+# Cipta dengan: npx wrangler kv namespace create LICENSES  , kemudian tampal id di sini
+[[kv_namespaces]]
+binding = "LICENSES"
+id = "GANTI_DENGAN_ID_KV"

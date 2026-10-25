@@ -85,6 +85,39 @@
     UI.render();
   };
 
+  // ---------- jenama sekolah ----------
+  const FAVICON = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#c62828"/><rect x="8" y="9" width="16" height="14" rx="2.5" fill="none" stroke="#fff" stroke-width="2"/><path d="M8 14h16M13 7v4M19 7v4" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>');
+  UI.applyBrand = () => {
+    const sc = UI.state.school, p = TT.brandPalette(sc.color), st = document.documentElement.style;
+    st.setProperty('--brand', p.base); st.setProperty('--navy', p.navy); st.setProperty('--navy2', p.navy2); st.setProperty('--navy3', p.navy3);
+    st.setProperty('--blue', p.accent); st.setProperty('--blue2', p.accent2); st.setProperty('--blue-soft', p.soft);
+    const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.content = p.navy;
+    const fav = document.getElementById('favicon'); if (fav) fav.href = TT.validLogo(sc.logo) ? sc.logo : FAVICON;
+    document.title = `${sc.name} · ${CFG.appName || 'Jadual Sekolah'}`;
+  };
+  // kepala cetakan: logo + nama sekolah
+  UI.sheetHead = () => { const sc = UI.state.school; return `<div class="shead">${TT.validLogo(sc.logo) ? `<img src="${sc.logo}" alt="">` : ''}<h2>${esc(sc.name)}</h2></div>`; };
+
+  // kecilkan logo supaya muat dalam satu sel Google Sheets (maksimum 50,000 aksara)
+  UI.fitLogo = async (file) => {
+    if (!/^image\/(png|jpeg|webp|svg\+xml|gif)$/.test(file.type)) throw new Error('Fail mesti imej (PNG, JPG, WebP atau SVG).');
+    if (file.size > 5 * 1024 * 1024) throw new Error('Imej terlalu besar (maksimum 5 MB).');
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image(); img.src = url; await img.decode();
+      const w0 = img.naturalWidth || 256, h0 = img.naturalHeight || 256;
+      for (const side of [192, 160, 128, 96, 72]) {
+        const k = Math.min(1, side / Math.max(w0, h0)), c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(w0 * k)); c.height = Math.max(1, Math.round(h0 * k));
+        const g = c.getContext('2d'); g.drawImage(img, 0, 0, c.width, c.height);
+        const png = c.toDataURL('image/png'); if (TT.validLogo(png)) return png;
+        g.globalCompositeOperation = 'destination-over'; g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+        for (const q of [0.9, 0.75, 0.6]) { const j = c.toDataURL('image/jpeg', q); if (TT.validLogo(j)) return j; }
+      }
+      throw new Error('Logo terlalu kompleks untuk dikecilkan. Cuba imej yang lebih ringkas.');
+    } finally { URL.revokeObjectURL(url); }
+  };
+
   // ---------- komponen ----------
   UI.pageHead = (o) => {
     const crumbs = (o.crumbs || []).map((c, i, a) => (i === a.length - 1 ? `<b>${esc(c[0])}</b>` : `<a data-act="goto" data-p="${c[1]}">${esc(c[0])}</a><span>/</span>`)).join('');

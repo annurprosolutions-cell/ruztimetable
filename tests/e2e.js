@@ -143,6 +143,29 @@ async function adminAndGuru(b) {
   step('data: tambah guru (slot tak boleh) dan pelajaran');
 
   await pg.click('nav button[data-p="tetapan"]');
+  const png = Buffer.from(await pg.evaluate(async () => {
+    const c = document.createElement('canvas'); c.width = 600; c.height = 400; const g = c.getContext('2d');
+    const im = g.createImageData(600, 400); let x = 12345;
+    for (let i = 0; i < im.data.length; i++) { x = (x * 1103515245 + 12345) & 0x7fffffff; im.data[i] = i % 4 === 3 ? 255 : (x >> 8) & 255; }
+    g.putImageData(im, 0, 0);
+    const b = await new Promise((r) => c.toBlob(r, 'image/png')); return [...new Uint8Array(await b.arrayBuffer())];
+  }));
+  assert.ok(png.length > 45000, 'logo ujian sengaja besar untuk menguji pengecilan');
+  await pg.setInputFiles('#logoFile', { name: 'logo.png', mimeType: 'image/png', buffer: png });
+  await pg.waitForFunction(() => TT.validLogo(UI.state.school.logo));
+  assert.ok(await pg.evaluate(() => UI.state.school.logo.length) <= 45000);
+  assert.ok(await pg.locator('.topbar .mark.logo img').count());
+  assert.ok(await pg.evaluate(() => document.getElementById('favicon').href.startsWith('data:image/')));
+  await pg.setInputFiles('#logoFile', { name: 'bukan.txt', mimeType: 'text/plain', buffer: Buffer.from('hai') });
+  assert.ok((await pg.locator('.toast.err').allTextContents()).some((t) => t.includes('mesti imej')));
+  await pg.click('button.swatch[data-c="#0f766e"]');
+  assert.strictEqual(await pg.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--brand').trim()), '#0f766e');
+  assert.strictEqual((await st()).school.color, '#0f766e');
+  await pg.click('nav button[data-p="jadual"]');
+  await pg.click('button[data-act="printView"]');
+  await pg.waitForFunction(() => /class="shead"><img/.test(window.__printed || ''));
+  await pg.click('nav button[data-p="tetapan"]');
+  step('branding: logo besar dikecilkan <=45k aksara, fail bukan imej ditolak, warna dan kepala cetakan');
   await pg.selectOption('select[data-chg="weekMode"]', 'sun-thu');
   assert.strictEqual((await st()).school.weekMode, 'sun-thu');
   await pg.selectOption('select[data-chg="weekMode"]', 'mon-fri');
@@ -163,6 +186,13 @@ async function adminAndGuru(b) {
   await pg.click('main', { position: { x: 5, y: 5 } });
   assert.strictEqual(await pg.locator('.menu').count(), 0);
   step('dashboard pentadbir + menu notifikasi buka/tutup');
+
+  const pp = await pg.context().newPage();
+  await pp.goto('file://' + path.join(ROOT, 'privasi.html'));
+  assert.ok((await pp.textContent('body')).includes('drive.file'));
+  assert.ok(await pp.isVisible('#warn'), 'amaran e-mel sokongan patut kelihatan bila config kosong');
+  await pp.close();
+  step('halaman privasi dimuat, amaran e-mel sokongan kosong dipaparkan');
 
   await pg.reload();
   assert.strictEqual((await st()).teachers.length, 19);
@@ -214,11 +244,16 @@ async function sheetsFlow(b) {
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const fake = fakeSheets('tok-e2e');
+  const { handle } = await import(path.join(ROOT, 'worker/index.mjs'));
+  const lic = new Map();
+  const licEnv = { LICENSES: { get: async (k) => lic.get(k) || null, put: async (k, v) => { lic.set(k, v); }, delete: async (k) => { lic.delete(k); }, list: async () => ({ keys: [...lic.keys()].map((name) => ({ name })), list_complete: true }) },
+    ADMIN_TOKEN: 'adm', GOOGLE_CLIENT_ID: 'ujian.apps.googleusercontent.com', ALLOWED_ORIGINS: `http://127.0.0.1:${server.address().port}` };
+  const tokeninfo = async () => ({ ok: true, json: async () => ({ email: 'pentadbir@moe-dl.edu.my', email_verified: 'true', aud: 'ujian.apps.googleusercontent.com' }) });
   const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, content-type', 'access-control-allow-methods': 'GET, POST, OPTIONS' };
   try {
     const { pg, errors, st } = await open(b, `http://127.0.0.1:${server.address().port}/index.html`, async (page) => {
       await page.route('**/config.js', async (route) => {
-        const body = fs.readFileSync(path.join(ROOT, 'config.js'), 'utf8').replace("googleClientId: ''", "googleClientId: 'ujian.apps.googleusercontent.com'");
+        const body = fs.readFileSync(path.join(ROOT, 'config.js'), 'utf8').replace("googleClientId: ''", "googleClientId: 'ujian.apps.googleusercontent.com'").replace("licenseUrl: ''", "licenseUrl: 'https://lesen.test'");
         await route.fulfill({ status: 200, contentType: 'text/javascript', body });
       });
       await page.addInitScript(() => {
@@ -233,6 +268,12 @@ async function sheetsFlow(b) {
         const r = await fake.fetch(req.url(), { method: req.method(), headers: req.headers(), body: req.postData() || undefined });
         return route.fulfill({ status: r.status, headers: Object.assign({ 'content-type': 'application/json' }, cors), body: JSON.stringify(await r.json()) });
       });
+      await page.route('https://lesen.test/**', async (route) => {
+        const r = route.request();
+        const res = await handle(new Request(r.url(), { method: r.method(), headers: r.headers() }), licEnv, { fetch: tokeninfo });
+        const h = {}; res.headers.forEach((v, k) => { h[k] = v; });
+        return route.fulfill({ status: res.status, headers: h, body: await res.text() });
+      });
       await page.route('https://www.googleapis.com/oauth2/v3/userinfo', (route) => (route.request().method() === 'OPTIONS'
         ? route.fulfill({ status: 204, headers: cors })
         : route.fulfill({ status: 200, headers: Object.assign({ 'content-type': 'application/json' }, cors), body: JSON.stringify({ email: 'pentadbir@moe-dl.edu.my' }) })));
@@ -244,6 +285,21 @@ async function sheetsFlow(b) {
     await pg.click('button[data-act="syncSignIn"]');
     await pg.waitForFunction(() => UI.sync.signedIn());
     await pg.waitForSelector('text=pentadbir@moe-dl.edu.my', { timeout: 10000 });
+    // belum berlesen: simpanan awan disekat, penggunaan tempatan tidak
+    await pg.waitForFunction(() => UI.sync.status === 'unlicensed');
+    assert.ok(await pg.locator('text=belum berlesen').count());
+    assert.strictEqual(await pg.locator('button[data-act="syncCreate"]').count(), 0);
+    assert.strictEqual(await pg.evaluate(() => UI.sync.licensed()), false);
+    assert.strictEqual(await pg.locator('#syncPill').count(), 0);
+    assert.strictEqual(fake.db.size, 0, 'tiada Sheet dicipta tanpa lesen');
+    await pg.evaluate(() => UI.sync.push(true));
+    assert.strictEqual(fake.db.size, 0);
+    step('tanpa lesen: butang cipta Sheet tiada, push disekat, tiada Sheet dicipta');
+    await handle(new Request('https://w.test/admin/licenses', { method: 'POST', headers: { authorization: 'Bearer adm', 'content-type': 'application/json' }, body: JSON.stringify({ domain: 'moe-dl.edu.my', school: 'SMK Pilot', plan: 'pilot', expires: '2027-12-31' }) }), licEnv);
+    await pg.click('button[data-act="syncSignIn"]');
+    await pg.waitForFunction(() => UI.sync.licensed());
+    await pg.waitForSelector('text=SMK Pilot');
+    step('lesen didaftar (domain), semak semula berjaya');
     await pg.click('button[data-act="syncCreate"]');
     await pg.waitForFunction(() => UI.prefs.sheet && UI.sync.status === 'saved');
     const book = [...fake.db.values()][0];

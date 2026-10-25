@@ -48,7 +48,7 @@
 
   TT.newState = () => ({
     version: 1,
-    school: { name: 'Sekolah Saya', weekMode: 'mon-fri' },
+    school: { name: 'Sekolah Saya', weekMode: 'mon-fri', logo: '', color: '' },
     periods: TT.defaultPeriods(),
     dayLimits: [8, 8, 8, 8, 6],
     subjects: [], teachers: [], classes: [], rooms: [], lessons: [],

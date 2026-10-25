@@ -42,7 +42,8 @@
       .map((k) => k.split('-').map((x) => +x + 1).join('-')).join(',');
     return {
       Meta: [['kunci', 'nilai'], ['format', FORMAT], ['dikemaskini', meta.updatedAt || ''], ['oleh', meta.by || ''], ['aplikasi', meta.app || '']],
-      Sekolah: [['kunci', 'nilai'], ['nama', s.school.name], ['minggu', s.school.weekMode], ['had_waktu_sehari', list(s.dayLimits)], ['tetapan_relief', JSON.stringify(s.settings.relief)]],
+      Sekolah: [['kunci', 'nilai'], ['nama', s.school.name], ['minggu', s.school.weekMode], ['had_waktu_sehari', list(s.dayLimits)], ['tetapan_relief', JSON.stringify(s.settings.relief)],
+        ['warna', TT.validHex(s.school.color) ? s.school.color : ''], ['logo', TT.validLogo(s.school.logo) ? s.school.logo : '']],
       Waktu: [['label', 'mula', 'tamat', 'jenis']].concat(s.periods.map((p) => [p.label, p.start, p.end, p.type === 'break' ? 'rehat' : 'belajar'])),
       Subjek: [['id', 'nama', 'kod', 'warna', 'subjek_berat']].concat(s.subjects.map((x) => [x.id, x.name, x.short, x.color, yn(x.heavy)])),
       Guru: [['id', 'nama', 'kod', 'panitia', 'subjek_id', 'had_sehari', 'had_seminggu', 'kecuali_relief', 'tidak_boleh (hari-waktu)', 'subjek (rujukan)']]
@@ -79,6 +80,8 @@
     const sk = kv(tabs, 'Sekolah');
     if (str(sk.nama)) s.school.name = str(sk.nama);
     s.school.weekMode = str(sk.minggu) === 'sun-thu' ? 'sun-thu' : 'mon-fri';
+    s.school.color = TT.validHex(str(sk.warna)) ? str(sk.warna) : '';
+    s.school.logo = TT.validLogo(str(sk.logo)) ? str(sk.logo) : '';
     const lim = split(sk.had_waktu_sehari).map(Number).filter(Number.isFinite);
     if (lim.length) s.dayLimits = lim;
     try { if (str(sk.tetapan_relief)) s.settings.relief = Object.assign(TT.defaultRelief(), JSON.parse(str(sk.tetapan_relief))); } catch (e) { /* kekal nilai asal */ }
