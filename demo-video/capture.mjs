@@ -97,6 +97,13 @@ async function shot(p, name, tags, opts = {}) {
     });
   });
   await p.waitForTimeout(150);
+  // pastikan tiada nama repo atau hos sebenar terpapar dalam video (teks, nilai input, atau pautan kelihatan)
+  const leak = await p.evaluate(() => {
+    const txt = document.body.innerText + ' ' + [...document.querySelectorAll('input,textarea')].map((e) => e.value).join(' ');
+    const m = txt.match(/github|ruztimetable|127\.0\.0\.1|localhost|netlify/i);
+    return m ? m[0] : '';
+  });
+  if (leak) throw new Error(`Rakaman '${name}' memaparkan "${leak}". Betulkan sebelum render.`);
   const info = await p.evaluate((tags) => {
     const rects = {};
     for (const [k, sel] of Object.entries(tags)) {
@@ -320,8 +327,8 @@ await p.evaluate(() => { UI.menu = null; });
 await p.evaluate(async () => { await UI.sync.push(true); UI.page = 'tetapan'; UI.setTab = 'storan'; UI.render(); });
 await tag(p, () => {
   const c = document.querySelectorAll('main > section.card'); c[1].dataset.shot = 'sheet'; c[2].dataset.shot = 'guru'; c[3].dataset.shot = 'backup';
-  // alamat pelayan tempatan dan ID ujian tidak sesuai ditayang: papar contoh pautan sebenar yang boleh dibaca
-  document.querySelector('.linkbox input').value = 'https://annurprosolutions-cell.github.io/ruztimetable/?g=1Qw8ZkT3mXe0aLpRv5NcB2YdUhJf7GsIoA9tEiMnKx4b';
+  // alamat pelayan tempatan dan ID ujian tidak sesuai ditayang: papar alamat contoh (tiada nama repo atau hos sebenar dalam video)
+  document.querySelector('.linkbox input').value = 'https://jadual.contoh.my/?g=1Qw8ZkT3mXe0aLpRv5NcB2YdUhJf7GsIoA9tEiMnKx4b';
 });
 await shot(p, 'storan', { pill: '#syncPill', sheet: '[data-shot=sheet]', guru: '[data-shot=guru]', link: '.linkbox', copy: '.linkbox button', wa: '.linkbox a.btn', backup: '[data-shot=backup]', head: '.phead' });
 
