@@ -13,7 +13,9 @@ await page.evaluate(() => document.fonts.ready);
 const dur = await page.evaluate(() => window.DURATION);
 if (mode === 'stills') {
   fs.mkdirSync('stills', { recursive: true });
-  const times = process.argv.slice(3).length ? process.argv.slice(3).map(Number) : [2.5, 7.5, 11.8, 16.5, 21.8, 25.5, 29.6, 33.8, 37.8, 44.5, 47.6, 51.5, 53.8, 57.9, 61.5, 64.2, 68.9, 71.8, 76.2, 78.9, 81.2, 87.5];
+  // tanpa argumen: satu gambar bagi setiap babak, pada ~80% tempoh babak (selepas animasi masuk selesai)
+  const segs = await page.evaluate(() => window.SEGS);
+  const times = process.argv.slice(3).length ? process.argv.slice(3).map(Number) : segs.filter(([a, b]) => b - a > 0.6).map(([a, b]) => +(a + 0.8 * (b - a)).toFixed(2));
   for (const t of times) {
     await page.evaluate((t) => window.setT(t), t);
     await page.screenshot({ path: `stills/s_${String(t).padStart(5, '0')}.png` });
