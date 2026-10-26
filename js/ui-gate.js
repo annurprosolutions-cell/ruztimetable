@@ -12,7 +12,7 @@
   const S = () => UI.state;
   const empty = (s) => !s.teachers.length && !s.classes.length;
 
-  UI.needGate = () => !TT.sessionValid(UI.prefs.session, Date.now());
+  UI.needGate = () => !UI.demo && !TT.sessionValid(UI.prefs.session, Date.now());
 
   // ---------- data guru (salinan baca sahaja) ----------
   UI.guruSrc = () => (UI.prefs.guru && UI.prefs.guru.src) || '';
@@ -108,7 +108,7 @@
     }
     if (meta) {
       // peranti ini sudah disambung: ambil versi terkini jika tiada perubahan tempatan yang belum dihantar
-      if (meta.dikemaskini && meta.dikemaskini !== (sh.syncedAt || '') && meta.oleh !== UI.prefs.deviceId) {
+      if (meta.dikemaskini && meta.dikemaskini !== (sh.syncedAt || '') && meta.oleh !== UI.writerId) {
         if (sh.dirty) s.setStatus('conflict', 'Sheet dikemas kini dari peranti lain, dan peranti ini ada perubahan yang belum disimpan.');
         else await adopt(sh.id);
       } else if (sh.dirty) await s.push(true);

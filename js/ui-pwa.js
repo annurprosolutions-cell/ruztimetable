@@ -11,13 +11,13 @@
     ios: /iphone|ipad|ipod/i.test(nav.userAgent) || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1)
   };
   const hosted = location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname);
-  if ('serviceWorker' in nav && hosted) {
+  if ('serviceWorker' in nav && hosted && !UI.demo) {
     window.addEventListener('load', () => { nav.serviceWorker.register('sw.js').catch(() => { /* pelayar menyekat */ }); });
   }
   window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); P.prompt = e; if (UI.render && UI.state) UI.render(); });
   window.addEventListener('appinstalled', () => { P.prompt = null; P.standalone = true; UI.toast('App dipasang. Buka dari skrin utama telefon.'); });
 
-  UI.canInstall = () => !P.standalone && (!!P.prompt || P.ios);
+  UI.canInstall = () => !UI.demo && !P.standalone && (!!P.prompt || P.ios);
   actions.install = async () => {
     if (P.prompt) {
       const ev = P.prompt; P.prompt = null;
@@ -65,7 +65,7 @@
   // bandingkan data semasa dengan apa yang pengguna sudah tahu, dan maklumkan yang baharu
   UI.checkNotices = (silent) => {
     const s = UI.state, today = TT.todayISO();
-    if (!s || UI.needGate()) return;
+    if (!s || UI.needGate() || UI.demo) return;
     if (UI.isGuru()) {
       const t = UI.meTeacher(); if (!t) return;
       const key = (UI.guruSrc() || 'tempatan') + '|' + t.id, seen = UI.prefs.seen;
@@ -102,6 +102,7 @@
 
   // kad kecil pada dashboard: pasang app dan notifikasi
   UI.pwaCard = () => {
+    if (UI.demo) return '';
     const ns = UI.notifyState(), on = UI.notifyOn();
     const inst = UI.canInstall() ? `<button class="pill w" data-act="install">${UI.icon('download')} Pasang app</button>` : '';
     const noti = on ? '' : ns === 'denied' ? '<small>Notifikasi disekat dalam tetapan pelayar.</small>' : `<button class="pill w" data-act="notifyEnable">${UI.icon('bell')} Hidupkan notifikasi</button>`;

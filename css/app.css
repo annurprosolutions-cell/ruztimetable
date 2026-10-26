@@ -374,6 +374,11 @@ table.grid.master th.tcol { position: sticky; left: 0; z-index: 2; background: #
 .linkbox { display: flex; gap: 8px; flex-wrap: wrap; } .linkbox input { flex: 1 1 260px; min-width: 0; font: inherit; padding: 7px 12px; border: 1px solid #d9dfe8; border-radius: 999px; background: var(--soft); }
 .card.pwa .row { margin-top: 4px; } .card.pwa .pill .ic { width: 15px; height: 15px; }
 .gate .banner { margin: 12px 0 0; }
+/* ---------- mod demo ---------- */
+.demobar { display: flex; gap: 8px 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: var(--navy); color: #fff; border-radius: 14px; padding: 9px 14px; margin: 0 0 12px; font-size: .84rem; }
+.demobar b { letter-spacing: .06em; margin-right: 2px; }
+.demobar .dbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+.demobar a.pill { text-decoration: none; }
 @media print {
   @page { size: A4 landscape; margin: 10mm; }
   body { background: #fff; }

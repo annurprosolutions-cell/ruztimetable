@@ -19,7 +19,8 @@
     if (!sy || !sy.configured() || !sy.linked() || !UI.isAdmin()) return '';
     const map = { off: ['', 'Sheets'], login: ['warn', 'Sambung semula'], pending: ['', 'Belum disimpan'], saving: ['', 'Menyimpan'], saved: ['ok', 'Disimpan'], error: ['bad', 'Ralat simpan'], conflict: ['bad', 'Konflik data'], unlicensed: ['bad', 'Tiada lesen'] };
     const [tone, text] = map[sy.status] || map.off;
-    return `<button id="syncPill" class="sync ${tone}" ${sy.status === 'login' ? 'data-act="syncSignIn"' : 'data-act="goto" data-p="tetapan" data-s="storan"'} title="${esc(sy.msg || 'Google Sheets')}">${UI.icon('cloud')}<span>${text}</span></button>`;
+    const label = sy.status === 'login' && UI.prefs.sheet && UI.prefs.sheet.dirty ? 'Sambung untuk simpan' : text;
+    return `<button id="syncPill" class="sync ${tone}" ${sy.status === 'login' ? 'data-act="syncSignIn"' : 'data-act="goto" data-p="tetapan" data-s="storan"'} title="${esc(sy.msg || 'Google Sheets')}">${UI.icon('cloud')}<span>${label}</span></button>`;
   }
   UI.refreshSyncPill = () => {
     const el = $('syncPill'); if (el) el.outerHTML = syncPill();
@@ -52,9 +53,10 @@
         <button class="mi" data-act="exportJson">${UI.icon('download')}<span><b>Eksport backup JSON</b></span></button>
         <button class="mi" data-act="goto" data-p="tetapan" data-s="sekolah">${UI.icon('gear')}<span><b>Tetapan</b></span></button>`}
         ${UI.canInstall() ? `<button class="mi" data-act="install">${UI.icon('download')}<span><b>Pasang app</b><small>Ke skrin utama telefon atau komputer</small></span></button>` : ''}
-        ${UI.notifyOn() ? `<button class="mi" data-act="notifyDisable">${UI.icon('bell')}<span><b>Matikan notifikasi</b></span></button>` : UI.notifyState() !== 'denied' ? `<button class="mi" data-act="notifyEnable">${UI.icon('bell')}<span><b>Hidupkan notifikasi</b></span></button>` : ''}
+        ${UI.demo ? '' : UI.notifyOn() ? `<button class="mi" data-act="notifyDisable">${UI.icon('bell')}<span><b>Matikan notifikasi</b></span></button>` : UI.notifyState() !== 'denied' ? `<button class="mi" data-act="notifyEnable">${UI.icon('bell')}<span><b>Hidupkan notifikasi</b></span></button>` : ''}
         <button class="mi" data-act="goto" data-p="bantuan">${UI.icon('help')}<span><b>Bantuan</b></span></button>
-        <button class="mi" data-act="logout">${UI.icon('logout')}<span><b>Log keluar</b><small>${UI.isAdmin() ? 'Kata laluan diperlukan untuk masuk semula' : 'Pilih nama semula bila masuk'}</small></span></button></div>`;
+        ${UI.demo ? `<button class="mi" data-act="demoReset">${UI.icon('refresh')}<span><b>Set semula demo</b><small>Kembali kepada data contoh asal</small></span></button>`
+          : `<button class="mi" data-act="logout">${UI.icon('logout')}<span><b>Log keluar</b><small>${UI.isAdmin() ? 'Kata laluan diperlukan untuk masuk semula' : 'Pilih nama semula bila masuk'}</small></span></button>`}</div>`;
     }
     return '';
   }
@@ -72,6 +74,21 @@
         ${menu()}</div></header>`;
   }
 
+  function demoBar() {
+    if (!UI.demo) return '';
+    const sup = CFG.support || {}, wa = sup.whatsapp ? `https://wa.me/${UI.waNumber(sup.whatsapp)}?text=${encodeURIComponent('Saya berminat dengan Jadual Sekolah (selepas cuba demo).')}` : '';
+    return `<div class="demobar"><span><b>MOD DEMO</b> · Data contoh sahaja. Klik, ubah dan jana jadual dengan bebas. Semuanya disimpan dalam pelayar anda sahaja dan tidak dihantar ke mana-mana.</span>
+      <span class="dbtns"><button class="pill o" data-act="demoReset">${UI.icon('refresh')} Set semula</button>${wa ? `<a class="pill w" href="${wa}" target="_blank" rel="noopener">${UI.icon('message')} Berminat? WhatsApp kami</a>` : sup.email ? `<a class="pill w" href="mailto:${esc(sup.email)}">Berminat? Hubungi kami</a>` : ''}</span></div>`;
+  }
+  UI.actions.demoReset = () => UI.confirm('Set semula demo? Semua perubahan anda dibuang dan data contoh asal dimuatkan semula.', () => {
+    UI.toast('Menyediakan demo...');
+    setTimeout(() => {
+      UI.state = TT.demoSample(TT.todayISO()); UI.lastGen = null; UI.view = { type: 'class', id: null };
+      UI.relief.date = TT.nextSchoolDay(UI.state, TT.todayISO());
+      UI.prefs.role = 'admin'; UI.prefs.me = null; UI.page = 'utama'; UI.savePrefs(); UI.save(); UI.render();
+    }, 30);
+  }, 'Set semula');
+
   UI.render = () => {
     const y = window.scrollY, s = UI.state;
     UI.applyBrand();
@@ -80,7 +97,7 @@
     if (!allowed.includes(UI.page)) UI.page = 'utama';
     UI.items = computeItems();
     const where = UI.sync && UI.sync.linked() ? 'dalam pelayar ini dan Google Sheet anda' : 'dalam pelayar ini sahaja';
-    $('app').innerHTML = `${header()}<main class="pg-${UI.page}">${UI.pages[UI.page]()}</main>
+    $('app').innerHTML = `${demoBar()}${header()}<main class="pg-${UI.page}">${UI.pages[UI.page]()}</main>
       <footer class="foot">${esc(CFG.appName || 'Jadual Sekolah')} ${esc(CFG.version || '')}${CFG.vendor ? ' · ' + esc(CFG.vendor) : ''} · ${esc(s.school.name)} · Data disimpan ${where}</footer>`;
     window.scrollTo(0, y);
   };
@@ -119,16 +136,33 @@
   };
 
   // ---------- mula ----------
-  const g = TT.guruIdFrom(new URLSearchParams(location.search).get('g') || '');
-  if (g && UI.guruSrc() !== g) { UI.prefs.guru = { src: g }; if (UI.prefs.session && UI.prefs.session.role === 'guru') UI.prefs.me = null; }
-  const ses = UI.prefs.session, live = TT.sessionValid(ses, Date.now());
-  if (!live) UI.prefs.session = null;
-  if (live && ses.role === 'guru') { UI.prefs.role = 'guru'; UI.useGuruState(); } else UI.state = UI.load();
-  if (live && ses.role === 'admin' && g) UI.toast('Ini pautan guru. Anda sedang log masuk sebagai pentadbir; log keluar untuk masuk sebagai guru.');
-  UI.savePrefs();
-  UI.relief.date = TT.nextSchoolDay(UI.state, UI.relief.date);
-  UI.render();
-  if (!live && g) UI.actions.gateGo({ dataset: { s: 'guru' } });
-  if (live && ses.role === 'guru') UI.guruTick(true).then(() => UI.checkNotices());
-  else if (live) UI.checkNotices();
+  function boot() {
+    if (UI.demo) {
+      // demo: terus masuk sebagai pentadbir tanpa Google atau kata laluan, dalam ruang storan berasingan
+      UI.prefs.session = TT.newSession('admin', Date.now()); UI.prefs.sheet = null; UI.prefs.guru = null;
+      if (UI.prefs.role !== 'guru') UI.prefs.role = 'admin';
+      if (UI.hasSaved()) UI.state = UI.load(); else { UI.state = TT.demoSample(TT.todayISO()); UI.save(); }
+      UI.savePrefs();
+      UI.relief.date = TT.nextSchoolDay(UI.state, UI.relief.date);
+      UI.render();
+      return;
+    }
+    const g = TT.guruIdFrom(new URLSearchParams(location.search).get('g') || '');
+    if (g && UI.guruSrc() !== g) { UI.prefs.guru = { src: g }; if (UI.prefs.session && UI.prefs.session.role === 'guru') UI.prefs.me = null; }
+    const ses = UI.prefs.session, live = TT.sessionValid(ses, Date.now());
+    if (!live) UI.prefs.session = null;
+    if (live && ses.role === 'guru') { UI.prefs.role = 'guru'; UI.useGuruState(); } else UI.state = UI.load();
+    if (live && ses.role === 'admin' && g) UI.toast('Ini pautan guru. Anda sedang log masuk sebagai pentadbir; log keluar untuk masuk sebagai guru.');
+    UI.savePrefs();
+    UI.relief.date = TT.nextSchoolDay(UI.state, UI.relief.date);
+    UI.render();
+    if (!live && g) UI.actions.gateGo({ dataset: { s: 'guru' } });
+    if (live && ses.role === 'guru') UI.guruTick(true).then(() => UI.checkNotices());
+    else if (live) { UI.checkNotices(); if (UI.sync) UI.sync.refresh(); }
+  }
+  if (UI.demo && !UI.hasSaved()) {
+    // jana jadual contoh mengambil sekitar satu saat: paparkan skrin menunggu dahulu
+    $('app').innerHTML = '<div class="gate"><div class="gate-card"><p class="gbusy"><i class="spin"></i>Menyediakan demo...</p></div></div>';
+    setTimeout(boot, 40);
+  } else boot();
 })();

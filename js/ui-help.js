@@ -23,7 +23,7 @@
       ? ['Tekan "Pasang app" dan "Hidupkan notifikasi" pada halaman Utama supaya dimaklumkan bila ada relief baharu.', 'Halaman Utama menunjukkan kelas dan tugas relief anda hari ini.', 'Jadual saya untuk jadual mingguan penuh dan cetakan.', 'Relief saya untuk tugas akan datang, slip dan perbandingan kesaksamaan.']
       : ['Tetapan: hari persekolahan, waktu dan rehat, had waktu Jumaat.', 'Data: subjek, guru (termasuk waktu tidak boleh), kelas, bilik dan pelajaran.', 'Jadual: tekan Jana, kemudian laras dengan seret-dan-lepas. Kunci waktu yang tidak boleh berubah.', 'Relief: rekod guru tidak hadir, tekan Agih automatik, cetak slip atau salin mesej WhatsApp.', 'Tetapan > Storan: sambung Google Sheets, kongsi pautan guru, atau eksport JSON sebagai backup.'];
     const contact = sup.whatsapp || sup.email
-      ? `<p>${sup.whatsapp ? `WhatsApp: <a href="https://wa.me/${esc(String(sup.whatsapp).replace(/\D/g, ''))}" target="_blank" rel="noopener">${esc(sup.whatsapp)}</a><br>` : ''}${sup.email ? `E-mel: <a href="mailto:${esc(sup.email)}">${esc(sup.email)}</a>` : ''}</p>`
+      ? `<p>${sup.whatsapp ? `WhatsApp: <a href="https://wa.me/${esc(UI.waNumber(sup.whatsapp))}" target="_blank" rel="noopener">${esc(sup.whatsapp)}</a><br>` : ''}${sup.email ? `E-mel: <a href="mailto:${esc(sup.email)}">${esc(sup.email)}</a>` : ''}</p>`
       : '<p class="hint">Hubungi pembekal sistem anda.</p>';
     return head + `<div class="dash"><div class="col-l">
       <section class="card"><div class="ch"><h2>Langkah kerja</h2></div><ol class="steps">${steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol></section>

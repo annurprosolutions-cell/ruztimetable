@@ -57,10 +57,20 @@ Sebelum app dibuka, skrin log masuk meminta peranan:
 
 - **Pentadbir**: log masuk Google (bila app dihos di https), kemudian kata laluan pentadbir. Kali pertama, tetapan awal muncul: nama sekolah, warna dan logo, kata laluan, dan data permulaan (contoh, kosong atau import JSON). Google Sheet sekolah dicipta automatik. Di peranti baharu, app mencari Sheet itu sendiri (Google Drive API) dan terus minta kata laluan.
 - **Guru**: buka pautan guru, pilih nama. Tiada kata laluan, tiada log masuk Google. Paparan baca sahaja.
+- Pill Google Sheets tidak lagi kekal "Disimpan" bila token tamat: ia bertukar kepada "Sambung untuk simpan" dan perubahan tertangguh dihantar sebaik sahaja disambung semula. Bila app dibuka atau tab kembali fokus, app menyemak Sheet: jika ada versi lebih baharu dan tiada perubahan tempatan, ia ditarik; jika kedua-duanya berubah, dialog konflik keluar. Setiap tab ada penulis sendiri, jadi dua tab pada pelayar sama pun tidak menimpa satu sama lain secara senyap. Data setiap alamat (github.io, netlify.app) dan setiap pelayar tetap berasingan sehingga disambung ke Sheet yang sama.
 - Sesi kekal **30 hari** pada peranti itu. Token Google (sah ~1 jam) disimpan supaya muat semula halaman tidak memutuskan sambungan; selepas tamat, satu klik "Sambung semula" (akaun yang sama, tanpa pilih akaun) dan perubahan yang tertangguh dihantar.
 - Kata laluan disimpan sebagai hash PBKDF2-SHA256 (120,000 pusingan) dalam data sekolah. **Ia menghalang orang lain membuka paparan pentadbir, bukan melindungi data**: data sebenar dilindungi oleh akaun Google pemilik Sheet.
 
 **Pautan guru.** Setiap kali pentadbir simpan, app menulis salinan ringkas ke Sheet berasingan "Jadual Guru - (sekolah) (baca sahaja)" dan berkongsi Sheet itu sebagai *sesiapa dengan pautan boleh lihat*. Salinan ini tiada hash kata laluan, tiada sebab atau catatan cuti, dan hanya relief 2 bulan terakhir ke hadapan. Sheet utama kekal peribadi. Guru membaca salinan itu melalui `docs.google.com/.../gviz/tq?tqx=out:csv` tanpa log masuk. Jika domain (contohnya DELIMa) menyekat perkongsian awam, app memaparkan langkah kongsi manual.
+
+## Mod demo
+
+Tambah `?demo` pada alamat app, contohnya `https://annurprosolutions-cell.github.io/ruztimetable/?demo`. Pelawat terus masuk sebagai pentadbir tanpa log masuk atau kata laluan, dengan SMK contoh yang jadualnya sudah dijana dan relief sudah diagih. Mereka boleh klik, ubah, jana semula dan lihat paparan guru.
+
+- Setiap pelawat mendapat salinan sendiri dalam pelayar mereka (kunci storan `jadual-demo-*`, berasingan daripada data sekolah sebenar pada alamat yang sama). Tiada apa dihantar ke Google, Worker atau mana-mana pelayan. Ujian e2e menyemak tiada permintaan ke Google.
+- Tiada had hari atau akaun. Butang "Set semula" memuatkan semula data contoh asal. Bar demo di atas ada pautan WhatsApp ke `support.whatsapp` dalam `config.js`.
+- Google Sheets, pautan guru, pasang app dan notifikasi dimatikan dalam demo.
+- Demo sengaja **tidak** memakai akaun Google atau Sheet milik pembekal: kata laluan akaun tidak patut dikongsi, dan satu Sheet bersama akan ditimpa oleh semua pelawat serentak.
 
 ## PWA dan notifikasi
 
@@ -116,6 +126,7 @@ js/brand.js               palet warna dan semakan logo sekolah
 js/access.js              kata laluan (hash), sesi, data guru, CSV, notifikasi relief baharu
 js/ui-gate.js             skrin log masuk, tetapan awal, pilih nama guru
 js/ui-pwa.js              pasang app, notifikasi, muat semula data guru
+(?demo)                   TT.demoSample dalam js/sample.js, bar demo dalam js/app.js
 manifest.webmanifest, sw.js, icons/   PWA
 worker/                   pelayan lesen (Cloudflare Worker)
 privasi.html, docs/       dasar privasi dan panduan persediaan Google
@@ -133,7 +144,7 @@ Untuk data contoh, pengoptimuman 6 saat mengurangkan waktu kosong guru dari seki
 ## Ujian
 
 ```bash
-npm test                               # 67 ujian unit, tanpa dependency
+npm test                               # 68 ujian unit, tanpa dependency
 npm i playwright && npm run test:e2e   # klik seluruh aliran dalam Chromium
 ```
 

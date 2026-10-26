@@ -448,6 +448,60 @@ async function sheetsFlow(b) {
     assert.strictEqual((await st()).teachers.length, 18);
     step('konflik dari peranti lain dikesan, Sheet tidak ditulis ganti, muat dari Sheet');
 
+    // ---- token Google tamat selepas ~1 jam: pill tidak boleh kekal "Disimpan" ----
+    await pg.clock.setFixedTime(new Date(FIXED.getTime() + 2 * 3600e3));
+    await pg.evaluate(() => UI.sync.checkSession());
+    assert.strictEqual(await pg.locator('#syncPill').textContent(), 'Sambung semula');
+    await pg.evaluate(() => { UI.state.school.name = 'SMK Ubah Tanpa Sesi'; UI.save(); });
+    assert.strictEqual(await pg.locator('#syncPill').textContent(), 'Sambung untuk simpan');
+    assert.notStrictEqual(book.tabs.get('Sekolah')[1][1], 'SMK Ubah Tanpa Sesi', 'tiada penulisan tanpa token');
+    await pg.click('#syncPill');
+    await pg.waitForFunction(() => UI.sync.status === 'saved' && !UI.prefs.sheet.dirty);
+    assert.strictEqual(book.tabs.get('Sekolah')[1][1], 'SMK Ubah Tanpa Sesi', 'perubahan tertangguh dihantar selepas sambung semula');
+    assert.strictEqual(await pg.locator('#syncPill').textContent(), 'Disimpan');
+    step('token tamat: pill jadi "Sambung untuk simpan", perubahan tertangguh dihantar selepas sambung semula');
+
+    // ---- dua tab pada pelayar yang sama (deviceId sama): tulisan tab lain mesti dikesan ----
+    const tab2 = await pg.context().newPage();
+    const tab2Errors = [];
+    tab2.on('pageerror', (e) => tab2Errors.push(e.message));
+    await tab2.clock.setFixedTime(new Date(FIXED.getTime() + 2 * 3600e3));
+    await tab2.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+    await mocks(tab2);
+    await tab2.goto(base + 'index.html');
+    await tab2.waitForSelector('header.topbar');
+    assert.strictEqual(await tab2.evaluate(() => UI.sync.signedIn()), true, 'tab kedua berkongsi token');
+    await tab2.clock.setFixedTime(new Date(FIXED.getTime() + 2 * 3600e3 + 60e3)); // jam dibekukan: pastikan cap masa tulisan berbeza
+    await tab2.evaluate(() => { UI.state.school.name = 'SMK Dari Tab Kedua'; UI.save(); });
+    await tab2.waitForFunction(() => UI.sync.status === 'saved');
+    assert.strictEqual(book.tabs.get('Sekolah')[1][1], 'SMK Dari Tab Kedua');
+    await pg.evaluate(() => UI.sync.refresh());
+    await pg.waitForFunction(() => UI.state.school.name === 'SMK Dari Tab Kedua');
+    assert.ok(await pg.locator('.toast', { hasText: 'dikemas kini daripada Google Sheets' }).count());
+    await tab2.close();
+    assert.deepStrictEqual(tab2Errors, []);
+    step('dua tab, pelayar sama: tulisan tab kedua dikesan dan ditarik oleh tab pertama (tiada timpa senyap)');
+
+    // ---- peranti lain menyimpan versi baharu: app menarik tanpa perlu klik ----
+    const meta2 = book.tabs.get('Meta');
+    meta2[2][1] = '2026-10-26T03:00:00.000Z'; meta2[3][1] = 'peranti-lain.aaaa';
+    book.tabs.get('Sekolah')[1][1] = 'SMK Dari Peranti Lain';
+    await pg.evaluate(() => UI.sync.refresh());
+    await pg.waitForFunction(() => UI.state.school.name === 'SMK Dari Peranti Lain');
+    // ada perubahan tempatan belum dihantar + Sheet lebih baharu: tanya, jangan timpa
+    await pg.evaluate(() => { UI.prefs.sheet.auto = false; UI.state.school.name = 'SMK Perubahan Tempatan'; UI.save(); });
+    meta2[2][1] = '2026-10-26T04:00:00.000Z'; meta2[3][1] = 'peranti-lain.bbbb';
+    book.tabs.get('Sekolah')[1][1] = 'SMK Dari Peranti Lain 2';
+    await pg.evaluate(() => UI.sync.refresh());
+    await pg.waitForFunction(() => UI.sync.status === 'conflict');
+    assert.match(await pg.textContent('.dlg-h h3'), /tidak selari/i);
+    assert.strictEqual(book.tabs.get('Sekolah')[1][1], 'SMK Dari Peranti Lain 2', 'Sheet tidak ditulis ganti');
+    await pg.click('button[data-act="syncResolvePull"]');
+    await pg.waitForFunction(() => UI.state.school.name === 'SMK Dari Peranti Lain 2' && UI.sync.status === 'saved');
+    await pg.evaluate(async () => { UI.prefs.sheet.auto = true; UI.state.school.name = 'SMK Selari'; UI.save(); await UI.sync.push(true); });
+    assert.strictEqual(book.tabs.get('Sekolah')[1][1], 'SMK Selari');
+    step('Sheet lebih baharu: ditarik automatik; jika ada perubahan tempatan, dialog konflik (tiada timpa senyap)');
+
     // ---- guru di telefon: buka pautan, pilih nama, notifikasi relief baharu ----
     await pg.evaluate(() => UI.sync.push(true));
     await pg.waitForFunction(() => UI.sync.status === 'saved');
@@ -463,7 +517,7 @@ async function sheetsFlow(b) {
       });
     }, Object.assign({ viewport: { width: 412, height: 900 }, isMobile: true, hasTouch: true }, NOSW));
     await g.pg.waitForSelector('.gate .pickbtn');
-    assert.ok((await g.pg.textContent('.gbrand')).includes('SMK Dari Sheet'));
+    assert.ok((await g.pg.textContent('.gbrand')).includes('SMK Selari'));
     await g.pg.click(`.gate .pickbtn[data-id="${T}"]`);
     await g.pg.waitForSelector('header.topbar');
     assert.strictEqual(await g.pg.evaluate(() => UI.readOnly), true);
@@ -514,6 +568,51 @@ async function sheetsFlow(b) {
     assert.strictEqual(await pg.evaluate(() => UI.prefs.sheet), null);
     step('putuskan sambungan');
     assert.deepStrictEqual(errors, []);
+
+    // ---- mod demo: terus masuk, data contoh sendiri, tiada Google, ruang storan berasingan ----
+    const dm = await open(b, base + '?demo', null, NOSW);
+    const hosts = [];
+    dm.pg.on('request', (r) => { const h = new URL(r.url()).host; if (/google|googleapis|gstatic/.test(h) && !/^fonts\./.test(h)) hosts.push(h); });
+    await dm.pg.waitForSelector('header.topbar');
+    assert.strictEqual(await dm.pg.locator('.gate').count(), 0, 'demo tiada skrin log masuk');
+    assert.ok(await dm.pg.locator('.demobar').count());
+    const dst = await dm.st();
+    assert.strictEqual(dst.placements.length, 243);
+    assert.ok(dst.reliefs.filter((r) => r.status === 'assigned').length >= 4);
+    assert.strictEqual(await dm.pg.evaluate(() => localStorage.getItem('jadual-sekolah-v1')), null, 'data sekolah sebenar tidak disentuh');
+    assert.ok(await dm.pg.evaluate(() => !!localStorage.getItem('jadual-demo-v1')));
+    assert.ok((await dm.pg.locator('.demobar a.pill').getAttribute('href')).startsWith('https://wa.me/60134874206'));
+    assert.strictEqual(await dm.pg.locator('button.avatar').count(), 1);
+    await dm.pg.click('button[data-act="menu"][data-m="role"]');
+    await dm.pg.click('button[data-act="setRole"][data-r="guru"]');
+    assert.ok(await dm.pg.locator('.pick').count(), 'pratonton guru dalam demo');
+    await dm.pg.click('button[data-act="setRole"][data-r="admin"]'); // menu kekal terbuka supaya nama boleh dipilih
+    await dm.pg.click('nav button[data-p="tetapan"]');
+    await dm.pg.click('button[data-act="tab"][data-k="storan"]');
+    assert.ok(await dm.pg.locator('text=Tidak tersedia dalam demo').count());
+    assert.strictEqual(await dm.pg.locator('button[data-act="syncSignIn"]').count(), 0);
+    await dm.pg.click('button[data-act="tab"][data-k="sekolah"]');
+    await dm.pg.fill('input[data-chg="schoolName"]', 'Sekolah Cubaan');
+    await dm.pg.press('input[data-chg="schoolName"]', 'Tab');
+    await dm.pg.reload();
+    await dm.pg.waitForSelector('header.topbar');
+    assert.strictEqual((await dm.st()).school.name, 'Sekolah Cubaan', 'perubahan demo kekal selepas muat semula');
+    await dm.pg.click('button.avatar');
+    await dm.pg.click('button[data-act="demoReset"]');
+    await dm.pg.click('button[data-act="confirmYes"]');
+    await dm.pg.waitForFunction(() => UI.state.school.name === 'SMK Contoh Jaya');
+    assert.strictEqual((await dm.st()).placements.length, 243);
+    // alamat biasa pada pelayar yang sama: skrin log masuk, data demo tidak bocor
+    const real = await dm.ctx.newPage();
+    await real.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+    await real.goto(base + 'index.html');
+    assert.ok(await real.locator('.gate').count());
+    assert.strictEqual(await real.evaluate(() => localStorage.getItem('jadual-sekolah-v1')), null);
+    await real.close();
+    assert.deepStrictEqual(hosts, [], 'demo tidak menghubungi Google: ' + hosts);
+    assert.deepStrictEqual(dm.errors, []);
+    await dm.ctx.close();
+    step('demo: terus masuk tanpa log masuk, data contoh siap (243 waktu, relief), ruang storan berasingan, tiada Google, set semula');
 
     // ---- PWA: manifest, ikon, service worker, buka luar talian ----
     const w = await open(b, base, async (page) => { await page.route(/accounts\.google\.com/, (r) => r.abort()); });

@@ -1,13 +1,15 @@
 (function () {
   'use strict';
-  const KEY = 'jadual-sekolah-v1', PKEY = 'jadual-sekolah-prefs';
+  // ?demo: ruang berasingan (kunci storan lain) supaya tidak menyentuh data sekolah sebenar pada alamat yang sama
+  const DEMO = new URLSearchParams(location.search).has('demo');
+  const KEY = DEMO ? 'jadual-demo-v1' : 'jadual-sekolah-v1', PKEY = DEMO ? 'jadual-demo-prefs' : 'jadual-sekolah-prefs';
   const esc = TT.esc;
   const $ = (id) => document.getElementById(id);
   const CFG = window.APP_CONFIG || {};
   const today = TT.todayISO();
 
   const UI = window.UI = {
-    state: null, page: 'utama', dataTab: 'guru', setTab: 'sekolah', myTab: 'akan',
+    demo: DEMO, state: null, page: 'utama', dataTab: 'guru', setTab: 'sekolah', myTab: 'akan',
     view: { type: 'class', id: null }, lessonFilter: { cls: '', teacher: '', subject: '' },
     relief: { date: today, tab: 'harian', from: '', to: '', teacher: '', month: today.slice(0, 7) },
     heatMonth: today.slice(0, 7), menu: null, dashAll: false, items: [],
@@ -24,6 +26,7 @@
 
   // ---------- data & pilihan peranti ----------
   UI.KEY = KEY;
+  UI.hasSaved = () => { try { return !!localStorage.getItem(KEY); } catch (e) { return false; } };
   UI.load = () => {
     try { const raw = localStorage.getItem(KEY); if (raw) return TT.migrate(JSON.parse(raw)); } catch (e) { /* storan tiada atau rosak */ }
     return TT.newState();
@@ -46,6 +49,8 @@
   // session: { role: 'admin'|'guru', until } kekal 30 hari; guru: { src: id Sheet Data Guru }
   const defPrefs = () => ({ role: 'admin', me: null, name: '', deviceId: 'd' + Math.random().toString(36).slice(2, 10), lastBackup: null, sheet: null, session: null, guru: null, notify: false, seen: null });
   UI.prefs = (() => { try { return Object.assign(defPrefs(), JSON.parse(localStorage.getItem(PKEY) || '{}')); } catch (e) { return defPrefs(); } })();
+  // penulis unik setiap tab: dua tab pada pelayar sama berkongsi deviceId, jadi deviceId sahaja tidak cukup untuk kesan tulisan tab lain
+  UI.writerId = UI.prefs.deviceId + '.' + Math.random().toString(36).slice(2, 6);
   UI.savePrefs = () => { try { localStorage.setItem(PKEY, JSON.stringify(UI.prefs)); } catch (e) { /* abaikan */ } };
 
   UI.isGuru = () => UI.prefs.role === 'guru';
@@ -104,7 +109,7 @@
     st.setProperty('--blue', p.accent); st.setProperty('--blue2', p.accent2); st.setProperty('--blue-soft', p.soft);
     const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.content = p.navy;
     const fav = document.getElementById('favicon'); if (fav) fav.href = TT.validLogo(sc.logo) ? sc.logo : FAVICON;
-    document.title = `${sc.name} · ${CFG.appName || 'Jadual Sekolah'}`;
+    document.title = `${sc.name} · ${CFG.appName || 'Jadual Sekolah'}${UI.demo ? ' · Demo' : ''}`;
   };
   // kepala cetakan: logo + nama sekolah
   UI.sheetHead = () => { const sc = UI.state.school; return `<div class="shead">${TT.validLogo(sc.logo) ? `<img src="${sc.logo}" alt="">` : ''}<h2>${esc(sc.name)}</h2></div>`; };
@@ -245,6 +250,8 @@
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
   UI.csv = (rows) => rows.map((r) => r.map((c) => { const x = String(c == null ? '' : c); return /[",\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x; }).join(',')).join('\r\n');
+  // nombor telefon Malaysia (0134874206) kepada format antarabangsa untuk wa.me
+  UI.waNumber = (n) => { const d = String(n || '').replace(/\D/g, ''); return d.startsWith('0') ? '6' + d : d; };
   UI.copyText = (text) => {
     if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(() => true, () => false);
     return Promise.resolve(false);

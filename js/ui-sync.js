@@ -7,7 +7,7 @@
 
   const sync = UI.sync = {
     status: 'off', msg: '', email: '', timer: null, quiet: false, busy: false, again: false,
-    configured: () => !!CFG.googleClientId,
+    configured: () => !!CFG.googleClientId && !UI.demo,
     hosted: () => location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname),
     linked: () => !!(UI.prefs.sheet && UI.prefs.sheet.id),
     signedIn: () => !!(sync.auth && sync.auth.has())
@@ -43,7 +43,9 @@
   sync.schedule = () => {
     // tanda ada perubahan belum dihantar, supaya ia dihantar sebaik sahaja sambung semula
     if (sync.linked() && !UI.prefs.sheet.dirty) { UI.prefs.sheet.dirty = true; UI.savePrefs(); }
-    if (!sync.licensed() || !sync.linked() || !sync.signedIn() || sync.status === 'conflict' || UI.prefs.sheet.auto === false) return;
+    // token tamat: jangan kekal "Disimpan". Beritahu pengguna bahawa perubahan belum sampai ke Sheet.
+    if (sync.linked() && sync.licensed() && !sync.signedIn()) { set('login', 'Perubahan belum disimpan ke Google Sheets. Tekan "Sambung" untuk menghantarnya.'); return; }
+    if (!sync.licensed() || !sync.linked() || sync.status === 'conflict' || UI.prefs.sheet.auto === false) return;
     clearTimeout(sync.timer);
     set('pending', 'Perubahan akan disimpan sebentar lagi');
     sync.timer = setTimeout(() => sync.push(false), 2500);
@@ -58,14 +60,14 @@
       if (!force) {
         const meta = await sync.store.readMeta(id);
         const known = UI.prefs.sheet.syncedAt || '';
-        if (meta.dikemaskini && meta.dikemaskini !== known && meta.oleh !== UI.prefs.deviceId) {
+        if (meta.dikemaskini && meta.dikemaskini !== known && meta.oleh !== UI.writerId) {
           set('conflict', `Sheet telah dikemas kini dari peranti lain (${localDate(meta.dikemaskini)}).`);
           return;
         }
       }
       await ensureGuru();
       const now = new Date().toISOString();
-      const r = await sync.store.save(id, S(), { updatedAt: now, by: UI.prefs.deviceId, app: `${CFG.appName || 'Jadual Sekolah'} ${CFG.version || ''}`.trim() });
+      const r = await sync.store.save(id, S(), { updatedAt: now, by: UI.writerId, app: `${CFG.appName || 'Jadual Sekolah'} ${CFG.version || ''}`.trim() });
       Object.assign(UI.prefs.sheet, { syncedAt: now, url: r.url, title: r.title, dirty: false });
       UI.prefs.lastBackup = now; UI.savePrefs();
       await publishGuru(now);
@@ -109,6 +111,34 @@
     UI.toast(ok ? 'Pautan guru disalin.' : 'Salin pautan secara manual.', ok ? '' : 'err');
   };
 
+  // token Google tamat senyap selepas ~1 jam: pastikan pill tidak menipu walaupun pengguna tak buat apa-apa
+  sync.checkSession = () => {
+    if (!sync.configured() || !sync.linked() || sync.signedIn() || !['saved', 'pending', 'saving'].includes(sync.status)) return;
+    set('login', UI.prefs.sheet.dirty ? 'Perubahan belum disimpan ke Google Sheets. Tekan "Sambung" untuk menghantarnya.' : 'Sesi Google tamat. Sambung semula untuk terus menyimpan.');
+  };
+  setInterval(() => sync.checkSession(), 20000);
+
+  // tarik versi terkini dari Sheet bila app dibuka atau tab kembali fokus (token masih sah)
+  sync.refresh = async () => {
+    if (!sync.configured() || !sync.linked() || !sync.signedIn() || !sync.licensed() || !UI.isAdmin() || UI.readOnly || UI.needGate()) return;
+    if (sync.busy || sync.refreshing || UI._gen || ['pending', 'saving', 'conflict', 'unlicensed'].includes(sync.status)) return;
+    if (document.getElementById('modal').firstChild) return;
+    sync.refreshing = true;
+    try {
+      const sh = UI.prefs.sheet, meta = await sync.store.readMeta(sh.id);
+      const newer = meta.dikemaskini && meta.dikemaskini !== (sh.syncedAt || '') && meta.oleh !== UI.writerId;
+      if (!newer) { if (sh.dirty && sh.auto !== false) await sync.push(false); return; }
+      if (sh.dirty) { set('conflict', `Sheet telah dikemas kini dari peranti lain (${localDate(meta.dikemaskini)}) dan peranti ini ada perubahan yang belum disimpan.`); conflictModal(); return; }
+      await sync.pull();
+      UI.toast('Data dikemas kini daripada Google Sheets (disimpan dari peranti lain).');
+    } catch (e) { fail(e); } finally { sync.refreshing = false; }
+  };
+  let lastRefresh = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || Date.now() - lastRefresh < 30000) return;
+    lastRefresh = Date.now(); sync.refresh();
+  });
+
   sync.pull = async () => {
     if (!sync.licensed()) { set('unlicensed', sync.license.message); return; }
     set('saving', 'Memuat dari Google Sheets');
@@ -134,10 +164,11 @@
       await sync.checkLicense();
       if (!sync.license.allowed) { set('unlicensed', sync.license.message); UI.render(); return; }
       if (sync.linked()) {
-        const meta = await sync.store.readMeta(UI.prefs.sheet.id);
-        if (meta.dikemaskini && meta.dikemaskini !== (UI.prefs.sheet.syncedAt || '') && meta.oleh !== UI.prefs.deviceId) {
-          set('conflict', `Sheet dikemas kini dari peranti lain (${localDate(meta.dikemaskini)}).`); conflictModal();
-        } else if (UI.prefs.sheet.dirty) await sync.push(true);
+        const sh = UI.prefs.sheet, meta = await sync.store.readMeta(sh.id);
+        const newer = meta.dikemaskini && meta.dikemaskini !== (sh.syncedAt || '') && meta.oleh !== UI.writerId;
+        if (newer && sh.dirty) { set('conflict', `Sheet dikemas kini dari peranti lain (${localDate(meta.dikemaskini)}) dan peranti ini ada perubahan yang belum disimpan.`); conflictModal(); }
+        else if (newer) { await sync.pull(); }
+        else if (sh.dirty) await sync.push(true);
         else set('saved', 'Disambung');
       } else set('off');
       UI.render();
@@ -191,7 +222,7 @@
   changes.syncAuto = (el) => { UI.prefs.sheet.auto = el.checked; UI.savePrefs(); if (el.checked) sync.schedule(); };
 
   window.addEventListener('beforeunload', (e) => {
-    if (sync.status === 'pending' || sync.status === 'saving') { e.preventDefault(); e.returnValue = ''; }
+    if (sync.status === 'pending' || sync.status === 'saving' || (sync.linked() && UI.prefs.sheet.dirty && sync.configured())) { e.preventDefault(); e.returnValue = ''; }
   });
 
   // ---------- kad Tetapan > Storan ----------
@@ -204,6 +235,9 @@
   UI.syncCard = () => {
     const sh = UI.prefs.sheet;
     const head = `<div class="ch"><div><h2>${UI.icon('database')} Google Sheets</h2><small>Simpan data dalam Google Drive akaun sekolah anda sendiri</small></div></div>`;
+    if (UI.demo) {
+      return `<section class="card">${head}<p>Tidak tersedia dalam demo. Dalam versi sebenar, data sekolah anda disimpan dalam Google Sheet milik akaun Google anda sendiri, dan guru boleh membuka jadual di telefon melalui satu pautan.</p></section>`;
+    }
     if (!sync.configured()) {
       return `<section class="card">${head}<p>Ciri ini belum diaktifkan untuk pemasangan ini. Data kini disimpan dalam pelayar sahaja.</p>
         <details class="faq"><summary>Cara aktifkan (untuk pembekal / IT sekolah)</summary><ol class="steps">

@@ -119,3 +119,17 @@ test('notifikasi: hanya relief baharu untuk guru itu, dari hari ini ke hadapan',
   assert.strictEqual(n.title, 'Tugas relief baharu');
   assert.match(n.body, /Rabu 28 Okt/);
 });
+
+test('data demo: jadual penuh tanpa konflik, guru tidak hadir dan relief sudah diagih', () => {
+  const s = TT.demoSample(MON, { improveMs: 100 });
+  assert.strictEqual(s.placements.length, 243);
+  assert.strictEqual(TT.validate(s).issues.filter((i) => i.sev === 'error').length, 0);
+  assert.strictEqual(s.absences.length, 2);
+  assert.ok(s.absences.every((a) => a.date === MON));
+  const assigned = s.reliefs.filter((r) => r.status === 'assigned');
+  assert.ok(assigned.length >= 4, 'relief diagih: ' + assigned.length);
+  assert.ok(assigned.every((r) => r.date === MON && r.reliefTeacherId));
+  assert.strictEqual(s.auth, null, 'demo tiada kata laluan');
+  assert.strictEqual(s.school.guruSheet, '');
+  assert.strictEqual(TT.demoSample('2026-10-24', { improveMs: 50 }).absences[0].date, MON, 'Sabtu -> Isnin berikutnya');
+});

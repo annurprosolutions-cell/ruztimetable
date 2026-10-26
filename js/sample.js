@@ -67,5 +67,17 @@
     return s;
   };
 
+  // data demo: SMK contoh, jadual sudah dijana dan dua guru tidak hadir pada hari persekolahan seterusnya (relief sudah diagih)
+  TT.demoSample = (today, opts) => {
+    const s = TT.sample();
+    s.placements = TT.generate(s, { seed: 2, improveMs: opts && opts.improveMs != null ? opts.improveMs : 600 }).placements;
+    const day = TT.nextSchoolDay(s, today);
+    [[3, 'MC'], [7, 'Kursus']].forEach(([i, reason], k) => {
+      if (s.teachers[i]) s.absences.push({ id: 'demo-ab' + k, date: day, teacherId: s.teachers[i].id, from: null, to: null, reason, note: '' });
+    });
+    TT.autoRelief(s, day);
+    return s;
+  };
+
   if (typeof module !== 'undefined' && module.exports) module.exports = TT;
 })(typeof window !== 'undefined' ? window : globalThis);
