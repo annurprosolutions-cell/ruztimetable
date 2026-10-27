@@ -22,6 +22,8 @@ async function open(b, url, setup, extra) {
   pg.on('pageerror', (e) => errors.push('PAGEERROR ' + e.message));
   pg.on('console', (m) => { if (m.type() === 'error') errors.push('CONSOLE ' + m.text()); });
   await pg.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  // ujian tidak boleh menulis ke Google Sheet sebenar: semua permintaan Apps Script digagalkan kecuali ujian survey memasang route sendiri
+  await pg.route('https://script.google.com/**', (r) => r.abort());
   await pg.addInitScript(() => {
     window.print = () => { window.__printed = document.getElementById('printArea').innerHTML; window.dispatchEvent(new Event('afterprint')); };
   });
@@ -588,7 +590,7 @@ async function sheetsFlow(b) {
     assert.ok(dst.reliefs.filter((r) => r.status === 'assigned').length >= 4);
     assert.strictEqual(await dm.pg.evaluate(() => localStorage.getItem('jadual-sekolah-v1')), null, 'data sekolah sebenar tidak disentuh');
     assert.ok(await dm.pg.evaluate(() => !!localStorage.getItem('jadual-demo-v1')));
-    assert.ok((await dm.pg.locator('.demobar a.pill').getAttribute('href')).startsWith('https://wa.me/60134874206'));
+    assert.ok((await dm.pg.locator('.demobar a.pill').getAttribute('href')).startsWith('https://wa.me/601120879149'));
     assert.strictEqual(await dm.pg.locator('button.avatar').count(), 1);
     await dm.pg.click('button[data-act="menu"][data-m="role"]');
     await dm.pg.click('button[data-act="setRole"][data-r="guru"]');
@@ -644,7 +646,7 @@ async function sheetsFlow(b) {
     let netFail = false;
     const surveySetup = async (page) => {
       await page.route('**/config.js', async (route) => {
-        const body = fs.readFileSync(path.join(ROOT, 'config.js'), 'utf8').replace("surveyUrl: ''", `surveyUrl: '${scriptUrl}'`);
+        const body = fs.readFileSync(path.join(ROOT, 'config.js'), 'utf8').replace(/surveyUrl: '[^']*'/, `surveyUrl: '${scriptUrl}'`);
         await route.fulfill({ status: 200, contentType: 'text/javascript', body });
       });
       await page.route('https://script.google.com/**', async (route) => {

@@ -11,9 +11,9 @@ window.APP_CONFIG = {
   licenseUrl: '',
   // Survey dalam mod demo (?demo): URL web app Google Apps Script yang berakhir dengan /exec (lihat appscript/README.md).
   // Kosong = survey tetap dipaparkan tetapi jawapan hanya tersimpan dalam pelayar pelawat dan belum dihantar.
-  surveyUrl: '',
+  surveyUrl: 'https://script.google.com/macros/s/AKfycbw6OKT2xy0XM2VOUVLWNMj91OCG9x4ltDZMspboAvMWwMMQ39SgXKd1gkTnZ01hjWGr/exec',
   // Kunci pilihan: sama dengan SURVEY_KEY dalam Script properties Apps Script. Kosong = tiada semakan kunci.
   surveyKey: '',
   // Maklumat sokongan yang dipaparkan di halaman Bantuan (pilihan)
-  support: { whatsapp: '0134874206', email: 'annurprosolutions@gmail.com' }
+  support: { whatsapp: '01120879149', email: 'annurprosolutions@gmail.com' }
 };
