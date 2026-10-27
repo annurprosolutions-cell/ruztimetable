@@ -77,7 +77,7 @@ Tambah `?demo` pada alamat app, contohnya `https://annurprosolutions-cell.github
 Dalam mod demo, pelawat menjawab survey sebelum boleh guna demo, dan disimpan dalam Google Sheet anda melalui Google Apps Script. Dibahagikan dua kerana soalan tentang pengalaman (kemudahan, harga, NPS) tidak boleh dijawab sebelum mencuba:
 
 - **Bahagian 1, popup wajib sebelum demo:** profil sekolah, cara susun jadual dan urus relief sekarang, akaun Google dan siapa memutuskan pembelian.
-- **Bahagian 2, butang "Beri maklum balas" dalam bar demo:** kebolehgunaan, paparan guru, data, harga dan NPS. Satu responden = satu baris Sheet (kedua-dua bahagian berkongsi ID rawak).
+- **Bahagian 2, butang terapung "Maklum Balas":** kebolehgunaan, paparan guru, data, harga dan NPS. Satu responden = satu baris Sheet (kedua-dua bahagian berkongsi ID rawak). Selepas bahagian 1, popup notis keluar sekali dengan gambar butang ("Selepas anda cuba demo ini, tolong isi maklum balas melalui butang Maklum Balas seperti ini"). Butang itu kekal di penjuru kanan bawah pada setiap halaman, termasuk pratonton guru, sehingga bahagian 2 dihantar.
 - Tiada nama, telefon atau e-mel diminta. Soalan wajib ditanda `*`. Draf kekal bila refresh. Jika rangkaian terputus, jawapan menunggu dalam baris gilir dan dihantar bila pulih.
 - Soalan ditakrif dalam `js/survey.js`. Apps Script penuh dalam `appscript/Code.gs` (jana skema: `node tools/gen-appscript.js`). Langkah pasang: [appscript/README.md](appscript/README.md). Isi `surveyUrl` dalam `config.js`.
 

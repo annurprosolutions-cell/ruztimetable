@@ -4,7 +4,7 @@
 
   // Survey tester demo. Satu sumber kebenaran: app (js/ui-survey.js) dan Google Apps Script (appscript/Code.gs, dijana oleh
   // tools/gen-appscript.js) kedua-duanya membaca skema ini, jadi soalan dan lajur Sheet sentiasa sepadan.
-  //   part 1 = sebelum cuba demo (popup wajib), part 2 = selepas cuba demo (butang "Beri maklum balas")
+  //   part 1 = sebelum cuba demo (popup wajib), part 2 = selepas cuba demo (butang terapung "Maklum Balas")
   // Jenis: single, multi (max = pilih sehingga N mengikut keutamaan), scale, text, matrix, numbers
   const o = (v, t, other) => (other ? { v, t, other: true } : { v, t });
   const LAIN = o('lain', 'Lain-lain', true);

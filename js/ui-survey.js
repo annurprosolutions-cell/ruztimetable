@@ -2,7 +2,8 @@
   'use strict';
   // Survey tester demo (hanya dalam mod ?demo).
   //  Bahagian 1: popup wajib sebelum demo boleh digunakan.
-  //  Bahagian 2: selepas cuba demo, melalui butang "Beri maklum balas" dalam bar demo.
+  //  Popup notis (sekali) menunjukkan butang Maklum Balas, dan butang itu terapung pada setiap halaman demo.
+  //  Bahagian 2: selepas cuba demo, dibuka melalui butang terapung Maklum Balas.
   // Jawapan dihantar ke Google Apps Script (config.js: surveyUrl) dan disimpan dalam Google Sheet pemilik demo.
   // Tiada nama, telefon atau e-mel diminta. Soalan dan lajur Sheet datang daripada js/survey.js.
   const { esc, actions } = UI;
@@ -126,6 +127,23 @@
     window.scrollTo(0, top ? 0 : y);
   };
 
+  // ---------- butang terapung dan popup notis ----------
+  // Butang sentiasa ada pada setiap halaman demo (dilukis oleh UI.render) sehingga bahagian 2 dihantar.
+  const fabInner = () => `${UI.icon('message')}<span>Maklum Balas</span>`;
+  UI.surveyFab = () => (UI.demo && sv().p1 && !sv().p2 && !UI.surveyActive()
+    ? `<button class="fab" data-act="svyOpen2" aria-label="Beri maklum balas selepas cuba demo">${fabInner()}</button>` : '');
+  // popup sekali sahaja selepas bahagian 1: jelaskan bahawa maklum balas diisi selepas mencuba, dan tunjuk butangnya
+  UI.surveyNotice = () => {
+    const s = sv();
+    if (!UI.demo || !s.p1 || s.p2 || s.noticed || UI.surveyActive()) return;
+    s.noticed = true; UI.savePrefs();
+    UI.modalOpen('Selamat mencuba demo',
+      `<p>Selepas anda cuba demo ini, tolong isi maklum balas melalui butang <b>Maklum Balas</b> seperti ini:</p>
+       <div class="fabdemo" aria-hidden="true"><i></i><i></i><i style="width:62%"></i><i style="width:80%"></i><span class="fab prev">${fabInner()}</span></div>
+       <p class="hint">Butang ini sentiasa terapung di penjuru kanan bawah pada setiap halaman. Maklum balas mengambil masa kira-kira 3 minit.</p>`,
+      '<button class="btn primary" data-act="modalClose">Faham, mula cuba demo</button>');
+  };
+
   // ---------- tindakan ----------
   actions.svyStart = () => { V.step = 0; if (!V.started) V.started = Date.now(); V.msg = ''; saveDraft(); redraw(true); };
   actions.svyBack = () => {
@@ -164,7 +182,7 @@
     V.open = 0; V.step = -1; V.errors = {}; V.msg = ''; V.started = 0;
     UI.surveyFlush();
     redraw(true);
-    UI.toast(p === 1 ? 'Terima kasih! Selamat mencuba demo.' : 'Terima kasih atas maklum balas anda!');
+    if (p === 1) UI.surveyNotice(); else UI.toast('Terima kasih atas maklum balas anda!');
   };
   function focusFirst() {
     const el = document.querySelector('.svy .q.err');

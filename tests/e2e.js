@@ -581,6 +581,8 @@ async function sheetsFlow(b) {
     await dm.pg.waitForSelector('header.topbar');
     assert.strictEqual(await dm.pg.locator('.gate').count(), 0, 'demo tiada skrin log masuk');
     assert.ok(await dm.pg.locator('.demobar').count());
+    assert.strictEqual(await dm.pg.locator('button.fab').count(), 0, 'tiada butang terapung jika maklum balas sudah dihantar');
+    assert.strictEqual(await dm.pg.locator('.dialog').count(), 0, 'tiada popup notis jika maklum balas sudah dihantar');
     const dst = await dm.st();
     assert.strictEqual(dst.placements.length, 243);
     assert.ok(dst.reliefs.filter((r) => r.status === 'assigned').length >= 4);
@@ -701,7 +703,14 @@ async function sheetsFlow(b) {
     await fillSurvey(sv.pg, 1, { peranan: 'penyelaras', susun_alat: ['excel', 'asc'], rel_guru_isi: 'perlu' });
     await sv.pg.waitForSelector('header.topbar');
     assert.ok(await sv.pg.locator('.demobar').count());
-    assert.ok(await sv.pg.locator('.toast', { hasText: 'Terima kasih' }).count());
+    // popup notis sekali: ayat, gambar butang, dan penjelasan butang terapung
+    await sv.pg.waitForSelector('.dialog');
+    const notis = await sv.pg.textContent('.dialog');
+    assert.ok(notis.includes('Selepas anda cuba demo ini, tolong isi maklum balas melalui butang Maklum Balas seperti ini'), notis);
+    assert.ok(await sv.pg.locator('.dialog .fabdemo .fab.prev').count(), 'gambar butang dalam popup');
+    assert.ok(notis.includes('sentiasa terapung'));
+    await sv.pg.click('.dialog button[data-act="modalClose"]');
+    assert.strictEqual(await sv.pg.locator('.dialog').count(), 0);
     await sv.pg.waitForFunction(() => JSON.parse(localStorage.getItem('jadual-demo-survey-queue') || '[]').length === 0);
     assert.strictEqual(posts.length, 1);
     const p1 = posts[0];
@@ -714,18 +723,34 @@ async function sheetsFlow(b) {
     assert.strictEqual(apps.row(0).peranan, 'Penyelaras jadual / relief');
     assert.strictEqual(apps.row(0).susun_alat, 'Excel / Google Sheet | aSc Timetables');
     assert.ok(!JSON.stringify(p1).match(/pbkdf2|@|\b01[0-9]-?\d{7}/), 'tiada maklumat peribadi dalam payload');
-    step('survey bahagian 1: popup wajib, semakan wajib/lain-lain/had pilihan, soalan bersyarat, draf kekal, dihantar ke Apps Script (Code.gs sebenar)');
+    step('survey bahagian 1: popup wajib, semakan wajib/lain-lain/had pilihan, soalan bersyarat, draf kekal, popup notis + gambar butang, dihantar ke Apps Script (Code.gs sebenar)');
 
     // selepas survey: demo boleh digunakan, kekal selepas muat semula, butang bahagian 2 kelihatan
     await sv.pg.reload();
     await sv.pg.waitForSelector('header.topbar');
     assert.strictEqual(await sv.pg.locator('.svy').count(), 0, 'survey tidak diminta semula');
+    assert.strictEqual(await sv.pg.locator('.dialog').count(), 0, 'popup notis hanya sekali');
     assert.strictEqual((await sv.st()).placements.length, 243);
-    await sv.pg.click('[data-act="svyOpen2"]');
+    // butang Maklum Balas terapung: ada pada setiap halaman, kekal di penjuru kanan bawah walaupun halaman disrkol
+    const vp = sv.pg.viewportSize();
+    for (const page of ['utama', 'data', 'jadual', 'relief', 'laporan', 'tetapan']) {
+      await sv.pg.click(`nav button[data-p="${page}"]`);
+      await sv.pg.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      const box = await sv.pg.locator('button.fab').boundingBox();
+      assert.ok(box, 'butang terapung tiada pada halaman ' + page);
+      assert.ok(box.x + box.width > vp.width - 40 && box.y + box.height > vp.height - 60, `kedudukan butang pada ${page}: ${JSON.stringify(box)}`);
+      assert.strictEqual(await sv.pg.locator('button.fab').getAttribute('data-act'), 'svyOpen2');
+    }
+    await sv.pg.click('button[data-act="menu"][data-m="role"]');
+    await sv.pg.click('button[data-act="setRole"][data-r="guru"]');
+    assert.ok(await sv.pg.locator('button.fab').count(), 'butang kekal dalam pratonton guru');
+    await sv.pg.click('button[data-act="setRole"][data-r="admin"]');
+    await sv.pg.click('nav button[data-p="utama"]');
+    await sv.pg.click('button.fab');
     assert.ok((await sv.pg.textContent('.svy h1')).includes('Terima kasih sudah mencuba'));
     await sv.pg.click('[data-act="svyClose"]');
     await sv.pg.waitForSelector('header.topbar');
-    await sv.pg.click('[data-act="svyOpen2"]');
+    await sv.pg.click('button.fab');
     await sv.pg.click('[data-act="svyStart"]');
     await sv.pg.click('[data-act="svyNext"]');
     assert.ok(await sv.pg.locator('.q.err').count() >= 2, 'bahagian 2 juga menyemak soalan wajib');
@@ -739,7 +764,7 @@ async function sheetsFlow(b) {
     assert.strictEqual(posts[1].answers.harga_terlalu_mahal, 2000);
     assert.strictEqual(apps.rows().length, 1, 'bahagian 2 mengemas kini baris yang sama');
     assert.strictEqual(apps.row(0).nps, 9); assert.strictEqual(apps.row(0).peranan, 'Penyelaras jadual / relief');
-    assert.strictEqual(await sv.pg.locator('[data-act="svyOpen2"]').count(), 0, 'butang hilang selepas bahagian 2');
+    assert.strictEqual(await sv.pg.locator('button.fab').count(), 0, 'butang terapung hilang selepas bahagian 2');
     // set semula demo tidak menetapkan semula survey
     await sv.pg.click('button.avatar');
     await sv.pg.click('button[data-act="demoReset"]');
@@ -748,7 +773,7 @@ async function sheetsFlow(b) {
     assert.strictEqual(await sv.pg.locator('.svy').count(), 0);
     assert.deepStrictEqual(sv.errors, []);
     await sv.ctx.close();
-    step('survey bahagian 2 selepas demo: butang dalam bar demo, ID sama, baris Sheet dikemas kini (bukan berganda), set semula demo tidak ulang survey');
+    step('survey bahagian 2 selepas demo: butang Maklum Balas terapung pada setiap halaman, ID sama, baris Sheet dikemas kini (bukan berganda), set semula demo tidak ulang survey');
 
     // rangkaian terputus: demo tetap boleh digunakan, jawapan menunggu dalam baris gilir dan dihantar bila pulih; perangkap robot
     const off = await open(b, base + '?demo', surveySetup, NOSW);
