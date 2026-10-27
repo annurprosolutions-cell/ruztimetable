@@ -6,6 +6,7 @@ const http = require('http');
 const fs = require('fs');
 const assert = require('assert');
 const { fakeSheets } = require('./helpers/fake-sheets.js');
+const { createEnv } = require('./helpers/appscript-mock.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const FIXED = new Date('2026-10-26T07:45:00+08:00');
@@ -570,7 +571,11 @@ async function sheetsFlow(b) {
     assert.deepStrictEqual(errors, []);
 
     // ---- mod demo: terus masuk, data contoh sendiri, tiada Google, ruang storan berasingan ----
-    const dm = await open(b, base + '?demo', null, NOSW);
+    // survey bahagian 1 dan 2 ditanda selesai supaya ujian demo biasa terus masuk (survey diuji di bawah)
+    const seedSurvey = async (page) => page.addInitScript(() => {
+      if (location.search.includes('demo') && !localStorage.getItem('jadual-demo-prefs')) localStorage.setItem('jadual-demo-prefs', JSON.stringify({ survey: { id: 'ujianseed0001', p1: '2026-10-26T00:00:00.000Z', p2: '2026-10-26T00:00:00.000Z' } }));
+    });
+    const dm = await open(b, base + '?demo', seedSurvey, NOSW);
     const hosts = [];
     dm.pg.on('request', (r) => { const h = new URL(r.url()).host; if (/google|googleapis|gstatic/.test(h) && !/^fonts\./.test(h)) hosts.push(h); });
     await dm.pg.waitForSelector('header.topbar');
@@ -613,6 +618,184 @@ async function sheetsFlow(b) {
     assert.deepStrictEqual(dm.errors, []);
     await dm.ctx.close();
     step('demo: terus masuk tanpa log masuk, data contoh siap (243 waktu, relief), ruang storan berasingan, tiada Google, set semula');
+
+    // ---- survey demo: popup wajib sebelum demo, bahagian 2 selepas cuba, sync ke Apps Script (Code.gs sebenar) ----
+    async function fillSurvey(pg, part, pick = {}) {
+      const secs = await pg.evaluate((p) => TT.surveySections(p).map((s) => s.questions), part);
+      for (let i = 0; i < secs.length; i++) {
+        for (const q of secs[i]) {
+          if (!(await pg.locator(`[data-qwrap="${q.id}"]`).count())) continue; // soalan bersyarat tersembunyi
+          const want = pick[q.id];
+          if (q.type === 'single') await pg.locator(`label.opt:has(input[data-q="${q.id}"]${want ? `[value="${want}"]` : ''})`).first().click();
+          else if (q.type === 'multi') for (const v of (want || [q.options[0].v])) await pg.locator(`label.opt:has(input[data-q="${q.id}"][value="${v}"])`).click();
+          else if (q.type === 'scale') await pg.locator(`label.sc:has(input[data-q="${q.id}"][value="${want == null ? q.max : want}"])`).click();
+          else if (q.type === 'text') await pg.fill(`textarea[data-q="${q.id}"]`, 'jawapan ' + q.id);
+          else if (q.type === 'matrix') for (const r of q.rows) await pg.locator(`label.opt:has(input[data-q="${q.id}"][data-row="${r.v}"])`).first().click();
+          else if (q.type === 'numbers') for (const [k, f] of q.fields.entries()) await pg.fill(`input[data-q="${q.id}"][data-f="${f.v}"]`, String((k + 1) * 500));
+        }
+        await pg.click('.svy .row .btn.primary');
+      }
+    }
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbTEST/exec';
+    const apps = createEnv();
+    const posts = [];
+    let netFail = false;
+    const surveySetup = async (page) => {
+      await page.route('**/config.js', async (route) => {
+        const body = fs.readFileSync(path.join(ROOT, 'config.js'), 'utf8').replace("surveyUrl: ''", `surveyUrl: '${scriptUrl}'`);
+        await route.fulfill({ status: 200, contentType: 'text/javascript', body });
+      });
+      await page.route('https://script.google.com/**', async (route) => {
+        if (netFail) return route.abort();
+        const req = route.request();
+        if (req.method() === 'POST') { posts.push(JSON.parse(req.postData())); apps.post(req.postData()); }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' });
+      });
+    };
+    const sv = await open(b, base + '?demo', surveySetup, NOSW);
+    await sv.pg.waitForSelector('.svy');
+    assert.strictEqual(await sv.pg.locator('header.topbar').count(), 0, 'demo tidak boleh digunakan sebelum survey');
+    assert.ok((await sv.pg.textContent('.svy h1')).includes('Sebelum cuba demo'));
+    assert.ok((await sv.pg.textContent('.svy')).includes('Tiada nama, nombor telefon atau e-mel'));
+    await sv.pg.click('[data-act="svyStart"]');
+    await sv.pg.click('[data-act="svyNext"]');
+    assert.ok(await sv.pg.locator('.q.err').count() >= 4, 'soalan wajib ditanda');
+    assert.match(await sv.pg.textContent('#svyMsg'), /lengkapkan/);
+    assert.strictEqual(await sv.pg.evaluate(() => UI.survey.step), 0, 'tidak maju tanpa jawapan wajib');
+    await sv.pg.locator('label.opt:has(input[data-q="peranan"][value="lain"])').click();
+    await sv.pg.click('[data-act="svyNext"]');
+    assert.match(await sv.pg.textContent('[data-qwrap="peranan"] .qerr'), /lain-lain/, 'lain-lain mesti dinyatakan');
+    assert.ok(await sv.pg.locator('input[data-other="peranan"]:visible').count());
+    await sv.pg.fill('input[data-other="peranan"]', 'Guru ICT');
+    // draf kekal selepas muat semula
+    await sv.pg.reload();
+    await sv.pg.waitForSelector('.svy');
+    assert.strictEqual(await sv.pg.evaluate(() => UI.survey.step), 0);
+    assert.ok(await sv.pg.locator('input[data-q="peranan"][value="lain"]:checked').count(), 'draf jawapan kekal');
+    assert.strictEqual(await sv.pg.inputValue('input[data-other="peranan"]'), 'Guru ICT');
+    await sv.pg.locator('label.opt:has(input[data-q="peranan"][value="penyelaras"])').click();
+    assert.ok(!(await sv.pg.locator('input[data-other="peranan"]:visible').count()), 'kotak lain-lain disembunyikan');
+    // had pilihan: pilih sehingga 3
+    for (const id of ['jenis', 'bil_guru', 'bil_kelas']) await sv.pg.locator(`label.opt:has(input[data-q="${id}"])`).first().click();
+    await sv.pg.click('[data-act="svyNext"]');
+    assert.strictEqual(await sv.pg.evaluate(() => UI.survey.step), 1);
+    // soalan bersyarat: aSc membuka soalan susulan
+    assert.strictEqual(await sv.pg.locator('[data-qwrap="asc_sebab"]').count(), 0);
+    await sv.pg.locator('label.opt:has(input[data-q="susun_alat"][value="asc"])').click();
+    assert.strictEqual(await sv.pg.locator('[data-qwrap="asc_sebab"]').count(), 1);
+    await sv.pg.locator('label.opt:has(input[data-q="susun_alat"][value="asc"])').click();
+    assert.strictEqual(await sv.pg.locator('[data-qwrap="asc_sebab"]').count(), 0);
+    await sv.pg.locator('label.opt:has(input[data-q="susah"][value="sekatan"])').click();
+    await sv.pg.locator('label.opt:has(input[data-q="susah"][value="bertindih"])').click();
+    await sv.pg.locator('label.opt:has(input[data-q="susah"][value="gabung"])').click();
+    await sv.pg.locator('label.opt:has(input[data-q="susah"][value="bilik"])').click();
+    assert.match(await sv.pg.textContent('[data-qwrap="susah"] .qerr'), /sehingga 3/);
+    assert.strictEqual(await sv.pg.locator('input[data-q="susah"]:checked').count(), 3);
+    await sv.pg.locator('label.opt:has(input[data-q="susah"][value="gabung"])').click();
+    await sv.pg.locator('label.opt:has(input[data-q="susah"][value="gabung"])').click(); // buang
+    await sv.pg.evaluate(() => { UI.survey.step = 0; });
+    // isi bakinya melalui klik sebenar, bermula dari bahagian pertama
+    await sv.pg.reload();
+    await sv.pg.waitForSelector('.svy');
+    await sv.pg.evaluate(() => { UI.actions.svyBack(); UI.actions.svyStart(); });
+    await fillSurvey(sv.pg, 1, { peranan: 'penyelaras', susun_alat: ['excel', 'asc'], rel_guru_isi: 'perlu' });
+    await sv.pg.waitForSelector('header.topbar');
+    assert.ok(await sv.pg.locator('.demobar').count());
+    assert.ok(await sv.pg.locator('.toast', { hasText: 'Terima kasih' }).count());
+    await sv.pg.waitForFunction(() => JSON.parse(localStorage.getItem('jadual-demo-survey-queue') || '[]').length === 0);
+    assert.strictEqual(posts.length, 1);
+    const p1 = posts[0];
+    assert.strictEqual(p1.part, 1); assert.strictEqual(p1.v, 1); assert.strictEqual(p1.hp, ''); assert.ok(/^[A-Za-z0-9_-]{8,64}$/.test(p1.id)); assert.ok(p1.ua.length > 5);
+    assert.strictEqual(p1.answers.peranan, 'penyelaras');
+    assert.deepStrictEqual(p1.answers.susun_alat, ['excel', 'asc']);
+    assert.ok(p1.answers.asc_sebab, 'soalan bersyarat dijawab dan dihantar');
+    assert.ok(!('nps' in p1.answers) && !('mudah' in p1.answers), 'bahagian 1 tidak mengandungi soalan selepas demo');
+    assert.strictEqual(apps.rows().length, 1);
+    assert.strictEqual(apps.row(0).peranan, 'Penyelaras jadual / relief');
+    assert.strictEqual(apps.row(0).susun_alat, 'Excel / Google Sheet | aSc Timetables');
+    assert.ok(!JSON.stringify(p1).match(/pbkdf2|@|\b01[0-9]-?\d{7}/), 'tiada maklumat peribadi dalam payload');
+    step('survey bahagian 1: popup wajib, semakan wajib/lain-lain/had pilihan, soalan bersyarat, draf kekal, dihantar ke Apps Script (Code.gs sebenar)');
+
+    // selepas survey: demo boleh digunakan, kekal selepas muat semula, butang bahagian 2 kelihatan
+    await sv.pg.reload();
+    await sv.pg.waitForSelector('header.topbar');
+    assert.strictEqual(await sv.pg.locator('.svy').count(), 0, 'survey tidak diminta semula');
+    assert.strictEqual((await sv.st()).placements.length, 243);
+    await sv.pg.click('[data-act="svyOpen2"]');
+    assert.ok((await sv.pg.textContent('.svy h1')).includes('Terima kasih sudah mencuba'));
+    await sv.pg.click('[data-act="svyClose"]');
+    await sv.pg.waitForSelector('header.topbar');
+    await sv.pg.click('[data-act="svyOpen2"]');
+    await sv.pg.click('[data-act="svyStart"]');
+    await sv.pg.click('[data-act="svyNext"]');
+    assert.ok(await sv.pg.locator('.q.err').count() >= 2, 'bahagian 2 juga menyemak soalan wajib');
+    await sv.pg.evaluate(() => { UI.survey.step = -1; });
+    await sv.pg.evaluate(() => UI.actions.svyStart());
+    await fillSurvey(sv.pg, 2, { nps: 9 });
+    await sv.pg.waitForSelector('header.topbar');
+    await sv.pg.waitForFunction(() => JSON.parse(localStorage.getItem('jadual-demo-survey-queue') || '[]').length === 0);
+    assert.strictEqual(posts.length, 2);
+    assert.strictEqual(posts[1].part, 2); assert.strictEqual(posts[1].id, p1.id, 'bahagian 2 guna ID responden sama');
+    assert.strictEqual(posts[1].answers.harga_terlalu_mahal, 2000);
+    assert.strictEqual(apps.rows().length, 1, 'bahagian 2 mengemas kini baris yang sama');
+    assert.strictEqual(apps.row(0).nps, 9); assert.strictEqual(apps.row(0).peranan, 'Penyelaras jadual / relief');
+    assert.strictEqual(await sv.pg.locator('[data-act="svyOpen2"]').count(), 0, 'butang hilang selepas bahagian 2');
+    // set semula demo tidak menetapkan semula survey
+    await sv.pg.click('button.avatar');
+    await sv.pg.click('button[data-act="demoReset"]');
+    await sv.pg.click('button[data-act="confirmYes"]');
+    await sv.pg.waitForFunction(() => UI.state.school.name === 'SMK Contoh Jaya');
+    assert.strictEqual(await sv.pg.locator('.svy').count(), 0);
+    assert.deepStrictEqual(sv.errors, []);
+    await sv.ctx.close();
+    step('survey bahagian 2 selepas demo: butang dalam bar demo, ID sama, baris Sheet dikemas kini (bukan berganda), set semula demo tidak ulang survey');
+
+    // rangkaian terputus: demo tetap boleh digunakan, jawapan menunggu dalam baris gilir dan dihantar bila pulih; perangkap robot
+    const off = await open(b, base + '?demo', surveySetup, NOSW);
+    await off.pg.waitForSelector('.svy');
+    netFail = true;
+    await off.pg.click('[data-act="svyStart"]');
+    await fillSurvey(off.pg, 1, { peranan: 'pk' });
+    await off.pg.waitForSelector('header.topbar');
+    assert.strictEqual(await off.pg.evaluate(() => JSON.parse(localStorage.getItem('jadual-demo-survey-queue')).length), 1, 'menunggu dalam baris gilir');
+    assert.strictEqual(posts.length, 2);
+    netFail = false;
+    await off.pg.evaluate(() => UI.surveyFlush());
+    await off.pg.waitForFunction(() => JSON.parse(localStorage.getItem('jadual-demo-survey-queue')).length === 0);
+    assert.strictEqual(posts.length, 3);
+    assert.strictEqual(apps.rows().length, 2);
+    await off.pg.evaluate(() => UI.surveyFlush());
+    assert.strictEqual(posts.length, 3, 'tiada hantaran berganda');
+    assert.deepStrictEqual(off.errors.filter((e) => !/ERR_FAILED/.test(e)), [], 'hanya ralat rangkaian yang sengaja digagalkan dibenarkan');
+    await off.ctx.close();
+    // robot mengisi medan tersembunyi: pelayan menolak, tiada baris ditulis
+    const bot = await open(b, base + '?demo', surveySetup, NOSW);
+    await bot.pg.waitForSelector('.svy');
+    await bot.pg.click('[data-act="svyStart"]');
+    const before = apps.rows().length;
+    // isi semua kecuali butang akhir, kemudian isi medan perangkap sebelum hantar
+    const secs = await bot.pg.evaluate(() => TT.surveySections(1).length);
+    await fillSurveyBot(bot.pg, secs);
+    async function fillSurveyBot(pg, n) {
+      const answers = await pg.evaluate(() => ({}));
+      void answers;
+      for (let i = 0; i < n; i++) {
+        const qs = await pg.evaluate((k) => TT.surveySections(1)[k].questions, i);
+        for (const q of qs) {
+          if (!(await pg.locator(`[data-qwrap="${q.id}"]`).count())) continue;
+          if (q.type === 'single') await pg.locator(`label.opt:has(input[data-q="${q.id}"])`).first().click();
+          else if (q.type === 'multi') await pg.locator(`label.opt:has(input[data-q="${q.id}"])`).first().click();
+        }
+        if (i === n - 1) await pg.evaluate(() => { document.querySelector('.svy .hp').value = 'http://spam.example'; });
+        await pg.click('.svy .row .btn.primary');
+      }
+    }
+    await bot.pg.waitForSelector('header.topbar');
+    await bot.pg.waitForFunction(() => JSON.parse(localStorage.getItem('jadual-demo-survey-queue')).length === 0);
+    assert.strictEqual(posts[posts.length - 1].hp, 'http://spam.example');
+    assert.strictEqual(apps.rows().length, before, 'hantaran robot ditolak oleh Apps Script');
+    await bot.ctx.close();
+    step('rangkaian terputus: demo boleh guna, jawapan dihantar bila pulih tanpa berganda; perangkap robot ditolak oleh Apps Script');
 
     // ---- PWA: manifest, ikon, service worker, buka luar talian ----
     const w = await open(b, base, async (page) => { await page.route(/accounts\.google\.com/, (r) => r.abort()); });

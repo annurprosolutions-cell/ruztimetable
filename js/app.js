@@ -77,8 +77,8 @@
   function demoBar() {
     if (!UI.demo) return '';
     const sup = CFG.support || {}, wa = sup.whatsapp ? `https://wa.me/${UI.waNumber(sup.whatsapp)}?text=${encodeURIComponent('Saya berminat dengan Jadual Sekolah (selepas cuba demo).')}` : '';
-    return `<div class="demobar"><span><b>MOD DEMO</b> · Data contoh sahaja. Klik, ubah dan jana jadual dengan bebas. Semuanya disimpan dalam pelayar anda sahaja dan tidak dihantar ke mana-mana.</span>
-      <span class="dbtns"><button class="pill o" data-act="demoReset">${UI.icon('refresh')} Set semula</button>${wa ? `<a class="pill w" href="${wa}" target="_blank" rel="noopener">${UI.icon('message')} Berminat? WhatsApp kami</a>` : sup.email ? `<a class="pill w" href="mailto:${esc(sup.email)}">Berminat? Hubungi kami</a>` : ''}</span></div>`;
+    return `<div class="demobar"><span><b>MOD DEMO</b> · Data contoh sahaja. Klik, ubah dan jana jadual dengan bebas. Data demo disimpan dalam pelayar anda sahaja. Hanya jawapan survey dihantar kepada kami.</span>
+      <span class="dbtns">${UI.surveyNeedsPart2 && UI.surveyNeedsPart2() ? `<button class="pill w" data-act="svyOpen2">${UI.icon('message')} Beri maklum balas</button>` : ''}<button class="pill o" data-act="demoReset">${UI.icon('refresh')} Set semula</button>${wa ? `<a class="pill w" href="${wa}" target="_blank" rel="noopener">${UI.icon('message')} Berminat? WhatsApp kami</a>` : sup.email ? `<a class="pill w" href="mailto:${esc(sup.email)}">Berminat? Hubungi kami</a>` : ''}</span></div>`;
   }
   UI.actions.demoReset = () => UI.confirm('Set semula demo? Semua perubahan anda dibuang dan data contoh asal dimuatkan semula.', () => {
     UI.toast('Menyediakan demo...');
@@ -92,6 +92,7 @@
   UI.render = () => {
     const y = window.scrollY, s = UI.state;
     UI.applyBrand();
+    if (UI.surveyActive && UI.surveyActive()) { $('app').innerHTML = UI.surveyHtml(); return; }
     if (UI.needGate()) { $('app').innerHTML = UI.gateHtml(); return; }
     const allowed = NAV[UI.prefs.role].map((x) => x[0]).concat(UI.isGuru() ? [] : ['bantuan']);
     if (!allowed.includes(UI.page)) UI.page = 'utama';
@@ -145,6 +146,7 @@
       UI.savePrefs();
       UI.relief.date = TT.nextSchoolDay(UI.state, UI.relief.date);
       UI.render();
+      if (UI.surveyFlush) UI.surveyFlush();
       return;
     }
     const g = TT.guruIdFrom(new URLSearchParams(location.search).get('g') || '');

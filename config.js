@@ -9,6 +9,11 @@ window.APP_CONFIG = {
   // Alamat Worker lesen (lihat worker/README.md), tanpa garis condong hujung.
   // Kosong = tiada semakan lesen (sesuai untuk ujian dan sekolah sendiri).
   licenseUrl: '',
+  // Survey dalam mod demo (?demo): URL web app Google Apps Script yang berakhir dengan /exec (lihat appscript/README.md).
+  // Kosong = survey tetap dipaparkan tetapi jawapan hanya tersimpan dalam pelayar pelawat dan belum dihantar.
+  surveyUrl: '',
+  // Kunci pilihan: sama dengan SURVEY_KEY dalam Script properties Apps Script. Kosong = tiada semakan kunci.
+  surveyKey: '',
   // Maklumat sokongan yang dipaparkan di halaman Bantuan (pilihan)
   support: { whatsapp: '0134874206', email: 'annurprosolutions@gmail.com' }
 };

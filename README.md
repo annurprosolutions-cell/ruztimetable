@@ -67,10 +67,19 @@ Sebelum app dibuka, skrin log masuk meminta peranan:
 
 Tambah `?demo` pada alamat app, contohnya `https://annurprosolutions-cell.github.io/ruztimetable/?demo`. Pelawat terus masuk sebagai pentadbir tanpa log masuk atau kata laluan, dengan SMK contoh yang jadualnya sudah dijana dan relief sudah diagih. Mereka boleh klik, ubah, jana semula dan lihat paparan guru.
 
-- Setiap pelawat mendapat salinan sendiri dalam pelayar mereka (kunci storan `jadual-demo-*`, berasingan daripada data sekolah sebenar pada alamat yang sama). Tiada apa dihantar ke Google, Worker atau mana-mana pelayan. Ujian e2e menyemak tiada permintaan ke Google.
+- Setiap pelawat mendapat salinan sendiri dalam pelayar mereka (kunci storan `jadual-demo-*`, berasingan daripada data sekolah sebenar pada alamat yang sama). Data demo tidak dihantar ke Google, Worker atau mana-mana pelayan. Hanya jawapan survey (lihat bahagian di bawah) dihantar ke Apps Script anda, dan hanya bila `surveyUrl` diisi. Ujian e2e menyemak tiada permintaan ke Google.
 - Tiada had hari atau akaun. Butang "Set semula" memuatkan semula data contoh asal. Bar demo di atas ada pautan WhatsApp ke `support.whatsapp` dalam `config.js`.
 - Google Sheets, pautan guru, pasang app dan notifikasi dimatikan dalam demo.
 - Demo sengaja **tidak** memakai akaun Google atau Sheet milik pembekal: kata laluan akaun tidak patut dikongsi, dan satu Sheet bersama akan ditimpa oleh semua pelawat serentak.
+
+## Survey dalam demo
+
+Dalam mod demo, pelawat menjawab survey sebelum boleh guna demo, dan disimpan dalam Google Sheet anda melalui Google Apps Script. Dibahagikan dua kerana soalan tentang pengalaman (kemudahan, harga, NPS) tidak boleh dijawab sebelum mencuba:
+
+- **Bahagian 1, popup wajib sebelum demo:** profil sekolah, cara susun jadual dan urus relief sekarang, akaun Google dan siapa memutuskan pembelian.
+- **Bahagian 2, butang "Beri maklum balas" dalam bar demo:** kebolehgunaan, paparan guru, data, harga dan NPS. Satu responden = satu baris Sheet (kedua-dua bahagian berkongsi ID rawak).
+- Tiada nama, telefon atau e-mel diminta. Soalan wajib ditanda `*`. Draf kekal bila refresh. Jika rangkaian terputus, jawapan menunggu dalam baris gilir dan dihantar bila pulih.
+- Soalan ditakrif dalam `js/survey.js`. Apps Script penuh dalam `appscript/Code.gs` (jana skema: `node tools/gen-appscript.js`). Langkah pasang: [appscript/README.md](appscript/README.md). Isi `surveyUrl` dalam `config.js`.
 
 ## PWA dan notifikasi
 
@@ -126,6 +135,10 @@ js/brand.js               palet warna dan semakan logo sekolah
 js/access.js              kata laluan (hash), sesi, data guru, CSV, notifikasi relief baharu
 js/ui-gate.js             skrin log masuk, tetapan awal, pilih nama guru
 js/ui-pwa.js              pasang app, notifikasi, muat semula data guru
+js/survey.js              skema soalan survey demo, semakan dan payload
+js/ui-survey.js           popup survey dan butang maklum balas dalam demo
+appscript/Code.gs         Google Apps Script: simpan jawapan survey ke Google Sheet
+tools/gen-appscript.js    jana blok skema dalam Code.gs daripada survey.js
 (?demo)                   TT.demoSample dalam js/sample.js, bar demo dalam js/app.js
 manifest.webmanifest, sw.js, icons/   PWA
 worker/                   pelayan lesen (Cloudflare Worker)
@@ -144,7 +157,7 @@ Untuk data contoh, pengoptimuman 6 saat mengurangkan waktu kosong guru dari seki
 ## Ujian
 
 ```bash
-npm test                               # 68 ujian unit, tanpa dependency
+npm test                               # 89 ujian unit, tanpa dependency
 npm i playwright && npm run test:e2e   # klik seluruh aliran dalam Chromium
 ```
 
