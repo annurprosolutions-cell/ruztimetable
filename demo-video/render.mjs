@@ -1,14 +1,15 @@
-// node render.mjs full demo.mp4   (perlukan ffmpeg)
+// node render.mjs full demo.mp4   (perlukan ffmpeg); PAGE=tutorial.html node render.mjs full out/tutorial.mp4
 // node render.mjs stills                          (snapshot ke stills/ untuk semak layout)
 import { chromium } from 'playwright';
 import { spawn } from 'child_process';
 import fs from 'fs';
 const [,, mode, out = 'demo.mp4'] = process.argv;
+const PAGE = process.env.PAGE || 'demo.html'; // PAGE=tutorial.html untuk video tutorial
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
-await page.goto('file://' + process.cwd() + '/demo.html', { waitUntil: 'networkidle' });
+await page.goto('file://' + process.cwd() + '/' + PAGE, { waitUntil: 'networkidle' });
 await page.evaluate(() => document.fonts.ready);
 const dur = await page.evaluate(() => window.DURATION);
 if (mode === 'stills') {

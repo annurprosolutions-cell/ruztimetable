@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="ms"><head><meta charset="utf-8">
+<title>Jadual Sekolah: tutorial pengguna baharu</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<style>
+:root{--bg:#edf0f5;--navy:#0b1d4d;--blue:#2747a6;--red:#c62828;--green:#2e7d32;--amber:#d48a0a;--ink:#0f172a;--mute:#56627a}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:var(--bg);font-family:'Plus Jakarta Sans',DejaVu Sans,sans-serif;color:var(--ink);word-spacing:2px}
+#bg{position:absolute;inset:0;background:linear-gradient(180deg,#f3f5fa 0%,#e6ebf4 100%)}
+.blob{position:absolute;border-radius:50%;filter:blur(110px);opacity:.55}
+#b1{width:760px;height:760px;background:#cdd9f3;left:-260px;top:-200px}
+#b2{width:700px;height:700px;background:#f6d4d2;right:-260px;bottom:120px}
+#brand{position:absolute;left:60px;right:60px;top:84px;display:flex;align-items:center;justify-content:space-between}
+#brand .l{display:flex;align-items:center;gap:16px;font-weight:800;font-size:30px;letter-spacing:-.3px}
+#brand .m{width:52px;height:52px;border-radius:50%;background:var(--red);display:grid;place-items:center;box-shadow:0 6px 16px rgba(198,40,40,.35)}
+#brand .m svg{width:28px;height:28px}
+#brand .r{font-size:22px;font-weight:700;color:var(--mute);letter-spacing:.5px}
+#track{position:absolute;left:60px;right:60px;top:170px;display:flex;gap:8px}
+#track div{flex:1;text-align:center;font-size:19px;font-weight:700;padding:10px 0;border-radius:999px;background:#dbe2ee;color:#8590a6}
+#track div.done{background:#c3cfe8;color:#3d4b6c}
+#track div.on{background:var(--navy);color:#fff;box-shadow:0 8px 20px rgba(11,29,77,.28)}
+.cap{position:absolute;left:60px;right:60px;top:252px}
+.kicker{font-size:25px;font-weight:800;letter-spacing:3px;color:var(--red);text-transform:uppercase;display:flex;align-items:center;gap:12px}
+.kicker i{width:14px;height:14px;border-radius:50%;background:var(--red);display:inline-block}
+.head{font-size:60px;line-height:1.08;font-weight:800;letter-spacing:-1.2px;margin-top:10px;word-spacing:5px}
+.sub{font-size:31px;line-height:1.34;color:var(--mute);margin-top:12px;font-weight:500}
+.ref{position:absolute;left:0;top:1328px;display:flex;align-items:center;gap:16px;background:#fff;border-radius:999px;padding:12px 30px 12px 14px;box-shadow:0 10px 28px rgba(11,29,77,.14),0 0 0 2px #dbe1ec;font-size:29px;font-weight:700;color:var(--navy)}
+.ref b{background:var(--navy);color:#fff;font-size:20px;letter-spacing:2px;padding:9px 18px;border-radius:999px;display:flex;align-items:center;gap:9px}
+.ref b svg{width:20px;height:20px}
+.ref span{color:var(--mute);font-weight:600;margin:0 2px}
+.vp{position:absolute;opacity:0}
+#desk{left:60px;top:600px;width:960px;height:930px;border-radius:30px;overflow:hidden;background:#fff;box-shadow:0 34px 80px rgba(11,29,77,.22),0 0 0 2px #dbe1ec}
+#desk .bar{height:44px;background:#f4f6fa;border-bottom:1px solid #e3e8f0;display:flex;align-items:center;gap:9px;padding:0 20px}
+#desk .bar i{width:13px;height:13px;border-radius:50%;background:#d6dbe5;display:block}
+#desk .bar i:nth-child(1){background:#f07167}#desk .bar i:nth-child(2){background:#f4c15d}#desk .bar i:nth-child(3){background:#5cc98a}
+#desk .bar span{margin-left:18px;font-size:19px;color:#7a8499;font-weight:600}
+.view{position:relative;overflow:hidden;background:var(--bg)}
+#deskView{width:960px;height:886px}
+#phone{left:315px;top:585px;width:450px;height:960px;border-radius:66px;background:#0d1424;padding:16px;box-shadow:0 34px 80px rgba(11,29,77,.32)}
+#phoneView{width:418px;height:928px;border-radius:52px}
+#phone .notch{position:absolute;left:50%;top:26px;width:120px;height:30px;margin-left:-60px;border-radius:20px;background:#0d1424;z-index:99}
+.shot{position:absolute;left:0;top:0;transform-origin:0 0;opacity:0}
+.fx{position:absolute;inset:0;pointer-events:none;z-index:90}
+.hl{position:absolute;border:6px solid var(--c);border-radius:16px;opacity:0}
+.ghost{position:absolute;border-radius:12px;background-repeat:no-repeat;opacity:0;box-shadow:0 22px 44px rgba(11,29,77,.35)}
+.cursor{position:absolute;width:54px;height:54px;opacity:0;transform-origin:7px 3px}
+.ripple{position:absolute;border-radius:50%;border:6px solid rgba(39,71,166,.85);opacity:0}
+.touch{position:absolute;border-radius:50%;background:rgba(39,71,166,.28);border:4px solid rgba(255,255,255,.9);opacity:0}
+#prog{position:absolute;left:60px;right:60px;top:1792px;height:10px;border-radius:6px;background:#d3dbea;overflow:hidden}
+#pf{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--blue),var(--red));border-radius:6px}
+#ticks i{position:absolute;top:1788px;width:3px;height:18px;background:#8f9bb5;border-radius:2px}
+#clock{position:absolute;right:60px;top:1818px;font-size:24px;font-weight:700;color:var(--mute);font-variant-numeric:tabular-nums}
+#hint{position:absolute;left:60px;top:1818px;font-size:24px;font-weight:600;color:var(--mute)}
+/* adegan HTML */
+#intro{background:linear-gradient(160deg,#0b1d4d 0%,#13306f 100%);color:#fff;padding:44px 46px}
+#intro .itit{font-size:40px;line-height:1.15;font-weight:800;letter-spacing:-.6px;margin-bottom:26px}
+#intro .igrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+#intro .istep{background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.15);border-radius:20px;padding:18px 16px;display:flex;gap:14px;align-items:flex-start;opacity:0;min-height:128px}
+#intro .istep b{flex:none;width:44px;height:44px;border-radius:50%;background:var(--red);display:grid;place-items:center;font-size:24px}
+#intro .istep span{font-size:21px;line-height:1.3;color:#c7d1ee;font-weight:500} #intro .istep i{display:block;font-style:normal;color:#fff;font-size:26px;font-weight:800;margin-bottom:4px}
+#intro .inote{margin-top:24px;font-size:23px;color:#c7d1ee;opacity:0;line-height:1.4}
+#outro .tip{margin-top:20px;font-size:26px;line-height:1.4;color:#e4e9f7;background:rgba(255,255,255,.07);border-radius:18px;padding:16px 22px;opacity:0}
+#outro .tip b{color:#fff}
+.html{position:absolute;left:0;top:0;width:960px;height:886px;opacity:0}
+.html.ph{width:418px;height:928px}
+#chat{background:#efe9df;display:flex;flex-direction:column}
+#chat .ch{background:#1f3d36;color:#fff;padding:22px 30px;display:flex;align-items:center;gap:20px}
+#chat .ch b{display:block;font-size:30px} #chat .ch small{font-size:21px;opacity:.75}
+#chat .av{width:62px;height:62px;border-radius:50%;background:#7cc4a5;display:grid;place-items:center;font-weight:800;font-size:28px;color:#1f3d36}
+#chat .msgs{padding:30px;display:flex;flex-direction:column;gap:18px}
+.msg{background:#fff;border-radius:22px;border-top-left-radius:6px;padding:16px 22px 12px;max-width:760px;font-size:31px;line-height:1.35;box-shadow:0 2px 3px rgba(0,0,0,.08);opacity:0}
+.msg .n{font-size:22px;font-weight:800;color:#b5482a;display:block;margin-bottom:4px}
+.msg .n.o{color:#2b6cb0}
+.msg .tm{display:block;text-align:right;font-size:19px;color:#8a8f98;margin-top:4px}
+.typing{background:#fff;border-radius:22px;padding:18px 26px;width:120px;display:flex;gap:10px;opacity:0}
+.typing i{width:14px;height:14px;border-radius:50%;background:#9aa1ac;display:block}
+/* Google Sheet */
+#sheet{background:#fff;display:flex;flex-direction:column}
+#sheet .top{display:flex;align-items:center;gap:20px;padding:22px 28px;border-bottom:2px solid #e6eaf0;background:#f8fafc}
+#sheet .ico{width:50px;height:64px;border-radius:8px;background:#1e8e3e;position:relative;flex:none}
+#sheet .ico:after{content:'';position:absolute;left:11px;right:11px;top:22px;bottom:12px;background:repeating-linear-gradient(#fff 0 5px,transparent 5px 10px);opacity:.9}
+#sheet .top b{font-size:28px;display:block;line-height:1.2}
+#sheet .top small{font-size:20px;color:#6b7690;margin-top:4px;display:block}
+#sheet .lock{margin-left:auto;background:#e6f4ea;color:#1e7a34;font-weight:800;font-size:21px;padding:10px 20px;border-radius:999px;display:flex;gap:9px;align-items:center;white-space:nowrap}
+#sheet .lock svg{width:22px;height:22px}
+#sheet .gridwrap{position:relative;flex:1}
+#sheet .grid{position:absolute;inset:0;padding:0}
+#sheet table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:21px}
+#sheet th{background:#f1f3f4;color:#5f6368;font-weight:600;border:1px solid #dadce0;height:46px}
+#sheet td{border:1px solid #e3e5e8;height:62px;padding:0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sheet td.n{background:#f1f3f4;color:#5f6368;text-align:center;width:56px;padding:0}
+#sheet tr.h td:not(.n){background:#e8f0fe;font-weight:700;color:#174ea6}
+#sheet .tabs{display:flex;gap:6px;background:#f1f3f4;border-top:2px solid #dadce0;padding:12px 18px 14px;position:relative;height:84px}
+#sheet .tabs div{position:absolute;left:18px;right:18px;top:12px;display:flex;gap:6px;overflow:hidden}
+#sheet .tab{font-size:18px;font-weight:600;color:#5f6368;padding:12px 11px;border-radius:10px 10px 0 0;white-space:nowrap}
+#sheet .tab.on{background:#fff;color:#1e7a34;box-shadow:0 -3px 0 #1e8e3e inset}
+#sheet .notew{position:absolute;left:0;right:0;bottom:112px;text-align:center}
+#sheet .note{display:inline-block;background:var(--navy);color:#fff;font-weight:800;font-size:26px;padding:18px 32px;border-radius:999px;box-shadow:0 18px 40px rgba(11,29,77,.35);white-space:nowrap}
+/* skrin utama telefon */
+#home{background:linear-gradient(170deg,#1d2a5a 0%,#0f3d4a 55%,#16314f 100%);color:#fff}
+#home .clock{position:absolute;left:0;right:0;top:92px;text-align:center}
+#home .clock b{font-size:112px;font-weight:700;letter-spacing:-3px;display:block;line-height:1}
+#home .clock span{font-size:26px;opacity:.85;font-weight:600}
+#home .apps{position:absolute;left:26px;right:26px;top:360px;display:grid;grid-template-columns:repeat(4,1fr);gap:34px 14px}
+#home .app{text-align:center;font-size:17px;font-weight:600;opacity:.92}
+#home .app i{display:block;width:78px;height:78px;border-radius:22px;margin:0 auto 8px;background:rgba(255,255,255,.18)}
+#home .app img{display:block;width:78px;height:78px;border-radius:22px;margin:0 auto 8px;box-shadow:0 8px 22px rgba(0,0,0,.35)}
+#home .app.me{position:relative;font-weight:800}
+#home .badge{position:absolute;right:14px;top:-8px;background:#e53935;color:#fff;width:30px;height:30px;border-radius:50%;font-size:19px;font-weight:800;display:grid;place-items:center;border:3px solid #16314f}
+#home .ring{position:absolute;width:104px;height:104px;border-radius:30px;border:5px solid #fff;box-shadow:0 0 0 10px rgba(255,255,255,.25)}
+#home .notif{position:absolute;left:14px;right:14px;top:58px;background:rgba(255,255,255,.96);color:#0f172a;border-radius:26px;padding:18px 20px;display:flex;gap:16px;box-shadow:0 22px 50px rgba(0,0,0,.45);z-index:20}
+#home .notif img{width:62px;height:62px;border-radius:15px;flex:none}
+#home .notif small{display:block;font-size:16px;font-weight:800;letter-spacing:.8px;color:#5a6785;text-transform:uppercase}
+#home .notif b{display:block;font-size:24px;margin:4px 0 2px}
+#home .notif p{font-size:21px;line-height:1.3;color:#334155;white-space:pre-line}
+#home .dock{position:absolute;left:26px;right:26px;bottom:34px;height:112px;border-radius:38px;background:rgba(255,255,255,.14)}
+#outro{background:linear-gradient(160deg,#0b1d4d 0%,#13306f 100%);color:#fff;padding:52px 54px}
+#outro .brand{display:flex;align-items:center;gap:24px}
+#outro .mark{width:96px;height:96px;border-radius:50%;background:var(--red);display:grid;place-items:center;box-shadow:0 10px 26px rgba(198,40,40,.45)}
+#outro .mark svg{width:52px;height:52px}
+#outro .brand b{font-size:50px;display:block;line-height:1.1}
+#outro .brand small{font-size:27px;color:#c7d1ee;font-weight:600}
+#outro .feat{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:44px}
+#outro .feat div{background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.14);border-radius:22px;padding:22px 22px;font-size:28px;font-weight:700;display:flex;gap:16px;align-items:center;opacity:0}
+#outro .feat svg{width:34px;height:34px;flex:none}
+#outro .cta{margin-top:44px;display:inline-flex;flex-direction:column;background:#fff;color:var(--navy);font-weight:800;font-size:32px;padding:20px 40px;border-radius:30px;opacity:0}
+#outro .cta small{font-size:26px;color:var(--blue);margin-top:4px;font-weight:700}
+#outro .note{margin-top:22px;font-size:24px;color:#c7d1ee;opacity:0;line-height:1.35}
+</style></head><body>
+<div id="bg"><div class="blob" id="b1"></div><div class="blob" id="b2"></div></div>
+<div id="brand"><div class="l"><span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span>Jadual Sekolah <span style="color:var(--red)">+ Relief</span></div><div class="r">Panduan pengguna baharu</div></div>
+<div id="track"></div>
+<div id="caps"></div>
+<div id="desk" class="vp"><div class="bar"><i></i><i></i><i></i><span>Jadual Sekolah</span></div>
+  <div class="view" id="deskView">
+    <div class="html" id="intro">
+      <h2 class="itit">9 langkah dari kosong sampai jadual siap</h2>
+      <div class="igrid">
+        <div class="istep" data-r="0.5"><b>1</b><span><i>Mula</i>Survey ringkas, mula dari kosong</span></div>
+        <div class="istep" data-r="0.8"><b>2</b><span><i>Sekolah</i>Nama, waktu dan rehat</span></div>
+        <div class="istep" data-r="1.1"><b>3</b><span><i>Data</i>Subjek, guru, kelas, bilik</span></div>
+        <div class="istep" data-r="1.4"><b>4</b><span><i>Pelajaran</i>Padankan subjek, kelas, guru</span></div>
+        <div class="istep" data-r="1.7"><b>5</b><span><i>Jana</i>Satu klik, jadual siap</span></div>
+        <div class="istep" data-r="2.0"><b>6</b><span><i>Laras</i>Seret, kunci, cetak</span></div>
+        <div class="istep" data-r="2.3"><b>7</b><span><i>Relief</i>Agih guru ganti</span></div>
+        <div class="istep" data-r="2.6"><b>8</b><span><i>Pantau</i>Kalendar dan statistik</span></div>
+        <div class="istep" data-r="2.9"><b>9</b><span><i>Guru</i>Paparan guru, maklum balas</span></div>
+      </div>
+      <p class="inote" data-r="3.6">Contoh dalam video: SMK Taman Harmoni, 12 guru, 4 kelas, 8 subjek. Semua dimasukkan melalui borang sebenar.</p>
+    </div>
+    <div class="html" id="outro">
+      <div class="brand"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span>
+        <div><b>Anda dah sedia</b><small>Cuba dengan data sekolah anda sendiri</small></div></div>
+      <div class="feat">
+        <div data-r="0.4"><svg viewBox="0 0 24 24" fill="none" stroke="#9fb6ef" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg>Tetapan, data, pelajaran</div>
+        <div data-r="0.65"><svg viewBox="0 0 24 24" fill="none" stroke="#9fb6ef" stroke-width="2" stroke-linecap="round"><path d="M12 3.5l2 5.5 5.5 2-5.5 2-2 5.5-2-5.5-5.5-2 5.5-2z"/></svg>Jana jadual</div>
+        <div data-r="0.9"><svg viewBox="0 0 24 24" fill="none" stroke="#9fb6ef" stroke-width="2" stroke-linecap="round"><path d="M4.5 8h14l-3.5-3.5M19.5 16h-14l3.5 3.5"/></svg>Relief yang adil</div>
+        <div data-r="1.15"><svg viewBox="0 0 24 24" fill="none" stroke="#9fb6ef" stroke-width="2" stroke-linecap="round"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>Paparan guru</div>
+      </div>
+      <div class="tip" data-r="1.7"><b>Tersilap atau mahu ulang?</b> Tekan <u>Set semula</u> di bar demo untuk kembali kepada data contoh.</div>
+      <div class="tip" data-r="2.2"><b>Selepas cuba:</b> tekan butang merah <u>Maklum Balas</u> di penjuru kanan bawah.</div>
+      <div class="cta" data-r="2.9">Cuba demo, hubungi kami<small>WhatsApp 011-2087 9149</small></div>
+    </div>
+    <div class="fx" id="deskFx"></div>
+  </div></div>
+<div id="phone" class="vp"><span class="notch"></span><div class="view" id="phoneView">
+  <div class="fx" id="phoneFx"></div></div></div>
+<div id="prog"><i id="pf"></i></div><div id="ticks"></div><div id="hint">Tutorial · data sekolah sendiri</div><div id="clock">0:00 / 2:00</div>
+<script src="shots-t/manifest.js"></script>
+<script>
+const M = window.MANIFEST;
+const SHOTS = 'shots-t/';
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = (u) => (u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+const step = (a, b, t) => ease(clamp((t - a) / (b - a)));
+const lerp = (a, b, u) => a + (b - a) * u;
+const VP = { desk: { VW: 960, VH: 886, smax: 2.3 }, phone: { VW: 418, VH: 928, smax: 1.9 } };
+const COL = { red: '#c62828', green: '#2e7d32', blue: '#2747a6', amber: '#d48a0a' };
+const rc = (shot, key) => M[shot].rects[key];
+// kesatuan beberapa kotak + jidar, supaya kamera ikut kedudukan sebenar selepas rakaman semula
+const union = (shot, keys, mx, my) => {
+  const rs = keys.map((k) => rc(shot, k)).filter(Boolean);
+  const x0 = Math.min(...rs.map((r) => r[0])), y0 = Math.min(...rs.map((r) => r[1]));
+  const x1 = Math.max(...rs.map((r) => r[0] + r[2])), y1 = Math.max(...rs.map((r) => r[1] + r[3]));
+  return [x0 - mx, y0 - my, x1 - x0 + 2 * mx, y1 - y0 + 2 * my];
+};
+const part = (shot, key, fw) => { const r = rc(shot, key); return [r[0], r[1], r[2] * fw, r[3]]; };
+const corner = (shot, key, w, h) => { const r = rc(shot, key); return [r[0], r[1], w, h]; };
+const at = (shot, key, dx = 0, dy = 0) => { const r = rc(shot, key); return [r[0] + r[2] / 2 + dx, r[1] + r[3] / 2 + dy]; };
+
+// ---------------- garis masa: semua masa dalam segmen ialah relatif kepada permulaan segmen ----------------
+const PACE = 1.3; // tempo tutorial: darab semua tempoh dan masa relatif (pengguna baharu perlu masa untuk mengikut)
+let T = 0;
+const SEG = [], CAPS = [], STEPS = [];
+function seg(o) {
+  const t0 = T, t1 = t0 + o.d * PACE; T = t1;
+  const ab = (x) => t0 + x * PACE;
+  const s = { t0, t1, vp: o.vp || 'desk' };
+  if (o.html) s.html = o.html; else s.shot = o.shot;
+  if (o.cam) s.cam = o.cam.map(([t, tg, pad, d]) => [ab(t), tg, pad, d]);
+  if (o.cur) s.cur = o.cur.map(([t, tg]) => [ab(t), tg]);
+  if (o.click) s.click = o.click.map(ab);
+  if (o.hl) s.hl = o.hl.map(([a, b, tg, c]) => [ab(a), ab(b), tg, c]);
+  if (o.tap) s.tap = o.tap.map(([t, tg]) => [ab(t), tg]);
+  if (o.drag) s.drag = Object.assign({}, o.drag, { t0: ab(o.drag.t0), t1: ab(o.drag.t1) });
+  if (o.cap) CAPS.push([t0, ...o.cap]);
+  (o.cap2 || []).forEach(([t, ...c]) => CAPS.push([ab(t), ...c]));
+  if (o.step) STEPS.push([o.step, t0]);
+  SEG.push(s);
+}
+
+// ---- pembuka ----
+seg({ html: 'intro', d: 7, cap: ['Panduan pengguna baharu', 'Dari kosong sampai jadual siap', '9 langkah. Ikut label DI MANA pada setiap babak untuk mencuba sendiri dalam demo.', 'Pautan demo'] });
+
+// ---- 1. Mula ----
+seg({ shot: 't-svy-intro', d: 3.5, step: 'Mula', cap: ['Langkah 1 · Mula', 'Buka pautan demo, jawab survey', 'Bahagian 1 mengambil kira-kira 7 minit dan membantu kami faham keperluan sekolah anda.', 'Pautan demo › Survey sebelum demo'],
+  cam: [[0, 'card', 60, 0]], hl: [[1.2, 3.3, 'start', 'red']], cur: [[1.0, at('t-svy-intro', 'start', 170, -70)], [2.0, 'start']], click: [2.7] });
+seg({ shot: 't-svy-isi', d: 3.5, cam: [[0, 'card', 20, 0], [1.0, union('t-svy-isi', ['peranan', 'jenis'], 30, 30), 0]], hl: [[1.2, 3.3, 'peranan', 'blue']] });
+seg({ shot: 't-svy-notice', d: 4.5, cap: ['Langkah 1 · Mula', 'Ingat butang Maklum Balas', 'Selepas cuba demo, tekan butang merah di penjuru kanan bawah untuk bahagian 2.', 'Demo › butang Maklum Balas'],
+  cam: [[0, 'dlg', 40, 0]], hl: [[1.4, 4.2, 'fab', 'red']] });
+seg({ shot: 't-demo-awal', d: 4.5, cap: ['Langkah 1 · Mula', 'Demo bermula dengan data contoh', 'Anda boleh terus mencuba. Untuk guna data sekolah anda sendiri, mula dari kosong.', 'Utama'],
+  cam: [[0, 'top'], [1.2, 'bar', 30]], hl: [[1.4, 3.9, 'bar', 'blue']] });
+seg({ shot: 't-storan', d: 4, cap: ['Langkah 1 · Mula', 'Mula dari kosong', 'Tetapan > Storan > Padam semua data. Bila-bila masa boleh Set semula demo di bar atas.', 'Tetapan › Storan › Padam semua data'],
+  cam: [[0, 'top'], [1.0, 'reset', 30]], hl: [[1.2, 3.8, 'padam', 'red']], cur: [[1.2, at('t-storan', 'padam', 260, -140)], [2.4, 'padam']], click: [3.2] });
+seg({ shot: 't-padam', d: 2.8, cam: [[0, 'dlg', 60, 0]], hl: [[0.3, 2.6, 'ya', 'red']], cur: [[0.4, at('t-padam', 'ya', -160, -90)], [1.5, 'ya']], click: [2.2] });
+seg({ shot: 't-kosong', d: 4, cap: ['Langkah 1 · Mula', 'Sekarang kosong, sedia untuk data anda', 'Tiga langkah: tetapan sekolah, data, kemudian jana jadual.', 'Utama'],
+  cam: [[0, 'top'], [1.0, 'welcome', 30]], hl: [[1.2, 3.7, 'welcome', 'blue']] });
+
+// ---- 2. Sekolah ----
+seg({ shot: 't-sekolah', d: 7, step: 'Sekolah', cap: ['Langkah 2 · Sekolah', 'Nama sekolah dan minggu persekolahan', 'Pilih Isnin–Jumaat atau Ahad–Khamis mengikut negeri anda.', 'Tetapan › Sekolah'],
+  cap2: [[3.6, 'Langkah 2 · Sekolah', 'Logo dan warna sekolah', 'Muncul pada header, jadual cetak dan slip relief. Boleh ditukar bila-bila masa.', 'Tetapan › Sekolah › Jenama sekolah']],
+  cam: [[0, 'top'], [0.9, union('t-sekolah', ['nama', 'minggu'], 40, 40), 0], [3.4, 'jenama', 20]], hl: [[1.0, 3.3, 'nama', 'blue'], [1.4, 3.3, 'minggu', 'blue'], [3.8, 6.8, 'logo', 'green'], [4.3, 6.8, 'warna', 'red']] });
+seg({ shot: 't-waktu-gen', d: 5, cap: ['Langkah 2 · Sekolah', 'Jana waktu dan rehat', 'Isi waktu mula, tempoh satu waktu, bilangan waktu, dan rehat selepas waktu ke berapa.', 'Tetapan › Waktu & rehat › Jana pantas'],
+  cam: [[0, 'dlg', 40, 0]], hl: [[0.5, 3.0, 'borang', 'blue'], [3.2, 4.8, 'jana', 'red']], cur: [[3.0, at('t-waktu-gen', 'jana', -130, -90)], [3.8, 'jana']], click: [4.4] });
+seg({ shot: 't-waktu', d: 5, cap: ['Langkah 2 · Sekolah', 'Jumaat lebih pendek? Tukar di sini', 'Tetapkan bilangan waktu bagi setiap hari. Waktu berganda tidak melintasi rehat.', 'Tetapan › Waktu & rehat'],
+  cam: [[0, 'top'], [0.9, 'waktu', 20], [2.6, 'hari', 20, 0.8]], hl: [[3.0, 4.8, 'jumaat', 'red']] });
+
+// ---- 3. Data ----
+seg({ shot: 't-subjek-kosong', d: 3, step: 'Data', cap: ['Langkah 3 · Data', 'Mulakan dengan subjek', 'Guna Tambah ramai sekaligus: satu subjek setiap baris, Nama dan Kod.', 'Data › Subjek › Tambah ramai sekaligus'],
+  cam: [[0, 'top'], [1.0, union('t-subjek-kosong', ['add', 'bulk'], 90, 80), 0]], hl: [[1.1, 2.9, 'bulk', 'red']], cur: [[1.0, at('t-subjek-kosong', 'bulk', 210, -90)], [1.9, 'bulk']], click: [2.5] });
+seg({ shot: 't-subjek-bulk', d: 3.8, cam: [[0, 'dlg', 24, 0], [0.9, 'ta', 30]], hl: [[0.6, 2.6, 'ta', 'blue'], [2.8, 3.6, 'tambah', 'red']], cur: [[2.2, at('t-subjek-bulk', 'tambah', -170, -120)], [3.0, 'tambah']], click: [3.4] });
+seg({ shot: 't-subjek', d: 2.5, cam: [[0, 'top'], [0.8, 'table', 20]], hl: [[1.0, 2.4, 'table', 'green']] });
+seg({ shot: 't-guru-bulk', d: 4.2, cap: ['Langkah 3 · Data', 'Masukkan guru', 'Nama, Kod dan Panitia. Tampal terus senarai guru dari Excel atau fail sekolah.', 'Data › Guru › Tambah ramai sekaligus'],
+  cam: [[0, 'dlg', 24, 0], [1.0, 'ta', 30]], hl: [[0.6, 3.2, 'ta', 'blue'], [3.4, 4.1, 'tambah', 'red']], cur: [[2.8, at('t-guru-bulk', 'tambah', -170, -140)], [3.6, 'tambah']], click: [3.9] });
+seg({ shot: 't-guru', d: 2.5, cap: ['Langkah 3 · Data', 'Lengkapkan setiap guru', 'Pilih subjek yang boleh diajar dan tandakan waktu guru tak boleh mengajar.', 'Data › Guru › Edit'],
+  cam: [[0, 'top'], [0.8, 'table', 20]], hl: [[1.0, 2.4, 'subjek', 'amber'], [1.2, 2.4, 'tak', 'amber']] });
+seg({ shot: 't-guru-edit', d: 6, cap2: [[3.2, 'Langkah 3 · Data', 'Waktu tidak boleh mengajar', 'Contohnya kursus tetap pada hari Jumaat. Penjana jadual dan relief akan menghormatinya.', 'Data › Guru › Waktu tidak boleh mengajar']],
+  cam: [[0, 'dlg', 24, 0], [1.2, 'subjek', 50], [3.2, 'grid', 60]], hl: [[1.4, 3.0, 'subjek', 'blue'], [3.4, 5.9, 'grid', 'red']] });
+seg({ shot: 't-guru-lengkap', d: 3, cap: ['Langkah 3 · Data', 'Ulang untuk setiap guru', 'Sistem guna subjek ini untuk mencadangkan guru ganti yang sesuai.', 'Data › Guru'],
+  cam: [[0, 'top'], [0.8, 'table', 20]], hl: [[1.0, 2.9, 'subjek', 'green'], [1.2, 2.9, 'tak', 'green']] });
+seg({ shot: 't-kelas-bulk', d: 3.8, cap: ['Langkah 3 · Data', 'Masukkan kelas', 'Nama kelas dan tingkatan. Guru kelas boleh dipilih bagi setiap kelas.', 'Data › Kelas › Tambah ramai sekaligus'],
+  cam: [[0, 'dlg', 24, 0], [0.9, 'ta', 40]], hl: [[0.6, 2.8, 'ta', 'blue'], [3.0, 3.7, 'tambah', 'red']], cur: [[2.4, at('t-kelas-bulk', 'tambah', -170, -120)], [3.2, 'tambah']], click: [3.5] });
+seg({ shot: 't-kelas', d: 2.8, cam: [[0, 'top'], [0.8, 'table', 20]], hl: [[1.0, 2.7, 'guruKelas', 'green']] });
+seg({ shot: 't-bilik-bulk', d: 3.5, cap: ['Langkah 3 · Data', 'Bilik dan makmal (pilihan)', 'Untuk subjek yang perlu bilik khas, supaya dua kelas tak guna bilik sama serentak.', 'Data › Bilik'],
+  cam: [[0, 'dlg', 24, 0], [0.9, 'ta', 40]], hl: [[0.6, 2.6, 'ta', 'blue'], [2.8, 3.4, 'tambah', 'red']], cur: [[2.2, at('t-bilik-bulk', 'tambah', -170, -120)], [3.0, 'tambah']], click: [3.3] });
+seg({ shot: 't-bilik', d: 2.5, cam: [[0, 'top'], [0.8, 'table', 20]], hl: [[1.0, 2.4, 'table', 'green']] });
+
+// ---- 4. Pelajaran ----
+seg({ shot: 't-pel-kosong', d: 4, step: 'Pelajaran', cap: ['Langkah 4 · Pelajaran', 'Padankan subjek, kelas dan guru', 'Setiap pelajaran ialah subjek, kelas, guru dan bilangan waktu seminggu.', 'Data › Pelajaran'],
+  cam: [[0, 'top'], [1.0, union('t-pel-kosong', ['add', 'hint'], 60, 60), 0]], hl: [[1.2, 3.8, 'add', 'red']], cur: [[1.0, at('t-pel-kosong', 'add', 210, -100)], [2.2, 'add']], click: [3.2] });
+seg({ shot: 't-pel-wizard', d: 8, cap: ['Langkah 4 · Pelajaran', 'Satu subjek, banyak kelas', 'Pilih subjek dan waktu seminggu, tekan Pilih semua kelas, kemudian pilih guru bagi setiap kelas.', 'Data › Pelajaran › Tambah pelajaran'],
+  cam: [[0, 'dlg', 24, 0], [1.2, union('t-pel-wizard', ['subj', 'per', 'room'], 30, 40), 0], [3.4, 'tbl', 30], [5.8, union('t-pel-wizard', ['tbl', 'tambah'], 40, 30), 0]],
+  hl: [[1.4, 3.2, 'subj', 'blue'], [1.6, 3.2, 'per', 'blue'], [3.6, 5.5, 'all', 'red'], [3.8, 5.7, 'tbl', 'blue'], [6.0, 7.8, 'tambah', 'red']],
+  cur: [[5.6, at('t-pel-wizard', 'tambah', -180, -130)], [6.6, 'tambah']], click: [7.2] });
+seg({ shot: 't-pel-gabung', d: 6, cap: ['Langkah 4 · Pelajaran', 'Pendidikan Islam dan Moral serentak', 'Pilih mod Gabungan serentak. Tandakan kelas dan guru bagi setiap kumpulan.', 'Data › Pelajaran › Gabungan serentak'],
+  cam: [[0, 'dlg', 20, 0], [1.0, 'mode', 30], [2.6, 'gabung', 16], [4.6, 'dlg', 20, 0.7]], hl: [[2.7, 5.7, 'gabung', 'blue']] });
+seg({ shot: 't-pel-senarai', d: 6, cap: ['Langkah 4 · Pelajaran', 'Ulang untuk setiap subjek, kemudian semak', 'Guna penapis kelas, guru atau subjek. Chip kuning ialah waktu yang belum diletak.', 'Data › Pelajaran'],
+  cam: [[0, 'top'], [1.0, 'filter', 30], [2.8, 'table', 16, 0.9]], hl: [[1.2, 2.7, 'filter', 'blue'], [3.0, 5.8, 'chip', 'amber']] });
+
+// ---- 5. Jana ----
+seg({ shot: 't-jana-kosong', d: 4.5, step: 'Jana', cap: ['Langkah 5 · Jana', 'Sedia untuk jana', 'Sistem menyemak beban guru dan pelajaran tanpa guru dahulu. Betulkan amaran sebelum jana.', 'Jadual › Jana jadual'],
+  cam: [[0, 'top'], [1.2, union('t-jana-kosong', ['jana'], 300, 70)]], hl: [[1.4, 3.9, 'jana', 'red']], cur: [[1.2, [600, 800]], [2.2, 'jana']], click: [3.8] });
+seg({ shot: 't-jana-opsyen', d: 2.5, cam: [[0, 'dlg', 40, 0]], hl: [[0.3, 1.8, 'effort', 'blue']], cur: [[0.5, [640, 260]], [1.6, 'mula']], click: [2.2] });
+seg({ shot: 't-prog-1', d: 0.45, cap: ['Langkah 5 · Jana', 'Sistem menyusun jadual', 'Mula-mula letak waktu, kemudian perbaiki susunan supaya guru kurang waktu kosong.', 'Jana jadual › Memperbaiki susunan'], cam: [[0, 'dlg', 12]] });
+seg({ shot: 't-prog-2', d: 0.45, cam: [[0, 'dlg', 12]] });
+seg({ shot: 't-prog-3', d: 0.45, cam: [[0, 'dlg', 12]] });
+seg({ shot: 't-prog-4', d: 0.45, cam: [[0, 'dlg', 12]] });
+seg({ shot: 't-prog-5', d: 0.45, cam: [[0, 'dlg', 12]] });
+seg({ shot: 't-jana-siap', d: 6, cap: ['Langkah 5 · Jana', 'Siap. Semua waktu diletak, 0 konflik.', 'Guru, kelas dan bilik tak bertindih. Jika ada waktu tertinggal, sebabnya dipaparkan di sebelah kanan.', 'Jadual › Kelas'],
+  cam: [[0, 'top'], [1.0, union('t-jana-siap', ['chip', 'metric'], 30, 20), 0], [2.8, 'grid', 8, 1.0], [4.8, 'banner', 30]], hl: [[1.1, 2.7, 'chip', 'green'], [1.1, 2.7, 'metric', 'green'], [4.9, 5.9, 'banner', 'blue']] });
+
+// ---- 6. Laras ----
+const TILE = union('t-jadual-guru', ['src', 'dst'], 40, 90);
+seg({ shot: 't-jadual-guru', d: 1.6, step: 'Laras', cap: ['Langkah 6 · Laras', 'Lihat ikut kelas, guru atau bilik', 'Pilih tab Guru untuk lihat jadual seorang guru. Petak hijau menunjukkan slot yang sah.', 'Jadual › Guru'],
+  cam: [[0, 'grid', 8], [1.3, TILE, 0, 0.9]], hl: [[0.1, 1.4, 'tabs', 'blue']] });
+seg({ shot: 't-jadual-drag', d: 2.6, cap: ['Langkah 6 · Laras', 'Seret untuk ubah', 'Kalau slot tak sah, sistem tolak dan beri sebab.', 'Jadual › Seret dan lepas'],
+  cam: [[0, TILE, 0]], drag: { t0: 0.4, t1: 2.0, from: 'src', to: 'dst', crop: 't-jadual-guru' }, hl: [[0.2, 2.0, 'dst', 'green']] });
+seg({ shot: 't-jadual-lepas', d: 3.2, cap: ['Langkah 6 · Laras', 'Kunci waktu penting', 'Waktu yang dikunci kekal bila jadual dijana semula.', 'Jadual › Kunci waktu (ikon mangga)'],
+  cam: [[0, TILE, 0], [1.2, 'lock', 70], [2.7, 'grid', 8, 1.2]], hl: [[1.3, 2.7, 'lock', 'red']], cur: [[0.5, at('t-jadual-lepas', 'lock', 90, 90)], [1.1, 'lock']], click: [1.35] });
+seg({ shot: 't-jadual-induk', d: 4, cap: ['Langkah 6 · Laras', 'Induk kelas dan guru, kemudian cetak', 'Satu klik cetak atau simpan sebagai PDF untuk papan kenyataan bilik guru.', 'Jadual › Induk kelas › Cetak'],
+  cam: [[0, 'top'], [0.9, 'tabs', 50], [2.3, 'print', 110]], hl: [[1.0, 2.2, 'tabs', 'blue'], [2.4, 3.9, 'print', 'red']] });
+
+// ---- 7. Relief ----
+seg({ shot: 't-relief-kosong', d: 2.5, step: 'Relief', cap: ['Langkah 7 · Relief', 'Guru tidak hadir? Rekod dahulu', 'Tekan Guru tidak hadir, kemudian pilih guru, tarikh dan sebab.', 'Relief › Guru tidak hadir'],
+  cam: [[0, 'top'], [1.0, union('t-relief-kosong', ['tambah'], 280, 130), 0]], cur: [[0.8, [700, 600]], [1.6, 'tambah']], click: [2.1] });
+seg({ shot: 't-relief-borang', d: 3.5, cap: ['Langkah 7 · Relief', 'Cuti beberapa hari pun boleh', 'Isi tarikh mula dan tarikh akhir. Hujung minggu dilangkau secara automatik.', 'Relief › Guru tidak hadir › Hingga tarikh'],
+  cam: [[0, 'dlg', 20], [0.9, union('t-relief-borang', ['guru', 'sebab', 'hingga'], 30, 20), 20], [2.4, 'hingga', 60, 0.8]],
+  hl: [[1.0, 2.2, 'guru', 'blue'], [1.2, 2.2, 'sebab', 'blue'], [2.5, 3.4, 'hingga', 'red']] });
+seg({ shot: 't-relief-perlu', d: 3, cap: ['Langkah 7 · Relief', 'Tekan Agih automatik', 'Sistem pilih guru ganti ikut subjek, kenal kelas dan siapa paling kurang relief bulan ini.', 'Relief › Harian › Agih automatik'],
+  cam: [[0, 'top'], [0.9, 'table', 20], [2.0, union('t-relief-perlu', ['auto'], 320, 130), 0, 0.8]], cur: [[1.6, [700, 900]], [2.3, 'auto']], click: [2.7] });
+seg({ shot: 't-relief-agih', d: 4, cap2: [[1.6, 'Langkah 7 · Relief', 'Setiap pilihan ada sebabnya', 'Boleh tukar manual, kendiri atau gabung kelas. Sistem tunjuk sebab setiap cadangan.', 'Relief › Harian › Pilih guru ganti']],
+  cam: [[0, 'table', 16], [1.4, union('t-relief-agih', ['sel', 'why'], 40, 30), 10, 0.9]], hl: [[0.5, 1.5, 'sel', 'blue'], [1.9, 3.8, 'why', 'red']] });
+seg({ shot: 't-relief-slip', d: 3.2, cap: ['Langkah 7 · Relief', 'Slip untuk setiap guru ganti', 'Satu klik cetak senarai agihan dan slip bertandatangan. Simpan sebagai PDF.', 'Relief › Cetak slip'],
+  cam: [[0, 'sheet', 20], [1.4, 'slips', 20, 1.0]], hl: [[1.5, 3.1, 'slip', 'green']] });
+seg({ shot: 't-relief-wa', d: 3.2, cap: ['Langkah 7 · Relief', 'Terus ke grup WhatsApp', 'Mesej siap ditulis. Salin dan tampal.', 'Relief › Mesej WhatsApp'],
+  cam: [[0, 'dlg', 20], [1.0, 'ta', 20, 0.9], [2.2, 'dlg', 20, 0.6]], cur: [[2.2, [600, 400]], [2.7, 'salin']], click: [3.0] });
+
+// ---- 8. Pantau ----
+const CAL = union('t-kalendar', ['now', 'belum'], 6, 6);
+seg({ shot: 't-kalendar', d: 4, step: 'Pantau', cap: ['Langkah 8 · Pantau', 'Relief adil, ada bukti', 'Kalendar SELESAI / BELUM untuk setiap hari persekolahan.', 'Relief › Kalendar'],
+  cam: [[0, 'top'], [0.9, 'cal', 10], [2.2, CAL, 10]], hl: [[2.3, 3.3, 'now', 'green'], [2.6, 3.9, 'belum', 'red']] });
+seg({ shot: 't-stats', d: 3.6, cap: ['Langkah 8 · Pantau', 'Siapa paling banyak ganti?', 'Statistik setiap guru. Sisihan piawai kecil bermaksud agihan adil.', 'Relief › Statistik'],
+  cam: [[0, 'top'], [0.9, 'sd', 40], [2.4, 'table', 12, 0.9]], hl: [[1.0, 2.3, 'sd', 'blue']] });
+seg({ shot: 't-laporan', d: 3.6, cap: ['Langkah 8 · Pantau', 'Semak konflik dan beban guru', 'Jadual sah atau tidak, beban setiap guru, waktu kosong. Eksport CSV atau cetak semua jadual.', 'Laporan'],
+  cam: [[0, 'top'], [0.9, 'semakan', 20], [1.9, 'cetak', 20], [2.8, 'beban', 16, 0.8]], hl: [[1.0, 1.8, 'metric', 'green'], [2.0, 2.9, 'cetak', 'blue']] });
+
+// ---- 9. Guru dan maklum balas ----
+seg({ shot: 't-role-menu', d: 3.5, step: 'Guru', cap: ['Langkah 9 · Guru', 'Lihat apa yang guru nampak', 'Menu Peranan > Lihat sebagai guru. Dalam versi sebenar guru hanya buka pautan dan pilih nama.', 'Peranan › Lihat sebagai guru'],
+  cam: [[0, 'top'], [0.8, union('t-role-menu', ['role', 'menu'], 40, 30), 0]], hl: [[1.1, 3.3, 'guru', 'blue']] });
+seg({ shot: 't-guru-dash', vp: 'phone', d: 5, cap: ['Langkah 9 · Guru', 'Guru nampak kelas dan relief sendiri', 'Tugas relief hari ini dengan slip, jadual sendiri dan kesaksamaan relief.', 'Guru › Utama'],
+  cam: [[0, 'top'], [0.9, 'alert', 16], [2.4, 'today', 6, 0.9], [4.0, 'fab', 70]], hl: [[1.0, 2.2, 'slip', 'red'], [4.2, 4.9, 'fab', 'red']], tap: [[1.5, 'slip']] });
+seg({ shot: 't-guru-jadual', vp: 'phone', d: 2.6, cap: ['Langkah 9 · Guru', 'Jadual saya dan relief saya', 'Jadual mingguan penuh, tugas akan datang dan perbandingan kesaksamaan.', 'Guru › Jadual saya · Relief saya'],
+  cam: [[0, 'top'], [1.0, 'grid', 8, 1.2]], hl: [[0.6, 1.8, 'print', 'blue']] });
+seg({ shot: 't-guru-relief', vp: 'phone', d: 2.6, cam: [[0, 'top'], [1.0, 'fair', 20]], hl: [[1.1, 2.4, 'fair', 'green']] });
+seg({ shot: 't-svy2-intro', d: 4.5, cap: ['Langkah 9 · Guru', 'Akhir sekali: beri maklum balas', 'Tekan butang Maklum Balas dan jawab beberapa soalan. Jawapan anda menentukan apa yang kami baiki seterusnya.', 'Butang Maklum Balas (penjuru kanan bawah)'],
+  cam: [[0, 'card', 70, 0]], hl: [[1.2, 4.0, 'mula', 'red']] });
+
+// ---- penutup ----
+const OUTRO_T = T;
+seg({ html: 'outro', d: 7, cap: ['Anda dah sedia', 'Cuba dengan data sekolah anda', 'Tersilap atau mahu ulang? Tekan Set semula di bar demo untuk mulakan semula.', 'Demo percuma · WhatsApp 011-2087 9149'] });
+const END = T;
+CAPS.push([END]);
+STEPS.forEach((s, i) => s.push(i + 1 < STEPS.length ? STEPS[i + 1][1] : OUTRO_T));
+
+// ---------------- binaan DOM ----------------
+const PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+document.getElementById('track').innerHTML = STEPS.map(([n]) => `<div>${n}</div>`).join('');
+document.getElementById('ticks').innerHTML = STEPS.map(([, a]) => `<i style="left:${60 + 960 * a / END}px"></i>`).join('');
+const caps = document.getElementById('caps');
+CAPS.slice(0, -1).forEach(([, k, h, s, r]) => {
+  const d = document.createElement('div'); d.className = 'cap';
+  d.innerHTML = `<div class="kicker"><i></i>${k}</div><div class="head">${h}</div><div class="sub">${s}</div>` +
+    (r ? `<div class="ref"><b>${PIN}DI MANA</b>${r.split(' › ').join('<span>›</span>')}</div>` : '');
+  caps.appendChild(d);
+});
+const views = { desk: document.getElementById('deskView'), phone: document.getElementById('phoneView') };
+const fxs = { desk: document.getElementById('deskFx'), phone: document.getElementById('phoneFx') };
+const FX = {};
+for (const vp of ['desk', 'phone']) {
+  const mk = (cls, html) => { const e = document.createElement('div'); e.className = cls; if (html) e.innerHTML = html; fxs[vp].appendChild(e); return e; };
+  FX[vp] = {
+    hl: [mk('hl'), mk('hl'), mk('hl')],
+    ghost: mk('ghost'),
+    ripple: mk('ripple'),
+    touch: mk('touch'),
+    cursor: mk('cursor', '<svg viewBox="0 0 32 32" width="54" height="54"><path d="M4 2 L4 26 L10.5 19.5 L15 29 L19 27.2 L14.6 18 L23.5 18 Z" fill="#fff" stroke="#0f172a" stroke-width="2" stroke-linejoin="round"/></svg>')
+  };
+}
+SEG.forEach((s, i) => {
+  if (s.html) {
+    s.el = document.getElementById(s.html); s.el.style.zIndex = 10 + i;
+    s.el.querySelectorAll('[data-r]').forEach((e) => { e.dataset.t = s.t0 + parseFloat(e.dataset.r); });
+    s.el.querySelectorAll('[data-ro]').forEach((e) => { e.dataset.o = s.t0 + parseFloat(e.dataset.ro); });
+    return;
+  }
+  const m = M[s.shot];
+  const img = document.createElement('img');
+  img.className = 'shot'; img.style.width = m.w + 'px'; img.style.height = m.h + 'px'; img.style.zIndex = 10 + i;
+  views[s.vp].insertBefore(img, fxs[s.vp]);
+  s.el = img; s.m = m;
+});
+// ---------------- kamera ----------------
+function target(s, tg, pad) {
+  const m = s.m, F = VP[s.vp], smin = F.VW / m.w;
+  let cx, cy, sc;
+  if (tg === 'top') { sc = smin; cx = m.w / 2; cy = F.VH / (2 * sc); }
+  else if (tg === 'all') { sc = Math.min(F.VW / m.w, F.VH / m.h); cx = m.w / 2; cy = m.h / 2; return { cx, cy, s: sc }; }
+  else {
+    const r = Array.isArray(tg) ? tg : m.rects[tg];
+    if (!r) throw new Error('tiada rect ' + s.shot + ':' + tg);
+    pad = pad == null ? 24 : pad;
+    const w = r[2] + 2 * pad, h = r[3] + 2 * pad;
+    sc = clamp(Math.min(F.VW / w, F.VH / h), smin, F.smax);
+    cx = r[0] + r[2] / 2; cy = r[1] + r[3] / 2;
+  }
+  const hw = F.VW / (2 * sc), hh = F.VH / (2 * sc);
+  cx = m.w * sc >= F.VW ? clamp(cx, hw, m.w - hw) : m.w / 2;
+  cy = m.h * sc >= F.VH ? clamp(cy, hh, m.h - hh) : m.h / 2;
+  return { cx, cy, s: sc };
+}
+SEG.forEach((s) => { if (s.cam) s.ks = s.cam.map(([t, tg, pad, d]) => ({ t, d: d == null ? 0.9 : d, v: target(s, tg, pad) })); });
+function camAt(s, t) {
+  const ks = s.ks;
+  if (t <= ks[0].t) return ks[0].v;
+  for (let i = 1; i < ks.length; i++) {
+    const k = ks[i];
+    if (t < k.t) {
+      const st = Math.max(ks[i - 1].t, k.t - k.d);
+      if (t <= st) return ks[i - 1].v;
+      const u = ease((t - st) / (k.t - st)), a = ks[i - 1].v, b = k.v;
+      return { cx: lerp(a.cx, b.cx, u), cy: lerp(a.cy, b.cy, u), s: Math.exp(lerp(Math.log(a.s), Math.log(b.s), u)) };
+    }
+  }
+  return ks[ks.length - 1].v;
+}
+const toView = (s, v, x, y) => { const F = VP[s.vp]; return [F.VW / 2 + (x - v.cx) * v.s, F.VH / 2 + (y - v.cy) * v.s]; };
+const pt = (s, tg) => { if (Array.isArray(tg) && tg.length === 2) return tg; const r = s.m.rects[tg]; return [r[0] + r[2] / 2, r[1] + r[3] / 2]; };
+function curAt(s, t) {
+  const ks = s.cur;
+  if (t <= ks[0][0]) return pt(s, ks[0][1]);
+  for (let i = 1; i < ks.length; i++) {
+    if (t < ks[i][0]) {
+      const st = Math.max(ks[i - 1][0], ks[i][0] - 0.75);
+      const a = pt(s, ks[i - 1][1]), b = pt(s, ks[i][1]);
+      if (t <= st) return a;
+      const u = ease((t - st) / (ks[i][0] - st));
+      return [lerp(a[0], b[0], u), lerp(a[1], b[1], u)];
+    }
+  }
+  return pt(s, ks[ks.length - 1][1]);
+}
+
+// ---------------- muat gambar ikut keperluan ----------------
+async function ensure(t) {
+  const waits = [];
+  for (const s of SEG) {
+    if (s.html) continue;
+    const near = t >= s.t0 - 1.5 && t <= s.t1 + 1.5;
+    if (near && !s.el.getAttribute('src')) { s.el.src = SHOTS + s.shot + '.png'; waits.push(s.el.decode().catch(() => {})); }
+    if (!near && s.el.getAttribute('src') && t > s.t1 + 4) s.el.removeAttribute('src');
+  }
+  await Promise.all(waits);
+}
+
+// julat masa apabila telefon dipaparkan (segmen telefon bersambung digabungkan)
+const PHONE = [];
+SEG.forEach((s) => {
+  if (s.vp !== 'phone') return;
+  const last = PHONE[PHONE.length - 1];
+  if (last && Math.abs(last[1] - s.t0) < 1e-6) last[1] = s.t1; else PHONE.push([s.t0, s.t1]);
+});
+const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+
+// ---------------- lukis satu frame ----------------
+function draw(t) {
+  document.getElementById('b1').style.transform = `translate(${Math.sin(t / 9) * 90}px,${Math.cos(t / 11) * 70}px)`;
+  document.getElementById('b2').style.transform = `translate(${Math.cos(t / 10) * 80}px,${Math.sin(t / 8) * 60}px)`;
+  // trek langkah
+  const tr = document.getElementById('track'), first = STEPS[0][1];
+  tr.style.opacity = step(first - 0.4, first + 0.2, t) * (1 - step(OUTRO_T - 0.4, OUTRO_T + 0.2, t));
+  [...tr.children].forEach((d, i) => { const [, a, b] = STEPS[i]; d.className = t >= a && t < b ? 'on' : t >= b ? 'done' : ''; });
+  // bar kemajuan dan jam
+  document.getElementById('pf').style.width = (100 * clamp(t / END)) + '%';
+  document.getElementById('clock').textContent = `${mmss(t)} / ${mmss(END)}`;
+  // kapsyen
+  [...caps.children].forEach((d, i) => {
+    const a = CAPS[i][0], b = CAPS[i + 1][0];
+    const inn = i === 0 ? 1 : step(a, a + 0.45, t), out = b >= END ? 0 : step(b - 0.25, b, t);
+    const o = (t >= a - 0.01 && t < b) ? inn * (1 - out) : 0;
+    d.style.opacity = o;
+    d.style.transform = `translateY(${(1 - inn) * 26}px)`;
+  });
+  // viewport: telefon untuk babak guru
+  let ph = 0;
+  for (const [a, b] of PHONE) ph = Math.max(ph, step(a, a + 0.45, t) * (1 - step(b - 0.05, b + 0.4, t)));
+  const dk = 1 - ph;
+  const desk = document.getElementById('desk'), phone = document.getElementById('phone');
+  desk.style.opacity = dk;
+  desk.style.transform = `scale(${0.96 + 0.04 * dk})`;
+  phone.style.opacity = ph;
+  phone.style.transform = `translateY(${(1 - ph) * 60}px)`;
+  // segmen
+  for (const s of SEG) {
+    const vis = t >= s.t0 && t < s.t1 + 0.4;
+    if (!vis) { s.el.style.opacity = 0; continue; }
+    const isFirst = SEG.indexOf(s) === 0;
+    s.el.style.opacity = isFirst ? 1 : step(s.t0, s.t0 + 0.35, t);
+    if (!s.html) {
+      const v = camAt(s, t);
+      s.el.style.transform = `translate(${VP[s.vp].VW / 2 - v.cx * v.s}px,${VP[s.vp].VH / 2 - v.cy * v.s}px) scale(${v.s})`;
+    } else {
+      s.el.querySelectorAll('[data-t]').forEach((e) => {
+        const a = +e.dataset.t, u = step(a, a + 0.35, t), ob = e.dataset.o ? step(+e.dataset.o, +e.dataset.o + 0.35, t) : 0;
+        const dy = e.dataset.dy != null ? +e.dataset.dy : 22;
+        e.style.opacity = u * (1 - ob); e.style.transform = `translateY(${(1 - u) * dy}px) scale(${0.97 + 0.03 * u})`;
+      });
+    }
+  }
+  // kesan (kursor, klik, sorotan, seret) untuk segmen utama setiap viewport
+  for (const vp of ['desk', 'phone']) {
+    const f = FX[vp];
+    f.hl.forEach((e) => { e.style.opacity = 0; });
+    f.ghost.style.opacity = 0; f.ripple.style.opacity = 0; f.touch.style.opacity = 0; f.cursor.style.opacity = 0;
+    const s = SEG.find((x) => x.vp === vp && t >= x.t0 && t < x.t1 && !x.html);
+    if (!s) continue;
+    const v = camAt(s, t);
+    (s.hl || []).filter(([a, b]) => t >= a - 0.2 && t <= b + 0.2).slice(0, 3).forEach(([a, b, tg, c], i) => {
+      const r = Array.isArray(tg) ? tg : s.m.rects[tg];
+      const [x0, y0] = toView(s, v, r[0], r[1]), [x1, y1] = toView(s, v, r[0] + r[2], r[1] + r[3]);
+      const e = f.hl[i], p = 9;
+      e.style.setProperty('--c', COL[c]);
+      e.style.left = (x0 - p) + 'px'; e.style.top = (y0 - p) + 'px';
+      e.style.width = (x1 - x0 + 2 * p) + 'px'; e.style.height = (y1 - y0 + 2 * p) + 'px';
+      e.style.opacity = step(a - 0.2, a + 0.1, t) * (1 - step(b - 0.1, b + 0.2, t));
+      const pulse = 0.5 + 0.5 * Math.sin((t - a) * 7);
+      e.style.boxShadow = `0 0 0 ${6 + 6 * pulse}px ${COL[c]}33, 0 10px 30px ${COL[c]}55`;
+    });
+    let cpos = null, cAlpha = 0, press = 0;
+    if (s.drag) {
+      const d = s.drag, a = s.m.rects[d.from], b = s.m.rects[d.to], cm = M[d.crop];
+      const u = ease(clamp((t - d.t0) / (d.t1 - d.t0)));
+      const x = lerp(a[0], b[0], u), y = lerp(a[1], b[1], u);
+      const [gx, gy] = toView(s, v, x, y);
+      const lift = Math.sin(Math.PI * u);
+      const g = f.ghost;
+      g.style.left = gx + 'px'; g.style.top = gy + 'px';
+      g.style.width = a[2] * v.s + 'px'; g.style.height = a[3] * v.s + 'px';
+      g.style.backgroundImage = `url(${SHOTS}${d.crop}.png)`;
+      g.style.backgroundSize = `${cm.w * v.s}px ${cm.h * v.s}px`;
+      g.style.backgroundPosition = `${-a[0] * v.s}px ${-a[1] * v.s}px`;
+      g.style.transform = `scale(${1 + 0.05 * lift}) rotate(${-2 * lift}deg)`;
+      g.style.opacity = t >= d.t0 - 0.05 ? 1 : 0;
+      cpos = [x + a[2] * 0.62, y + a[3] * 0.55];
+      cAlpha = step(d.t0 - 0.6, d.t0 - 0.3, t);
+      if (t < d.t0) cpos = [a[0] + a[2] * 0.62, a[1] + a[3] * 0.55];
+      if (t >= d.t1 && t < d.t1 + 0.6) { const ru = (t - d.t1) / 0.6; ripple(f.ripple, toView(s, v, ...cpos), ru); }
+      press = t >= d.t0 - 0.1 && t <= d.t1 ? 1 : 0;
+    } else if (s.cur) {
+      const first = s.cur[0][0], last = Math.max(s.cur[s.cur.length - 1][0], ...(s.click || [0]));
+      cpos = curAt(s, t);
+      cAlpha = step(first - 0.4, first - 0.1, t) * (1 - step(last + 0.45, last + 0.75, t));
+      for (const c of s.click || []) {
+        if (t >= c && t < c + 0.6) ripple(f.ripple, toView(s, v, ...curAt(s, c)), (t - c) / 0.6);
+        if (t >= c - 0.06 && t <= c + 0.14) press = 1;
+      }
+    }
+    if (cpos && cAlpha > 0) {
+      const [x, y] = toView(s, v, ...cpos);
+      f.cursor.style.left = (x - 7) + 'px'; f.cursor.style.top = (y - 3) + 'px';
+      f.cursor.style.opacity = cAlpha;
+      f.cursor.style.transform = `scale(${press ? 0.86 : 1})`;
+    }
+    for (const [c, tg] of s.tap || []) {
+      if (t >= c - 0.3 && t < c + 0.7) {
+        const [x, y] = toView(s, v, ...pt(s, tg)), u = clamp((t - c + 0.3) / 1.0);
+        const e = f.touch, r = 30 + 26 * Math.sin(Math.PI * clamp(u * 1.4));
+        e.style.left = (x - r) + 'px'; e.style.top = (y - r) + 'px'; e.style.width = e.style.height = 2 * r + 'px';
+        e.style.opacity = Math.sin(Math.PI * u);
+      }
+    }
+  }
+}
+function ripple(e, [x, y], u) {
+  const r = 12 + 62 * u;
+  e.style.left = (x - r) + 'px'; e.style.top = (y - r) + 'px'; e.style.width = e.style.height = 2 * r + 'px';
+  e.style.opacity = 0.9 * (1 - u);
+}
+window.setT = async (t) => { await ensure(t); draw(t); };
+window.DURATION = END;
+window.SEGS = SEG.map((s) => [s.t0, s.t1, s.shot || s.html]);
+</script>
+</body></html>
