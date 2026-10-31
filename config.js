@@ -11,7 +11,7 @@ window.APP_CONFIG = {
   licenseUrl: '',
   // Borang bayaran langganan (BCL). Pembeli isi e-mel log masuk Google; Worker aktifkan lesen secara automatik.
   // Worker juga boleh menghantar pautan ini (BUY_URL), yang diutamakan.
-  buyUrl: '',
+  buyUrl: 'https://annurprosolutions1.bcl.my/form/jadual-sekolah-relief-system',
   priceText: 'RM20 sebulan, atau RM200 setahun (jimat RM40).',
   // Survey dalam mod demo (?demo): URL web app Google Apps Script yang berakhir dengan /exec (lihat appscript/README.md).
   // Kosong = survey tetap dipaparkan tetapi jawapan hanya tersimpan dalam pelayar pelawat dan belum dihantar.
