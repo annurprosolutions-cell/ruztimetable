@@ -96,7 +96,13 @@
     });
     const open = needs.filter((n) => !TT.reliefRecord(s, n));
     const openAt = new Set();
-    open.forEach((n) => n.periods.forEach((p) => { const [a0, a1] = TT.atomRange(tm, n.k, p, 1); for (let a = a0; a < a1; a++) openAt.add(a); }));
+    // petak hanya boleh diklik jika guru itu benar-benar calon sah untuk keperluan terbuka pada atom itu
+    // (had relief, sekatan, waktu kosong sebelum/selepas semuanya diambil kira)
+    const eligible = new Set();
+    open.forEach((n) => {
+      const ids = TT.reliefCandidates(s, n, { grid, tm }).map((c) => c.teacher.id);
+      n.periods.forEach((p) => { const [a0, a1] = TT.atomRange(tm, n.k, p, 1); for (let a = a0; a < a1; a++) { openAt.add(a); ids.forEach((id) => eligible.add(`${id}|${a}`)); } });
+    });
     const head = `<tr><th class="tcol">Guru</th>${cols.slice(0, lim).map((c) => `<th class="${openAt.has(c.i) ? 'need' : ''}" title="${esc(c.time)}">${esc(c.label)}</th>`).join('')}<th>Relief</th></tr>`;
     const rows = s.teachers.map((t) => {
       const g = grid.get(t.id)[day], bl = TT.blockedAtoms(s, tm, t);
@@ -108,12 +114,13 @@
         if (r) { n++; return `<td class="mx rel" title="Relief">${esc(TT.classNames(s, r.classIds))}</td>`; }
         if (pl) { const l = m.lesson.get(pl.lessonId); return `<td class="mx busy">${esc(l ? TT.classNames(s, l.classIds) : '')}</td>`; }
         if (bl.has(day * tm.A + a)) return '<td class="mx blk" title="Sekatan">-</td>';
-        return `<td class="mx free${openAt.has(a) && !TT.reliefExempt(s, t) ? ' pick' : ''}"${openAt.has(a) && !TT.reliefExempt(s, t) ? ` data-act="mxPick" data-t="${t.id}" data-a="${a}" title="Jadikan guru ganti"` : ''}></td>`;
+        const ok = eligible.has(`${t.id}|${a}`);
+        return `<td class="mx free${ok ? ' pick' : ''}"${ok ? ` data-act="mxPick" data-t="${t.id}" data-a="${a}" title="Jadikan guru ganti"` : ''}></td>`;
       }).join('');
       return `<tr><th class="tcol">${esc(t.short || t.name)}<small>${esc(t.name)}</small></th>${cells}<td class="mx n">${n || ''}</td></tr>`;
     }).join('');
     return `<div class="tablewrap"><table class="mxt"><thead>${head}</thead><tbody>${rows}</tbody></table></div>
-      <p class="hint">Lajur bertanda merah = ada kelas belum diagih. Klik petak kosong berbintik (guru lapang) untuk jadikan guru itu guru ganti. Kelabu = mengajar, biru = relief, TH = tidak hadir.</p>`;
+      <p class="hint">Lajur bertanda merah = ada kelas belum diagih. Klik petak kosong berbintik (guru yang layak mengikut peraturan relief) untuk jadikan guru itu guru ganti. Kelabu = mengajar, biru = relief, TH = tidak hadir.</p>`;
   }
   actions.reliefView = (el) => { R().view = el.dataset.v; UI.render(); };
   actions.mxPick = (el) => {

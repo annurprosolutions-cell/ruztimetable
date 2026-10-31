@@ -342,7 +342,7 @@ async function sheetsFlow(b) {
   try {
     const mocks = async (page) => {
       await page.route('**/config.js', async (route) => {
-        const body = fs.readFileSync(path.join(ROOT, 'config.js'), 'utf8').replace("googleClientId: ''", "googleClientId: 'ujian.apps.googleusercontent.com'").replace("licenseUrl: ''", "licenseUrl: 'https://lesen.test'");
+        const body = fs.readFileSync(path.join(ROOT, 'config.js'), 'utf8').replace(/googleClientId: '[^']*'/, "googleClientId: 'ujian.apps.googleusercontent.com'").replace(/licenseUrl: '[^']*'/, "licenseUrl: 'https://lesen.test'");
         await route.fulfill({ status: 200, contentType: 'text/javascript', body });
       });
       await page.addInitScript(() => {

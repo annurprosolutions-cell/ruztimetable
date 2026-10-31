@@ -8,7 +8,7 @@ window.APP_CONFIG = {
   googleClientId: '40784680032-vpri939rkmrq8mbnq2qrph31jl9dla0b.apps.googleusercontent.com',
   // Alamat Worker lesen (lihat worker/README.md), tanpa garis condong hujung.
   // Kosong = tiada semakan lesen (sesuai untuk ujian dan sekolah sendiri).
-  licenseUrl: '',
+  licenseUrl: 'https://jadual-sekolah-lesen.annurprosolutions.workers.dev',
   // Borang bayaran langganan (BCL). Pembeli isi e-mel log masuk Google; Worker aktifkan lesen secara automatik.
   // Worker juga boleh menghantar pautan ini (BUY_URL), yang diutamakan.
   buyUrl: 'https://annurprosolutions1.bcl.my/form/jadual-sekolah-relief-system',
