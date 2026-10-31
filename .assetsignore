@@ -1,0 +1,15 @@
+# fail yang tidak perlu diterbitkan sebagai laman web (aliran Workers sahaja)
+.git
+.gitignore
+node_modules
+tests
+tools
+worker
+demo-video
+appscript
+docs
+README.md
+package.json
+wrangler.jsonc
+.assetsignore
+.wrangler

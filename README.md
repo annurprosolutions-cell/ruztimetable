@@ -2,6 +2,15 @@
 
 Penjana jadual waktu sekolah (macam Winjaws / aSc TimeTables) dengan modul guru ganti (relief), dashboard ikut peranan, dan pilihan simpan data dalam Google Sheets milik sekolah. Web app statik: tiada server, tiada dependency.
 
+## Hos di Cloudflare (alamat rasmi)
+
+1. Cloudflare > Workers & Pages > Create > Pages > Connect to Git, pilih repo ini, branch `main`.
+2. Framework preset: None. Build command: kosong. Build output directory: `/`.
+3. Jika dashboard hanya menawarkan aliran Workers ("Import a repository"), biarkan arahan build kosong dan arahan deploy `npx wrangler deploy`. Fail `wrangler.jsonc` dan `.assetsignore` di akar repo memastikan hanya fail app diterbitkan.
+4. Tambah domain tersuai pada projek itu, kemudian kemas kini: *Authorized JavaScript origins* dalam OAuth client Google, `ALLOWED_ORIGINS` Worker lesen, dan `canonicalUrl` dalam `config.js`.
+
+Bila `canonicalUrl` diisi, pelawat ke alamat lama (Netlify, GitHub Pages) dihantar ke alamat rasmi dengan laluan dan parameter sama (`js/redirect.js`), jadi pautan demo dan pautan guru yang sudah dikongsi terus berfungsi. Biarkan laman Netlify hidup supaya pautan lama boleh dihantar ke alamat baharu. Data dalam pelayar terikat pada alamat; data yang disimpan dalam Google Sheet dimuat semula selepas log masuk Google di alamat baharu.
+
 ## Hos di GitHub Pages (peringkat awal)
 
 1. Repo > Settings > Pages > Source: *Deploy from a branch*, branch `main`, folder `/ (root)`.

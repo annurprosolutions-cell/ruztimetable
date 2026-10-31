@@ -171,7 +171,9 @@
     if (live && ses.role === 'guru') UI.guruTick(true).then(() => UI.checkNotices());
     else if (live) { UI.checkNotices(); if (UI.sync) UI.sync.refresh(); }
   }
-  if (UI.demo && !UI.hasSaved()) {
+  if (window.__redirecting) {
+    // sedang dihantar ke alamat rasmi (js/redirect.js): jangan mulakan app pada alamat lama
+  } else if (UI.demo && !UI.hasSaved()) {
     // jana jadual contoh mengambil sekitar satu saat: paparkan skrin menunggu dahulu
     $('app').innerHTML = '<div class="gate"><div class="gate-card"><p class="gbusy"><i class="spin"></i>Menyediakan demo...</p></div></div>';
     setTimeout(boot, 40);

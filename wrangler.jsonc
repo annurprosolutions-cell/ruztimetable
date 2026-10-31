@@ -1,0 +1,8 @@
+// Hos app di Cloudflare (Workers dengan fail statik). Hanya diperlukan jika dashboard Cloudflare
+// menggunakan aliran "Workers" (arahan deploy: npx wrangler deploy). Cloudflare Pages mengabaikan fail ini.
+// Pelayan lesen ialah projek berasingan dalam folder worker/.
+{
+  "name": "jadual-sekolah",
+  "compatibility_date": "2025-06-01",
+  "assets": { "directory": "." }
+}
