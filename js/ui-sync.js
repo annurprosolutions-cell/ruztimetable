@@ -248,9 +248,13 @@
         <p class="hint">Asal app semasa: <code>${esc(location.origin === 'null' ? location.protocol + '//' : location.origin)}</code>${!sync.hosted() ? '. Fail yang dibuka terus (file://) tidak boleh log masuk Google; app perlu dihos, contohnya GitHub Pages.' : ''}</p></details></section>`;
     }
     if (!sync.hosted()) return `<section class="card">${head}<p>Log masuk Google hanya berfungsi bila app dibuka melalui https (contoh GitHub Pages) atau localhost. Fail yang dibuka terus dari komputer tidak disokong oleh Google.</p></section>`;
-    const L = sync.license;
-    const licLine = !LURL ? '' : L.allowed ? `<p class="hint">Lesen: ${esc(L.school || 'aktif')}${L.expires ? ', sah hingga ' + esc(TT.fmtDate(L.expires)) : ''}.${L.message ? ` <b class="warn">${esc(L.message)}</b>` : ''}</p>`
-      : `<div class="banner bad"><b>${esc(L.message)}</b>${CFG.support && (CFG.support.whatsapp || CFG.support.email) ? `<br>Hubungi: ${esc(CFG.support.whatsapp || CFG.support.email)}` : ''}</div>`;
+    const L = sync.license, buy = L.buyUrl || CFG.buyUrl || '';
+    const PLAN = { percubaan: 'Percubaan percuma', bulanan: 'Langganan bulanan', tahunan: 'Langganan tahunan' };
+    // e-mel log masuk mesti diisi dalam borang bayaran supaya lesen diaktifkan secara automatik
+    const buyBtn = buy ? `<a class="btn primary" href="${esc(buy)}" target="_blank" rel="noopener">${UI.icon('external')} ${L.plan === 'bulanan' || L.plan === 'tahunan' ? 'Perbaharui' : 'Langgan'}</a>` : '';
+    const buyNote = buy ? `<p class="hint">${esc(CFG.priceText || 'RM20 sebulan, atau RM200 setahun.')} Semasa bayar, isi <b>e-mel log masuk Google</b> ini: <b>${esc(sync.email || '')}</b>. Lesen aktif automatik dalam beberapa minit.</p>` : '';
+    const licLine = !LURL ? '' : L.allowed ? `<p class="hint">${esc(PLAN[L.plan] || 'Lesen')}: ${esc(L.school || 'aktif')}${L.expires ? ', sah hingga ' + esc(TT.fmtDate(L.expires)) : ''}.${L.message ? ` <b class="warn">${esc(L.message)}</b>` : ''}</p>${L.plan === 'percubaan' || L.state === 'warn' ? `<div class="row">${buyBtn}</div>${buyNote}` : ''}`
+      : `<div class="banner bad"><b>${esc(L.message)}</b>${CFG.support && (CFG.support.whatsapp || CFG.support.email) ? `<br>Hubungi: ${esc(CFG.support.whatsapp || CFG.support.email)}` : ''}</div>${buyBtn ? `<div class="row">${buyBtn}</div>${buyNote}` : ''}`;
     const status = `<div class="sync-line">Status: <span id="syncStatus">${UI.syncStatusHtml()}</span></div>${licLine}`;
     if (!sync.signedIn()) {
       return `<section class="card">${head}${sh ? `<p>Disambung ke <a href="${esc(sh.url)}" target="_blank" rel="noopener">${esc(sh.title || 'Google Sheet')}</a>. Kali terakhir selari: ${sh.syncedAt ? localDate(sh.syncedAt) : '-'}.</p>${status}` : '<p>Log masuk dengan akaun Google sekolah (contoh DELIMa) untuk menyimpan data dalam Google Sheet milik anda. App hanya boleh membuka fail yang ia cipta sendiri.</p>'}

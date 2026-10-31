@@ -7,6 +7,13 @@
     guru: [['utama', 'Utama', 'grid'], ['jadualku', 'Jadual saya', 'table'], ['reliefku', 'Relief saya', 'swap'], ['bantuan', 'Bantuan', 'help']]
   };
   const ROLE = { admin: 'Pentadbir', guru: 'Guru' };
+  // mod fokus relief (pilihan peranti): Relief di depan, Jadual dan Laporan disorok dari menu utama
+  // (masih boleh dibuka dari Utama dan Tetapan)
+  const navList = (role) => {
+    if (role !== 'admin' || !UI.prefs.focusRelief) return NAV[role];
+    const by = new Map(NAV.admin.map((x) => [x[0], x]));
+    return ['utama', 'relief', 'data', 'tetapan'].map((k) => by.get(k));
+  };
 
   function computeItems() {
     const s = UI.state, today = TT.todayISO();
@@ -65,7 +72,7 @@
     const s = UI.state, role = UI.prefs.role, urgent = UI.items.filter((i) => i.sev !== 'info').length;
     return `<header class="topbar">
       <div class="brand"><span class="mark${TT.validLogo(s.school.logo) ? ' logo' : ''}">${TT.validLogo(s.school.logo) ? `<img src="${s.school.logo}" alt="Logo ${esc(s.school.name)}">` : UI.icon('calendar')}</span><span class="bname">${esc(s.school.name)}<small>${esc(CFG.appName || 'Jadual Sekolah')}</small></span></div>
-      <nav class="seg main">${NAV[role].map(([k, t, ic]) => `<button class="${UI.page === k ? 'on' : ''}" data-act="goto" data-p="${k}">${UI.icon(ic)}<span>${t}</span></button>`).join('')}</nav>
+      <nav class="seg main">${navList(role).map(([k, t, ic]) => `<button class="${UI.page === k ? 'on' : ''}" data-act="goto" data-p="${k}">${UI.icon(ic)}<span>${t}</span></button>`).join('')}</nav>
       <div class="tb-right">${syncPill()}
         <button class="role${UI.menu === 'role' ? ' open' : ''}" data-act="menu" data-m="role" aria-haspopup="true" aria-expanded="${UI.menu === 'role'}">${UI.icon(role === 'guru' ? 'user' : 'shield')}<span><small>PERANAN</small><b>${UI.isAdmin() && role === 'guru' ? 'Pratonton guru' : ROLE[role]}</b></span>${UI.icon('chevDown')}</button>
         ${role === 'admin' ? `<button class="iconbtn hide-sm" data-act="goto" data-p="bantuan" aria-label="Bantuan" title="Bantuan">${UI.icon('help')}</button>` : ''}
@@ -138,6 +145,7 @@
 
   // ---------- mula ----------
   function boot() {
+    if (UI.prefs.focusRelief && UI.prefs.role === 'admin') UI.page = 'relief';
     if (UI.demo) {
       // demo: terus masuk sebagai pentadbir tanpa Google atau kata laluan, dalam ruang storan berasingan
       UI.prefs.session = TT.newSession('admin', Date.now()); UI.prefs.sheet = null; UI.prefs.guru = null;

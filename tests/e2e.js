@@ -315,7 +315,7 @@ async function sheetsFlow(b) {
   const { handle } = await import(path.join(ROOT, 'worker/index.mjs'));
   const lic = new Map();
   const licEnv = { LICENSES: { get: async (k) => lic.get(k) || null, put: async (k, v) => { lic.set(k, v); }, delete: async (k) => { lic.delete(k); }, list: async () => ({ keys: [...lic.keys()].map((name) => ({ name })), list_complete: true }) },
-    ADMIN_TOKEN: 'adm', GOOGLE_CLIENT_ID: 'ujian.apps.googleusercontent.com', ALLOWED_ORIGINS: `http://127.0.0.1:${server.address().port}` };
+    ADMIN_TOKEN: 'adm', GOOGLE_CLIENT_ID: 'ujian.apps.googleusercontent.com', ALLOWED_ORIGINS: `http://127.0.0.1:${server.address().port}`, TRIAL_DAYS: '0' };
   const tokeninfo = async () => ({ ok: true, json: async () => ({ email: 'pentadbir@moe-dl.edu.my', email_verified: 'true', aud: 'ujian.apps.googleusercontent.com' }) });
   const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, content-type', 'access-control-allow-methods': 'GET, POST, OPTIONS' };
   const shared = new Set();

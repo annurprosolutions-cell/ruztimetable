@@ -17,6 +17,7 @@
   const MSG = {
     tiada: 'E-mel ini belum berlesen. Hubungi pembekal untuk mengaktifkan akaun sekolah anda.',
     tamat: 'Lesen sekolah telah tamat. Hubungi pembekal untuk pembaharuan. Data anda selamat dan masih boleh digunakan dalam pelayar ini.',
+    'percubaan-tamat': 'Tempoh percubaan percuma telah tamat. Langgan untuk teruskan simpanan Google Sheets dan pautan guru. Data anda selamat dalam pelayar ini dan dalam Sheet anda.',
     'token-tidak-sah': 'Sesi Google tidak sah. Log masuk semula.',
     gagal: 'Tidak dapat mengesahkan lesen (tiada sambungan ke pelayan lesen). Cuba semula sebentar lagi.'
   };
@@ -31,12 +32,15 @@
     if (o.disabled) return { allowed: true, state: 'off', message: '', cache: null };
     if (o.result) {
       const b = o.result.body;
+      const extra = { plan: b.plan || '', buyUrl: b.buyUrl || '' };
       if (b.ok) {
-        const warn = b.reason === 'tamat-tempoh-ihsan' ? `Lesen tamat, tempoh ihsan berakhir dalam ${Math.max(0, 7 + b.daysLeft)} hari. Sila perbaharui.`
-          : b.daysLeft != null && b.daysLeft <= WARN_DAYS ? `Lesen tamat dalam ${b.daysLeft} hari.` : '';
-        return { allowed: true, state: warn ? 'warn' : 'ok', message: warn, school: b.school || '', expires: b.expires || '', cache: { email: b.email, ok: true, checkedAt: now, school: b.school || '', expires: b.expires || '' } };
+        const trial = b.plan === 'percubaan';
+        const warn = trial ? `Percubaan percuma: ${b.daysLeft + 1} hari lagi (hingga ${TT.fmtDate ? TT.fmtDate(b.expires) : b.expires}).`
+          : b.reason === 'tamat-tempoh-ihsan' ? `Lesen tamat, tempoh ihsan berakhir dalam ${Math.max(0, 7 + b.daysLeft)} hari. Sila perbaharui.`
+            : b.daysLeft != null && b.daysLeft <= WARN_DAYS ? `Lesen tamat dalam ${b.daysLeft} hari.` : '';
+        return Object.assign({ allowed: true, state: trial ? 'trial' : warn ? 'warn' : 'ok', message: warn, school: b.school || '', expires: b.expires || '', cache: { email: b.email, ok: true, checkedAt: now, school: b.school || '', expires: b.expires || '', plan: b.plan || '' } }, extra);
       }
-      return { allowed: false, state: 'denied', message: MSG[b.reason] || MSG.tiada, cache: { email: b.email || '', ok: false, checkedAt: now } };
+      return Object.assign({ allowed: false, state: 'denied', message: MSG[b.reason] || MSG.tiada, cache: { email: b.email || '', ok: false, checkedAt: now } }, extra);
     }
     // pelayan tidak dapat dihubungi: guna cache yang masih segar sahaja
     const c = o.cache;

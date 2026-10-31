@@ -4,8 +4,10 @@
   const S = () => UI.state;
   const R = () => UI.relief;
 
-  const periodText = (s, ps) => {
-    const sl = TT.slots(s), a = ps[0], b = ps[ps.length - 1];
+  // ps = indeks waktu dalam set k (set kelas yang terlibat)
+  const periodText = (s, ps, k) => {
+    const sl = TT.slots(s, k), a = ps[0], b = ps[ps.length - 1];
+    if (!sl[a] || !sl[b]) return `Waktu ${a + 1}`;
     return a === b ? `Waktu ${sl[a].label}<small>${sl[a].start}-${sl[a].end}</small>` : `Waktu ${sl[a].label}-${sl[b].label}<small>${sl[a].start}-${sl[b].end}</small>`;
   };
 
@@ -28,7 +30,7 @@
   function daily() {
     const s = S(), iso = R().date, day = TT.dateToDay(s, iso), m = TT.maps(s), sl = TT.slots(s);
     const abs = s.absences.filter((a) => a.date === iso);
-    const needs = TT.reliefNeeds(s, iso), grid = TT.teacherGrid(s);
+    const tm = TT.timeModel(s), needs = TT.reliefNeeds(s, iso), grid = TT.teacherGrid(s, tm);
     const absRows = abs.map((a) => {
       const t = m.teacher.get(a.teacherId) || { name: '?' };
       const scope = a.from == null && a.to == null ? 'Sehari penuh' : `Waktu ${(a.from || 0) + 1} hingga ${(a.to == null ? sl.length - 1 : a.to) + 1}`;
@@ -37,16 +39,20 @@
     }).join('');
 
     const rows = needs.map((n) => {
-      const rec = TT.reliefRecord(s, n), cands = TT.reliefCandidates(s, n, { grid });
+      const rec = TT.reliefRecord(s, n), cands = TT.reliefCandidates(s, n, { grid, tm });
       const at = m.teacher.get(n.absentTeacherId) || { name: '?' }, sub = m.subject.get(n.subjectId) || {};
-      const cur = rec && rec.status === 'assigned' ? 't:' + rec.reliefTeacherId : rec ? rec.status : '';
+      const cur = rec && rec.status === 'assigned' ? 't:' + rec.reliefTeacherId : rec && rec.status === 'gabung' && rec.mergeClassId ? 'g:' + rec.mergeClassId : rec ? rec.status : '';
       let o = '<option value="">- Pilih guru ganti -</option>';
       o += cands.map((c, i) => `<option value="t:${c.teacher.id}"${cur === 't:' + c.teacher.id ? ' selected' : ''}>${i === 0 ? '★ ' : ''}${esc(c.teacher.name)} · skor ${c.score}${c.tag.length ? ' · ' + esc(c.tag.join(', ')) : ''}</option>`).join('');
       if (cur.startsWith('t:') && !cands.some((c) => 't:' + c.teacher.id === cur)) o += `<option value="${cur}" selected>${esc((m.teacher.get(cur.slice(2)) || {}).name)} (tidak lagi sesuai)</option>`;
-      o += `<option value="kendiri"${cur === 'kendiri' ? ' selected' : ''}>Kelas kendiri (beri tugasan)</option><option value="gabung"${cur === 'gabung' ? ' selected' : ''}>Gabung dengan kelas lain</option>`;
+      o += `<option value="kendiri"${cur === 'kendiri' ? ' selected' : ''}>Kelas kendiri (beri tugasan)</option>`;
+      // gabung: tunjuk kelas mana dan guru siapa yang sedang mengajar (tahap sama dahulu)
+      const merge = TT.mergeCandidates(s, n);
+      o += merge.length ? `<optgroup label="Gabung dengan kelas">${merge.map((x) => `<option value="g:${x.cls.id}"${cur === 'g:' + x.cls.id ? ' selected' : ''}>${esc(x.cls.name)}${x.subject ? ' · ' + esc(x.subject.short) : ''}${x.teacher ? ' · ' + esc(x.teacher.name) : ''}</option>`).join('')}</optgroup>` : '';
+      o += `<option value="gabung"${cur === 'gabung' ? ' selected' : ''}>Gabung kelas (tentukan kemudian)</option>`;
       const sel = rec && rec.status === 'assigned' ? cands.find((c) => c.teacher.id === rec.reliefTeacherId) : null;
-      const why = sel ? sel.parts.map((p) => `${p.label} (${p.v > 0 ? '+' : ''}${Math.round(p.v * 10) / 10})`).join(', ') : (!cands.length && !rec ? 'Tiada guru kosong yang layak pada waktu ini.' : '');
-      return `<tr class="${rec ? 'done' : 'todo'}"><td class="nowrap">${periodText(s, n.periods)}</td><td>${esc(TT.classNames(s, n.classIds))}</td>
+      const why = sel ? sel.parts.map((p) => `${p.label} (${p.v > 0 ? '+' : ''}${Math.round(p.v * 10) / 10})`).join(', ') : rec && rec.status === 'gabung' ? TT.reliefStatusText(s, rec) : (!cands.length && !rec ? 'Tiada guru kosong yang layak pada waktu ini.' : '');
+      return `<tr class="${rec ? 'done' : 'todo'}"><td class="nowrap">${periodText(s, n.periods, n.k)}</td><td>${esc(TT.classNames(s, n.classIds))}</td>
         <td><span class="sw" style="background:${esc(sub.color || '#999')}"></span>${esc(sub.name || '?')}${n.roomId ? `<small>${esc((m.room.get(n.roomId) || {}).name)}</small>` : ''}</td>
         <td>${esc(at.name)}</td><td><select data-chg="reliefPick" data-key="${esc(n.key)}">${o}</select>${why ? `<small class="why">${esc(why)}</small>` : ''}</td></tr>`;
     }).join('');
@@ -67,15 +73,61 @@
       <section class="card"><div class="ch"><h2>Guru tidak hadir (${abs.length})</h2></div>
         ${abs.length ? `<div class="tablewrap"><table class="tbl"><thead><tr><th>Guru</th><th>Sebab</th><th>Tempoh</th><th>Kesan</th><th></th></tr></thead><tbody>${absRows}</tbody></table></div>` : '<p class="empty">Tiada guru tidak hadir dicatat untuk tarikh ini.</p>'}</section>
       <section class="card"><div class="ch"><h2>Keperluan relief (${done}/${needs.length} blok)</h2>
-        <div class="row tight"><button class="btn primary" data-act="reliefAuto"${dis}>${UI.icon('spark')} Agih automatik</button>
+        <div class="row tight"><div class="seg sub mini"><button class="${R().view !== 'guru' ? 'on' : ''}" data-act="reliefView" data-v="senarai">Senarai</button><button class="${R().view === 'guru' ? 'on' : ''}" data-act="reliefView" data-v="guru">Paparan semua guru</button></div>
+        <button class="btn primary" data-act="reliefAuto"${dis}>${UI.icon('spark')} Agih automatik</button>
         <button class="btn" data-act="reliefClear"${dis}>Kosongkan</button>
         <button class="btn" data-act="reliefPrint"${dis}>${UI.icon('printer')} Slip</button>
         <button class="btn" data-act="reliefMsg"${dis}>${UI.icon('message')} WhatsApp</button></div></div>
-        ${needs.length ? `<div class="tablewrap"><table class="tbl relief"><thead><tr><th>Waktu</th><th>Kelas</th><th>Subjek</th><th>Guru tiada</th><th>Guru ganti (calon terbaik dahulu)</th></tr></thead><tbody>${rows}</tbody></table></div>
-        <p class="hint">★ = cadangan teratas. Skor mengambil kira subjek sama, panitia, kenal kelas itu, dan menolak guru yang sudah banyak relief bulan ini atau beban mengajar tinggi. Anda bebas memilih guru lain.</p>`
-        : '<p class="empty">Tiada waktu mengajar yang terjejas.</p>'}</section>
+        ${!needs.length ? '<p class="empty">Tiada waktu mengajar yang terjejas.</p>' : R().view === 'guru' ? staffMatrix(s, iso, day, needs, tm, grid)
+        : `<div class="tablewrap"><table class="tbl relief"><thead><tr><th>Waktu</th><th>Kelas</th><th>Subjek</th><th>Guru tiada</th><th>Guru ganti (calon terbaik dahulu)</th></tr></thead><tbody>${rows}</tbody></table></div>
+        <p class="hint">★ = cadangan teratas. Skor mengambil kira subjek sama, panitia, kenal kelas itu, dan menolak guru yang sudah banyak relief bulan ini atau beban mengajar tinggi. Anda bebas memilih guru lain.</p>`}</section>
       ${per.size ? `<section class="card"><div class="ch"><h2>Guru ganti hari ini</h2></div><div class="chips">${[...per].map(([id, n]) => `<span class="chip plain">${esc((m.teacher.get(id) || {}).name)}: ${n} waktu</span>`).join('')}</div></section>` : ''}`;
   }
+
+  // Paparan semua guru: baris = guru, lajur = waktu hari itu. Klik petak kosong untuk jadikan guru itu
+  // guru ganti bagi keperluan yang belum diagih pada waktu tersebut (jika layak).
+  function staffMatrix(s, iso, day, needs, tm, grid) {
+    const m = TT.maps(s), cols = tm.multi ? tm.atoms.map((a, i) => ({ i, label: a.start, time: `${a.start}-${a.end}` })) : tm.sets[0].slots.map((x, i) => ({ i, label: x.label, time: `${x.start}-${x.end}` }));
+    const lim = tm.aLim[day];
+    const rel = new Map();
+    s.reliefs.filter((r) => r.date === iso && r.status === 'assigned').forEach((r) => {
+      const k = TT.setOfClasses(s, r.classIds);
+      r.periods.forEach((p) => { const [a0, a1] = TT.atomRange(tm, k, p, 1); for (let a = a0; a < a1; a++) rel.set(`${r.reliefTeacherId}|${a}`, r); });
+    });
+    const open = needs.filter((n) => !TT.reliefRecord(s, n));
+    const openAt = new Set();
+    open.forEach((n) => n.periods.forEach((p) => { const [a0, a1] = TT.atomRange(tm, n.k, p, 1); for (let a = a0; a < a1; a++) openAt.add(a); }));
+    const head = `<tr><th class="tcol">Guru</th>${cols.slice(0, lim).map((c) => `<th class="${openAt.has(c.i) ? 'need' : ''}" title="${esc(c.time)}">${esc(c.label)}</th>`).join('')}<th>Relief</th></tr>`;
+    const rows = s.teachers.map((t) => {
+      const g = grid.get(t.id)[day], bl = TT.blockedAtoms(s, tm, t);
+      const absent = (a) => s.absences.some((x) => x.date === iso && x.teacherId === t.id && (x.from == null && x.to == null || (() => { const P0 = tm.sets[0].slots.length, f = Math.min(P0 - 1, x.from || 0), e = Math.min(P0 - 1, x.to == null ? P0 - 1 : x.to); return tm.span[0][f][0] <= a && a < tm.span[0][e][1]; })()));
+      let n = 0;
+      const cells = cols.slice(0, lim).map((c) => {
+        const a = c.i, pl = g[a], r = rel.get(`${t.id}|${a}`);
+        if (absent(a)) return '<td class="mx abs" title="Tidak hadir">TH</td>';
+        if (r) { n++; return `<td class="mx rel" title="Relief">${esc(TT.classNames(s, r.classIds))}</td>`; }
+        if (pl) { const l = m.lesson.get(pl.lessonId); return `<td class="mx busy">${esc(l ? TT.classNames(s, l.classIds) : '')}</td>`; }
+        if (bl.has(day * tm.A + a)) return '<td class="mx blk" title="Sekatan">-</td>';
+        return `<td class="mx free${openAt.has(a) && !TT.reliefExempt(s, t) ? ' pick' : ''}"${openAt.has(a) && !TT.reliefExempt(s, t) ? ` data-act="mxPick" data-t="${t.id}" data-a="${a}" title="Jadikan guru ganti"` : ''}></td>`;
+      }).join('');
+      return `<tr><th class="tcol">${esc(t.short || t.name)}<small>${esc(t.name)}</small></th>${cells}<td class="mx n">${n || ''}</td></tr>`;
+    }).join('');
+    return `<div class="tablewrap"><table class="mxt"><thead>${head}</thead><tbody>${rows}</tbody></table></div>
+      <p class="hint">Lajur bertanda merah = ada kelas belum diagih. Klik petak kosong berbintik (guru lapang) untuk jadikan guru itu guru ganti. Kelabu = mengajar, biru = relief, TH = tidak hadir.</p>`;
+  }
+  actions.reliefView = (el) => { R().view = el.dataset.v; UI.render(); };
+  actions.mxPick = (el) => {
+    const s = S(), iso = R().date, tm = TT.timeModel(s), a = +el.dataset.a;
+    const open = TT.reliefNeeds(s, iso).filter((n) => !TT.reliefRecord(s, n) && n.periods.some((p) => { const [a0, a1] = TT.atomRange(tm, n.k, p, 1); return a0 <= a && a < a1; }));
+    const grid = TT.teacherGrid(s, tm);
+    for (const n of open) {
+      if (TT.reliefCandidates(s, n, { grid, tm }).some((c) => c.teacher.id === el.dataset.t)) {
+        TT.setRelief(s, n, 'assigned', el.dataset.t); UI.save(); UI.render();
+        UI.toast(`${(TT.maps(s).teacher.get(el.dataset.t) || {}).name} ganti ${TT.classNames(s, n.classIds)}.`); return;
+      }
+    }
+    UI.toast('Guru ini tidak layak untuk keperluan pada waktu ini (had relief, sekatan atau tidak lapang sepanjang blok).', 'err');
+  };
 
   changes.reliefDate = (el) => { if (el.value) { R().date = el.value; UI.render(); } };
   actions.reliefDay = (el) => { R().date = TT.addDays(R().date, +el.dataset.n); UI.render(); };
@@ -86,6 +138,7 @@
     const v = el.value;
     if (!v) TT.setRelief(s, need, null);
     else if (v.startsWith('t:')) TT.setRelief(s, need, 'assigned', v.slice(2));
+    else if (v.startsWith('g:')) TT.setRelief(s, need, 'gabung', null, '', v.slice(2));
     else TT.setRelief(s, need, v);
     UI.save(); UI.render();
   };
@@ -109,7 +162,7 @@
         { key: 'dateTo', label: 'Hingga tarikh (pilihan, untuk cuti beberapa hari)', type: 'date', hint: 'Hujung minggu dilangkau secara automatik.' },
         { key: 'reason', label: 'Sebab', type: 'select', options: TT.ABSENCE_REASONS.map((x) => ({ v: x, t: x })) },
         { key: 'scope', label: 'Tempoh', type: 'select', options: [{ v: 'full', t: 'Sehari penuh' }, { v: 'part', t: 'Waktu tertentu sahaja' }] },
-        { key: 'from', label: 'Dari waktu ke (jika waktu tertentu)', type: 'number', min: 1, max: sl.length },
+        { key: 'from', label: `Dari waktu ke (jika waktu tertentu)${TT.multiTime(s) ? ', ikut waktu ' + TT.timeSetList(s)[0].name : ''}`, type: 'number', min: 1, max: sl.length },
         { key: 'to', label: 'Hingga waktu ke', type: 'number', min: 1, max: sl.length },
         { key: 'note', label: 'Catatan' }
       ],
@@ -158,24 +211,32 @@
   actions.calMonth = (el) => { R().month = TT.addMonths(R().month, +el.dataset.n); UI.render(); };
 
   // ---------------- slip dan mesej ----------------
-  function slipBlock(s, iso, tid, list) {
+  // Slip guru ganti dalam bentuk jadual hari itu: kelas sendiri + relief (diserlahkan), ikut masa
+  function slipBlock(s, iso, tid) {
     const m = TT.maps(s), t = m.teacher.get(tid) || { name: '?' };
-    return `<div class="slip"><h4>SLIP GURU GANTI</h4><p><b>${esc(t.name)}</b> &mdash; ${esc(TT.weekdayOf(iso))}, ${TT.fmtDate(iso)}</p>
-      <table class="tbl"><thead><tr><th>Waktu</th><th>Kelas</th><th>Subjek</th><th>Ganti</th><th>Bilik</th></tr></thead><tbody>${list.sort((a, b) => a.periods[0] - b.periods[0]).map((n) => `<tr><td>${periodText(s, n.periods)}</td><td>${esc(TT.classNames(s, n.classIds))}</td><td>${esc((m.subject.get(n.subjectId) || {}).name)}</td><td>${esc((m.teacher.get(n.absentTeacherId) || {}).name)}</td><td>${esc((m.room.get(n.roomId) || {}).name || '')}</td></tr>`).join('')}</tbody></table>
+    const items = TT.teacherDay(s, tid, iso);
+    const rows = items.map((x) => {
+      const rel = x.kind === 'relief';
+      const time = `${x.start}-${x.end}`, lab = TT.periodLabel(s, x.p0, x.p1, x.k);
+      return `<tr class="${rel ? 'relrow' : ''}"><td>${esc(lab)}<small>${esc(time)}</small></td><td>${esc(x.classes)}</td><td>${esc(x.subject ? x.subject.short : '')}</td><td>${rel ? `<b>RELIEF</b> ganti ${esc(x.forTeacher ? x.forTeacher.name : '?')}` : x.absent ? 'Tidak hadir' : 'Kelas sendiri'}</td><td>${esc(x.room || '')}</td></tr>`;
+    }).join('');
+    const n = items.filter((x) => x.kind === 'relief').reduce((a, x) => a + x.p1 - x.p0 + 1, 0);
+    return `<div class="slip"><h4>SLIP GURU GANTI</h4><p><b>${esc(t.name)}</b> &mdash; ${esc(TT.weekdayOf(iso))}, ${TT.fmtDate(iso)} &middot; ${n} waktu relief</p>
+      <table class="tbl"><thead><tr><th>Waktu</th><th>Kelas</th><th>Subjek</th><th>Tugas</th><th>Bilik</th></tr></thead><tbody>${rows}</tbody></table>
       <p class="sign">Tandatangan: ______________</p></div>`;
   }
   function slips(iso) {
     const s = S(), m = TT.maps(s), needs = TT.reliefNeeds(s, iso);
     const line = (n, rec) => {
-      const who = rec && rec.status === 'assigned' ? esc((m.teacher.get(rec.reliefTeacherId) || {}).name) : rec ? (rec.status === 'kendiri' ? 'Kelas kendiri' : 'Gabung kelas') : '<b>BELUM DIAGIH</b>';
-      return `<tr><td>${periodText(s, n.periods)}</td><td>${esc(TT.classNames(s, n.classIds))}</td><td>${esc((m.subject.get(n.subjectId) || {}).name)}</td><td>${esc((m.teacher.get(n.absentTeacherId) || {}).name)}</td><td>${who}</td><td>${esc((m.room.get(n.roomId) || {}).name || '')}</td></tr>`;
+      const who = rec && rec.status === 'assigned' ? esc((m.teacher.get(rec.reliefTeacherId) || {}).name) : rec ? esc(TT.reliefStatusText(s, rec)) : '<b>BELUM DIAGIH</b>';
+      return `<tr><td>${periodText(s, n.periods, n.k)}</td><td>${esc(TT.classNames(s, n.classIds))}</td><td>${esc((m.subject.get(n.subjectId) || {}).name)}</td><td>${esc((m.teacher.get(n.absentTeacherId) || {}).name)}</td><td>${who}</td><td>${esc((m.room.get(n.roomId) || {}).name || '')}</td></tr>`;
     };
     let out = `<section class="sheet">${UI.sheetHead()}<h3>Agihan Guru Ganti (Relief) &mdash; ${esc(TT.weekdayOf(iso))}, ${TT.fmtDate(iso)}</h3>
       <table class="tbl"><thead><tr><th>Waktu</th><th>Kelas</th><th>Subjek</th><th>Guru tiada</th><th>Guru ganti</th><th>Bilik</th></tr></thead><tbody>${needs.map((n) => line(n, TT.reliefRecord(s, n))).join('')}</tbody></table>
       <p>Disediakan oleh: ____________________ &nbsp; Disahkan: ____________________</p></section>`;
-    const by = new Map();
-    needs.forEach((n) => { const r = TT.reliefRecord(s, n); if (r && r.status === 'assigned') { if (!by.has(r.reliefTeacherId)) by.set(r.reliefTeacherId, []); by.get(r.reliefTeacherId).push(n); } });
-    out += `<section class="sheet slips">${[...by].map(([tid, list]) => slipBlock(s, iso, tid, list)).join('')}</section>`;
+    const who = new Set();
+    needs.forEach((n) => { const r = TT.reliefRecord(s, n); if (r && r.status === 'assigned') who.add(r.reliefTeacherId); });
+    out += `<section class="sheet slips">${[...who].map((tid) => slipBlock(s, iso, tid)).join('')}</section>`;
     return out;
   }
   actions.reliefPrint = () => UI.print(slips(R().date));
@@ -184,7 +245,7 @@
     if (!t) return;
     const list = TT.reliefNeeds(s, iso).filter((n) => { const r = TT.reliefRecord(s, n); return r && r.status === 'assigned' && r.reliefTeacherId === t.id; });
     if (!list.length) { UI.toast('Tiada tugas relief pada tarikh ini.'); return; }
-    UI.print(`<section class="sheet slips">${slipBlock(s, iso, t.id, list)}</section>`);
+    UI.print(`<section class="sheet slips">${slipBlock(s, iso, t.id)}</section>`);
   };
   actions.reliefMsg = () => {
     const text = TT.reliefMessage(S(), R().date);
@@ -207,7 +268,7 @@
   function stats() {
     const s = S(), { from, to } = R();
     const st = TT.reliefStats(s, from, to), sum = st.summary;
-    const rows = st.rows.filter((r) => !r.teacher.noRelief).sort((a, b) => b.periods - a.periods || a.teacher.name.localeCompare(b.teacher.name));
+    const rows = st.rows.filter((r) => !TT.reliefExempt(s, r.teacher)).sort((a, b) => b.periods - a.periods || a.teacher.name.localeCompare(b.teacher.name));
     const max = Math.max(1, ...rows.map((r) => r.periods));
     const body = rows.map((r) => {
       const hi = sum.sd > 0 && r.periods > sum.mean + sum.sd;
@@ -233,7 +294,7 @@
     const list = s.reliefs.filter((r) => r.date >= from && r.date <= to && (!teacher || r.reliefTeacherId === teacher || r.absentTeacherId === teacher))
       .sort((a, b) => b.date.localeCompare(a.date) || a.periods[0] - b.periods[0]);
     const rows = list.map((r) => `<tr><td>${TT.fmtDate(r.date)}</td><td>${r.periods.map((p) => p + 1).join(', ')}</td><td>${esc(TT.classNames(s, r.classIds))}</td><td>${esc((m.subject.get(r.subjectId) || {}).short || '')}</td>
-      <td>${esc((m.teacher.get(r.absentTeacherId) || {}).name || '?')}</td><td>${r.status === 'assigned' ? esc((m.teacher.get(r.reliefTeacherId) || {}).name) : `<span class="chip-s amber">${r.status === 'kendiri' ? 'Kelas kendiri' : 'Gabung kelas'}</span>`}</td>
+      <td>${esc((m.teacher.get(r.absentTeacherId) || {}).name || '?')}</td><td>${r.status === 'assigned' ? esc((m.teacher.get(r.reliefTeacherId) || {}).name) : `<span class="chip-s amber">${esc(TT.reliefStatusText(s, r))}</span>`}</td>
       <td class="acts"><button class="btn sm danger" data-act="histDel" data-id="${r.id}">Padam</button></td></tr>`).join('');
     return rangeBar(false) + `<section class="card"><div class="toolbar"><label class="fld sm"><span>Guru</span><select data-chg="relTeacher"><option value="">Semua</option>${UI.optHtml(s.teachers.map((t) => ({ v: t.id, t: t.name })), teacher)}</select></label></div>
       <div class="tablewrap"><table class="tbl"><thead><tr><th>Tarikh</th><th>Waktu</th><th>Kelas</th><th>Subjek</th><th>Guru tiada</th><th>Guru ganti</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="empty">Tiada rekod relief dalam julat ini.</td></tr>'}</tbody></table></div></section>`;
@@ -263,7 +324,7 @@
       if (list.length) up.push({ d, list });
     }
     const days = up.map(({ d, list }) => `<section class="card"><div class="ch"><div><h3>${esc(TT.weekdayOf(d))}, ${TT.fmtDate(d)}</h3><small>${list.length} tugas relief</small></div><button class="pill navy" data-act="mySlip" data-date="${d}">${UI.icon('printer')} Slip</button></div>
-      <div class="act-list">${list.map((x) => `<div class="act-item sev-perhatian"><div><b>${esc(x.start)} · ${esc(x.subject ? x.subject.short : '')} ${esc(x.classes)}</b><small>${esc(TT.periodLabel(s, x.p0, x.p1))} · ganti ${esc(x.forTeacher ? x.forTeacher.name : '?')}${x.room ? ' · ' + esc(x.room) : ''}</small></div></div>`).join('')}</div></section>`).join('');
+      <div class="act-list">${list.map((x) => `<div class="act-item sev-perhatian"><div><b>${esc(x.start)} · ${esc(x.subject ? x.subject.short : '')} ${esc(x.classes)}</b><small>${esc(TT.periodLabel(s, x.p0, x.p1, x.k))} · ganti ${esc(x.forTeacher ? x.forTeacher.name : '?')}${x.room ? ' · ' + esc(x.room) : ''}</small></div></div>`).join('')}</div></section>`).join('');
     return head + (days || '<section class="card"><p class="empty">Tiada tugas relief dalam tiga minggu akan datang.</p></section>') + fair;
   };
 })();

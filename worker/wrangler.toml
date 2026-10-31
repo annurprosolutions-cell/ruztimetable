@@ -8,6 +8,14 @@ GOOGLE_CLIENT_ID = "40784680032-vpri939rkmrq8mbnq2qrph31jl9dla0b.apps.googleuser
 # Alamat app (tanpa garis condong hujung), dipisah koma
 ALLOWED_ORIGINS = "https://annurprosolutions-cell.github.io"
 GRACE_DAYS = "7"
+# Percubaan percuma automatik untuk e-mel baharu (0 = matikan)
+TRIAL_DAYS = "14"
+# Borang bayaran BCL yang ditunjuk dalam app (butang Langgan)
+BUY_URL = ""
+# Pilihan: hanya terima webhook daripada borang BCL ini (ID borang, nombor)
+BCL_FORM_ID = ""
+# Bayaran >= jumlah ini dikira langganan tahunan jika nama produk tidak menyebut "bulan"/"tahun"
+YEARLY_MIN_AMOUNT = "150"
 
 # Cipta dengan: npx wrangler kv namespace create LICENSES  , kemudian tampal id di sini
 [[kv_namespaces]]

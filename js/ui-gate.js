@@ -226,6 +226,7 @@
     const blank = empty(st), reset = w.reset;
     UI.enter('admin');
     if (blank) { UI.page = 'data'; UI.render(); }
+    if (blank && w.data === 'asc') { UI.toast('Tetapan awal selesai. Pilih fail Excel eksport aSc.'); setTimeout(() => UI.actions.ascImport(), 150); return; }
     UI.toast(reset ? 'Kata laluan baharu disimpan.' : blank ? 'Tetapan awal selesai. Mula dengan tambah guru, subjek dan kelas.' : 'Tetapan awal selesai.');
   }
 
@@ -297,7 +298,8 @@
       const opt = (v, t, d) => `<label class="gradio"><input type="radio" name="wData" value="${v}"${w.data === v ? ' checked' : ''}><span><b>${t}</b><small>${d}</small></span></label>`;
       body = `<h1>Data permulaan</h1><p class="gsub">Pilih cara untuk bermula.</p>
         ${opt('contoh', 'Cuba dengan data contoh', '18 guru dan 9 kelas, sedia untuk dijana. Boleh dipadam bila-bila masa.')}
-        ${opt('kosong', 'Mula kosong', 'Masukkan guru, subjek dan kelas sekolah anda sendiri.')}
+        ${opt('asc', 'Sekolah saya guna aSc sebelum ini', 'Import senarai kelas, subjek, guru dan bilik daripada fail Excel eksport aSc. Pelajaran diisi selepas itu.')}
+        ${opt('kosong', 'Mula baharu', 'Belum pernah guna aSc: masukkan guru, subjek dan kelas sekolah anda sendiri.')}
         ${opt('import', 'Import backup JSON', w.imported ? `Fail dipilih: ${esc(w.imported.school.name)} (${w.imported.teachers.length} guru)` : 'Fail yang dieksport dari app ini sebelum ini.')}
         <label class="btn sm">${UI.icon('upload')} Pilih fail JSON<input type="file" accept=".json,application/json" data-chg="gateImport" hidden></label>`;
     }

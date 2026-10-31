@@ -17,8 +17,8 @@ Nota: GitHub Pages untuk repo *private* memerlukan plan berbayar; repo public pe
 
 Aliran kerja pentadbir:
 
-1. **Tetapan**: Isnin-Jumaat atau Ahad-Khamis, waktu dan rehat, bilangan waktu hari Jumaat.
-2. **Data**: subjek, guru (termasuk waktu tidak boleh mengajar), kelas, bilik, kemudian pelajaran.
+1. **Tetapan**: Isnin-Jumaat atau Ahad-Khamis, waktu dan rehat, bilangan waktu setiap hari. Sekolah rendah boleh pilih waktu berbeza untuk Tahap 1 dan Tahap 2. Sekatan serentak (mesyuarat, kokurikulum) di tab Sekatan serentak.
+2. **Data**: sekolah yang pernah guna aSc tekan "Import dari aSc / Excel" untuk masukkan senarai kelas, subjek, guru dan bilik. Sekolah baharu isi sendiri. Kemudian isi pelajaran (siapa ajar apa, berapa waktu).
 3. **Jadual**: tekan "Jana jadual", laras dengan seret-dan-lepas, kunci waktu yang tak boleh berubah, cetak.
 4. **Relief**: rekod guru tidak hadir, tekan "Agih automatik", cetak slip atau salin mesej WhatsApp.
 
@@ -40,14 +40,34 @@ Aliran kerja pentadbir:
 - Berjalan dalam **Web Worker**, jadi skrin tak beku. Kalau Worker tak dibenarkan, ia jatuh balik ke main thread secara automatik.
 - Waktu yang tak dapat diletak dilaporkan dengan sebab. Semakan awal mengesan data mustahil, contohnya beban guru melebihi kapasiti sebenar.
 
+**Waktu berbeza ikut tahap (Beta)**
+- Tetapan > Waktu & rehat > "Waktu berbeza ikut kumpulan kelas". Setiap set ada waktu, rehat dan bilangan waktu sehari sendiri (contoh Tahap 1 rehat 9:40 dan balik 1:10, Tahap 2 rehat 10:10 dan balik 1:40). Kelas ditetapkan kepada set ikut tahun atau satu persatu.
+- Guru yang mengajar dua tahap disemak bertindih ikut masa sebenar, bukan nombor waktu. Masa dipecah pada setiap sempadan waktu mana-mana set, jadi 10:15-10:45 lawan 10:30-11:00 dikesan bertindih.
+- Paparan guru dan bilik disusun ikut masa; jadual induk kelas dipecah ikut set. Seret dan alih dibuat dalam paparan kelas.
+- Waktu "tidak boleh" guru, sekatan serentak dan ketidakhadiran separuh hari direkod ikut waktu set pertama.
+
+**Sekatan serentak**
+- Mesyuarat mingguan, kokurikulum atau perhimpunan untuk semua guru, satu panitia, atau guru terpilih. Penjana tidak meletak kelas pada waktu itu, jadual guru menunjukkan nama sekatan, dan guru itu tidak dicadangkan untuk relief pada masa yang sama.
+
 **Relief**
 - Harian: calon diskor dengan sebab yang jelas (subjek sama, panitia, kenal kelas, beban, relief bulan ini). Agih automatik bermula dengan blok paling sukar dahulu.
+- Peraturan ikut sekolah: had relief sehari dan seminggu, had jumlah waktu sehari (mengajar + relief), wajib ada waktu kosong sebelum atau selepas relief, dan jawatan yang dikecualikan (contoh GB, PK, Kaunselor, UBK).
+- Paparan semua guru: satu baris setiap guru, satu lajur setiap waktu. Klik petak lapang untuk jadikan guru itu guru ganti.
+- Gabung kelas dengan kelas tertentu: pilihan menunjukkan kelas yang sedang belajar dan gurunya (tahap sama dahulu). Slip dan mesej WhatsApp menyebut kelas itu.
+- Slip guru ganti dalam format jadual hari itu: kelas sendiri dan relief (diserlahkan) ikut masa.
+- Mod fokus relief (Tetapan > Sekolah): buka terus halaman Relief, menu ringkas.
 - Kalendar bulanan: SELESAI / BELUM bagi setiap hari, dengan nama guru tidak hadir.
 - Statistik kesaksamaan (purata, sisihan piawai, siapa melebihi purata) dan sejarah, dengan eksport CSV.
 - Slip cetak (ringkasan harian + slip setiap guru), slip peribadi untuk guru, dan mesej WhatsApp.
 
+**Import dan muat turun**
+- Import Excel eksport aSc (atau mana-mana Excel/CSV dengan lajur nama dan KOD): tab Kelas, Subjek, Guru, Bilik dikenal pasti ikut tajuk. Nama yang sudah ada tidak berganda. Tingkatan diambil daripada nama kelas. Fail aSc jenis ini hanya senarai; pelajaran diisi selepas import.
+- Laporan > Cetak dan muat turun: guru sahaja, kelas sahaja, bilik sahaja (makmal, bengkel). Excel satu tab setiap guru, kelas atau bilik.
+- Hari di atas atau di kiri, untuk paparan, cetakan dan Excel.
+
 **Storan**
 - Pelayar (localStorage), sentiasa aktif.
+- Arkib dan bersih sejarah (Tetapan > Storan): rekod tidak hadir dan relief sebelum satu tarikh dipindah ke Google Sheet baharu atau fail Excel, kemudian dibuang daripada data aktif. Dashboard mengingatkan bila sejarah melebihi 12 bulan. Sekolah besar (300 guru) boleh mencecah 30,000 baris relief setahun; arkib tahunan memastikan simpanan pelayar dan penyegerakan kekal laju.
 - Backup JSON: eksport dan import. Dashboard mengingatkan kalau belum backup lebih 7 hari.
 - **Google Sheets (beta)**: lihat bahagian di bawah.
 
@@ -107,7 +127,12 @@ Status ujian: aliran penuh (log masuk, cipta Sheet, autosave, konflik, muat semu
 
 ## Lesen sekolah (Cloudflare Worker)
 
-Simpanan Google Sheets hanya aktif untuk akaun yang berlesen. Guna tempatan dalam pelayar tidak disekat. Worker kecil di folder `worker/` mengesahkan token Google dan menyemak senarai pelanggan (e-mel atau seluruh domain, dengan tarikh luput dan tempoh ihsan 7 hari). Jika `licenseUrl` dalam `config.js` kosong, tiada semakan dibuat. Langkah pasang dan arahan daftar sekolah: [worker/README.md](worker/README.md).
+Simpanan Google Sheets (dan pautan guru) hanya aktif untuk akaun yang berlesen. Guna tempatan dalam pelayar tidak disekat. Worker kecil di folder `worker/` mengesahkan token Google dan menyemak senarai pelanggan (e-mel atau seluruh domain, dengan tarikh luput dan tempoh ihsan 7 hari). Jika `licenseUrl` dalam `config.js` kosong, tiada semakan dibuat.
+
+- **Percubaan percuma 14 hari** bermula automatik kali pertama satu e-mel log masuk (sekali sahaja setiap e-mel).
+- **Bayaran BCL automatik**: RM20 sebulan (boleh auto-debit) atau RM200 setahun. Pembeli isi e-mel log masuk Google dalam borang; webhook BCL ke Worker, Worker sahkan pesanan dengan API BCL, kemudian lesen dilanjutkan. App memaparkan butang Langgan/Perbaharui (`buyUrl` dalam `config.js` atau `BUY_URL` Worker).
+
+Langkah pasang, borang BCL, webhook dan arahan daftar sekolah: [worker/README.md](worker/README.md).
 
 Ini penghalang kesesuaian, bukan DRM: kod app terbuka, jadi ia tidak menghalang pihak yang sengaja menyalin dan membuang semakan.
 
@@ -130,6 +155,10 @@ js/runner.js              jalankan penjana dalam Web Worker (fallback main threa
 js/relief.js              keperluan relief, calon, agihan, statistik, mesej
 js/insights.js            data dashboard: perlu tindakan, kalendar, hari guru
 js/sheets.js              format Google Sheets, akses API, log masuk Google
+js/xlsx.js                baca dan tulis fail Excel (.xlsx) tanpa pustaka luar
+js/import.js              kenal pasti senarai daripada Excel eksport aSc
+js/archive.js             arkib dan bersih sejarah relief
+tools/bench.js            ujian beban penjana (npm run bench)
 js/license.js             keputusan lesen di sisi app
 js/brand.js               palet warna dan semakan logo sekolah
 js/access.js              kata laluan (hash), sesi, data guru, CSV, notifikasi relief baharu
@@ -154,14 +183,20 @@ Fasa 1 meletakkan setiap unit (satu waktu, atau sepasang waktu berganda) pada sl
 
 Untuk data contoh, pengoptimuman 6 saat mengurangkan waktu kosong guru dari sekitar 120 ke sekitar 30.
 
+Bila waktu berbeza ikut set, kelas disemak ikut grid waktu setnya, manakala guru dan bilik disemak ikut potongan masa yang dikongsi semua set. Dengan satu set, potongan masa sama dengan waktu, jadi tingkah laku tidak berubah.
+
+Ujian beban (`npm run bench`, data sintetik sekolah menengah dengan PI/PM serentak dan blok elektif Tingkatan 4-5): 24 kelas/51 guru, 35/70, 50/100, 50/300 dan 110 kelas/300 guru (3,202 waktu) semuanya diletak tanpa konflik, fasa letak di bawah 0.2 saat. Data yang mustahil dimuatkan dihentikan selepas 30 saat dengan sebab bagi setiap waktu yang tidak diletak.
+
 ## Ujian
 
 ```bash
-npm test                               # 89 ujian unit, tanpa dependency
+npm test                               # 116 ujian unit, tanpa dependency
 npm i playwright && npm run test:e2e   # klik seluruh aliran dalam Chromium
 ```
 
 - **Ujian unit**: penjana (beberapa seed, waktu dikunci, slot tak boleh, data mustahil, seret rawak), relief (tiada bertindih, had harian, simulasi sebulan dengan sisihan piawai bawah 2.5), dashboard (perlu tindakan, kalendar Isnin-Jumaat dan Ahad-Khamis), Worker, dan Google Sheets (pergi-balik data, suntingan manual dalam Sheets, ralat API) dengan pelayan Sheets palsu.
+- **Ujian unit ciri baharu**: set waktu Tahap 1/2 (bertindih ikut masa, had hari setiap set, gabungan merentas set ditolak), sekatan serentak, peraturan relief, gabung kelas, Excel (tulis, baca termampat), import aSc, arkib, Worker (percubaan, webhook BCL, pengesahan API, auto-debit, webhook palsu ditolak).
+- **Ujian e2e ciri baharu** (`tests/e2e-ciri.js`): set Tahap 1/2 dan jana tanpa guru bertindih masa, sekatan Rabu, hari di kiri, Excel jadual guru dan bilik, paparan semua guru, gabung kelas, slip format jadual, import Excel aSc, arkib, mod fokus relief.
 - **Ujian e2e**: jam pelayar ditetapkan pada Isnin 26/10/2026 waktu Malaysia. Merangkumi skrin log masuk dan tetapan awal, kata laluan salah/betul, sesi kekal selepas muat semula, guru baca sahaja; aliran pentadbir atas `file://` (jana dalam Worker, seret, relief, kalendar, cetak); aliran Google Sheets atas localhost dengan Google dimock (lesen, cipta Sheet, Data Guru dikongsi, autosave, konflik); guru di telefon membuka pautan dan menerima notifikasi relief baharu; pentadbir di peranti baharu; dan PWA dibuka semula tanpa internet.
 
 ## Had semasa
@@ -172,7 +207,8 @@ npm i playwright && npm run test:e2e   # klik seluruh aliran dalam Chromium
 - Notifikasi belum dihantar ketika app ditutup sepenuhnya (perlu Web Push melalui pelayan).
 - Setiap pelajaran guna satu bilik tetap. Tiada "mana-mana makmal yang kosong".
 - Tiada kumpulan murid atau blok pilihan (elective) selain pelajaran gabungan serentak.
-- Tiada import terus daripada fail aSc atau Winjaws. Tambah ramai hanya melalui tampal teks.
+- Import aSc hanya membaca senarai (kelas, subjek, guru, bilik). Pelajaran dan jadual siap daripada aSc belum boleh diimport; menunggu contoh fail eksport jadual.
+- Waktu berbeza ikut tahap ialah Beta: belum diuji dengan data sekolah rendah sebenar. Had "maksimum subjek sehari setiap tahap" belum ada.
 - Sekolah dua sesi: buat satu fail data bagi setiap sesi.
 - Penjana ialah heuristik, bukan bukti optimum. Data yang terlalu ketat mungkin tinggalkan beberapa waktu belum diletak; sebabnya dilaporkan.
 - Semakan lesen bukan DRM (lihat di atas). Branding sebelum log masuk hanya kelihatan pada peranti yang pernah memuatkan data sekolah.

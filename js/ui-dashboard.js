@@ -37,15 +37,16 @@
   }
   actions.dashAll = () => { UI.dashAll = !UI.dashAll; UI.render(); };
 
-  const welcomeCard = () => `<section class="card dark today"><div class="ch"><div><h2>Selamat datang</h2><small>Mula dalam tiga langkah</small></div></div>
+  const welcomeCard = () => `<section class="card dark today"><div class="ch"><div><h2>Selamat datang</h2><small>Pilih cara untuk bermula</small></div></div>
     <div class="drows">
       <div class="drow"><span class="t">1</span><div><b>Cuba dengan data contoh</b><small>18 guru, 9 kelas, sedia untuk dijana</small></div><div class="r"><button class="pill w" data-act="loadSample">Muat contoh</button></div></div>
-      <div class="drow"><span class="t">2</span><div><b>Atau masukkan data sekolah anda</b><small>Tetapan waktu, kemudian guru, kelas, subjek</small></div><div class="r"><button class="pill w" data-act="goto" data-p="tetapan">Mula</button></div></div>
-      <div class="drow"><span class="t">3</span><div><b>Sudah ada backup?</b><small>Import fail JSON daripada peranti lain</small></div><div class="r"><button class="pill o" data-act="importJson">Import</button></div></div>
+      <div class="drow"><span class="t">2</span><div><b>Sekolah anda guna aSc sebelum ini?</b><small>Import senarai kelas, subjek, guru dan bilik dari fail Excel aSc</small></div><div class="r"><button class="pill w" data-act="ascImport">Import aSc</button></div></div>
+      <div class="drow"><span class="t">3</span><div><b>Atau mula baharu</b><small>Tetapan waktu, kemudian guru, kelas, subjek</small></div><div class="r"><button class="pill w" data-act="goto" data-p="tetapan">Mula</button></div></div>
+      <div class="drow"><span class="t">4</span><div><b>Sudah ada backup?</b><small>Import fail JSON daripada peranti lain</small></div><div class="r"><button class="pill o" data-act="importJson">Import</button></div></div>
     </div></section>`;
 
   function todayAdmin() {
-    const s = S(), today = TT.todayISO(), m = TT.maps(s), sl = TT.slots(s);
+    const s = S(), today = TT.todayISO(), m = TT.maps(s);
     if (!s.placements.length) {
       return `<section class="card dark today"><div class="ch"><div><h2>Hari ini</h2><small>Jadual waktu belum dijana</small></div><button class="pill o" data-act="goto" data-p="jadual">Buka jadual</button></div>
         <p class="dmuted">Relief bergantung pada jadual mengajar guru. Jana jadual dahulu, kemudian rekod guru tidak hadir di sini.</p></section>`;
@@ -57,7 +58,7 @@
       if (!rec) right = `<button class="pill w" ${UI.goAttr({ page: 'relief', date: day })}>Agih</button>`;
       else if (rec.status === 'assigned') right = `<span class="chip-s green">Siap</span><span class="pill o" title="${esc((m.teacher.get(rec.reliefTeacherId) || {}).name || '')}">${esc((m.teacher.get(rec.reliefTeacherId) || {}).short || '?')}</span>`;
       else right = `<span class="chip-s amber">${rec.status === 'kendiri' ? 'Kendiri' : 'Gabung'}</span>`;
-      return `<div class="drow"><span class="t">${esc(sl[n.periods[0]].start)}</span><div><b>${esc(sub.short || '?')} · ${esc(TT.classNames(s, n.classIds))}</b><small>Ganti ${esc(at.name || '?')}${n.periods.length > 1 ? ` · ${n.periods.length} waktu` : ''}</small></div><div class="r">${right}</div></div>`;
+      return `<div class="drow"><span class="t">${esc(TT.slots(s, n.k)[n.periods[0]].start)}</span><div><b>${esc(sub.short || '?')} · ${esc(TT.classNames(s, n.classIds))}</b><small>Ganti ${esc(at.name || '?')}${n.periods.length > 1 ? ` · ${n.periods.length} waktu` : ''}</small></div><div class="r">${right}</div></div>`;
     });
     const [from, to] = UI.monthRange(today);
     const st = TT.reliefStats(s, from, to).summary, need = st.total + st.uncovered + st.kendiri;
@@ -73,7 +74,7 @@
     }
     const upHtml = up.map(({ a, d, open, total }) => {
       const t = m.teacher.get(a.teacherId) || {}, tone = !total ? 'grey' : open ? 'red' : 'green';
-      const scope = a.from == null && a.to == null ? 'sehari' : `waktu ${(a.from || 0) + 1}-${(a.to == null ? sl.length - 1 : a.to) + 1}`;
+      const scope = a.from == null && a.to == null ? 'sehari' : `waktu ${(a.from || 0) + 1}-${(a.to == null ? TT.slots(s).length - 1 : a.to) + 1}`;
       return `<button class="urow" ${UI.goAttr({ page: 'relief', date: d })}><i class="dot ${tone}"></i><div><b>${esc(t.name || '?')} · ${esc(a.reason)}</b><small>${esc(TT.weekdayOf(d))}, ${esc(TT.shortDate(d))} · ${scope}</small></div><span class="chip-s ${tone === 'green' ? 'green' : 'grey'}">${!total ? 'Tiada kelas' : open ? 'Belum agih' : 'Siap'}</span>${UI.icon('chevRight')}</button>`;
     }).join('');
     return `<section class="card dark today"><div class="ch"><div><h2>${day === today ? 'Hari ini' : 'Hari persekolahan seterusnya'}</h2><small>${esc(TT.weekdayOf(day))}, ${TT.fmtDate(day)} · ${sum.absent.length} guru tidak hadir · ${sum.periods - sum.open}/${sum.periods} waktu relief selesai</small></div><button class="pill o" ${UI.goAttr({ page: 'relief', date: day })}>Lihat semua</button></div>

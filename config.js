@@ -1,7 +1,7 @@
 // Tetapan pemasangan. Ubah fail ini tanpa menyentuh kod lain.
 window.APP_CONFIG = {
   appName: 'Jadual Sekolah',
-  version: '2.1.0',
+  version: '2.2.0',
   vendor: 'AnnurPro Solutions',
   // Client ID OAuth Google (jenis "Web application") untuk simpan data dalam Google Sheets pengguna.
   // Kosong = ciri Google Sheets dimatikan. Langkah penyediaan dalam README.md.
@@ -9,6 +9,10 @@ window.APP_CONFIG = {
   // Alamat Worker lesen (lihat worker/README.md), tanpa garis condong hujung.
   // Kosong = tiada semakan lesen (sesuai untuk ujian dan sekolah sendiri).
   licenseUrl: '',
+  // Borang bayaran langganan (BCL). Pembeli isi e-mel log masuk Google; Worker aktifkan lesen secara automatik.
+  // Worker juga boleh menghantar pautan ini (BUY_URL), yang diutamakan.
+  buyUrl: '',
+  priceText: 'RM20 sebulan, atau RM200 setahun (jimat RM40).',
   // Survey dalam mod demo (?demo): URL web app Google Apps Script yang berakhir dengan /exec (lihat appscript/README.md).
   // Kosong = survey tetap dipaparkan tetapi jawapan hanya tersimpan dalam pelayar pelawat dan belum dihantar.
   surveyUrl: 'https://script.google.com/macros/s/AKfycbw6OKT2xy0XM2VOUVLWNMj91OCG9x4ltDZMspboAvMWwMMQ39SgXKd1gkTnZ01hjWGr/exec',

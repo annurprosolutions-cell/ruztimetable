@@ -44,27 +44,34 @@
       Meta: [['kunci', 'nilai'], ['format', FORMAT], ['dikemaskini', meta.updatedAt || ''], ['oleh', meta.by || ''], ['aplikasi', meta.app || '']],
       Sekolah: [['kunci', 'nilai'], ['nama', s.school.name], ['minggu', s.school.weekMode], ['had_waktu_sehari', list(s.dayLimits)], ['tetapan_relief', JSON.stringify(s.settings.relief)],
         ['warna', TT.validHex(s.school.color) ? s.school.color : ''], ['logo', TT.validLogo(s.school.logo) ? s.school.logo : ''],
-        ['sheet_guru', s.school.guruSheet || ''], ['kata_laluan_pentadbir', (s.auth && s.auth.admin) || '']],
+        ['sheet_guru', s.school.guruSheet || ''], ['kata_laluan_pentadbir', (s.auth && s.auth.admin) || ''],
+        ['waktu_berbeza', yn(s.school.multiTime)], ['nama_set_utama', s.school.mainSetName || ''],
+        ['set_waktu_lain', s.timeSets.length ? JSON.stringify(s.timeSets) : ''], ['sekatan_serentak', s.blocks.length ? JSON.stringify(s.blocks) : ''],
+        ['arkib', s.archives.length ? JSON.stringify(s.archives) : '']],
       Waktu: [['label', 'mula', 'tamat', 'jenis']].concat(s.periods.map((p) => [p.label, p.start, p.end, p.type === 'break' ? 'rehat' : 'belajar'])),
       Subjek: [['id', 'nama', 'kod', 'warna', 'subjek_berat']].concat(s.subjects.map((x) => [x.id, x.name, x.short, x.color, yn(x.heavy)])),
-      Guru: [['id', 'nama', 'kod', 'panitia', 'subjek_id', 'had_sehari', 'had_seminggu', 'kecuali_relief', 'tidak_boleh (hari-waktu)', 'subjek (rujukan)']]
-        .concat(s.teachers.map((t) => [t.id, t.name, t.short, t.dept || '', list(t.subjectIds), t.maxPerDay, t.maxPerWeek, yn(t.noRelief), unavail(t), t.subjectIds.map(sname).join(', ')])),
-      Kelas: [['id', 'nama', 'tingkatan', 'guru_kelas_id', 'guru_kelas (rujukan)']]
-        .concat(s.classes.map((c) => [c.id, c.name, c.level == null ? '' : c.level, c.homeroomId || '', tname(c.homeroomId)])),
+      Guru: [['id', 'nama', 'kod', 'panitia', 'subjek_id', 'had_sehari', 'had_seminggu', 'kecuali_relief', 'tidak_boleh (hari-waktu)', 'subjek (rujukan)', 'jawatan']]
+        .concat(s.teachers.map((t) => [t.id, t.name, t.short, t.dept || '', list(t.subjectIds), t.maxPerDay, t.maxPerWeek, yn(t.noRelief), unavail(t), t.subjectIds.map(sname).join(', '), t.role || ''])),
+      Kelas: [['id', 'nama', 'tingkatan', 'guru_kelas_id', 'guru_kelas (rujukan)', 'set_waktu']]
+        .concat(s.classes.map((c) => [c.id, c.name, c.level == null ? '' : c.level, c.homeroomId || '', tname(c.homeroomId), c.timeSet || ''])),
       Bilik: [['id', 'nama', 'jenis']].concat(s.rooms.map((r) => [r.id, r.name, r.type || ''])),
       Pelajaran: [['id', 'kelas_id', 'subjek_id', 'guru_id', 'waktu_seminggu', 'berganda', 'bilik_id', 'kelas (rujukan)', 'subjek (rujukan)', 'guru (rujukan)']]
         .concat(s.lessons.map((l) => [l.id, list(l.classIds), l.subjectId, list(l.teacherIds), l.perWeek, l.doubles || 0, l.roomId || '', TT.classNames(s, l.classIds), sname(l.subjectId), l.teacherIds.map(tname).join(' + ')])),
       Jadual: [['unit', 'pelajaran_id', 'panjang', 'hari', 'waktu', 'dikunci', 'hari (rujukan)', 'masa (rujukan)', 'pelajaran (rujukan)']]
         .concat(s.placements.map((p) => {
-          const l = m.lesson.get(p.lessonId), a = slots[p.start], b = slots[p.start + p.len - 1] || a;
+          const l = m.lesson.get(p.lessonId), sl = l && TT.multiTime(s) ? TT.slots(s, TT.lessonSetIdx(s, l, m.cls)) : slots;
+          const a = sl[p.start], b = sl[p.start + p.len - 1] || a;
           return [p.unit, p.lessonId, p.len, p.day + 1, p.start + 1, yn(p.locked), (days[p.day] || {}).name || '', a ? `${a.start}-${b.end}` : '', l ? TT.lessonLabel(s, l) : ''];
         })),
-      TidakHadir: [['id', 'tarikh', 'guru_id', 'dari_waktu', 'hingga_waktu', 'sebab', 'catatan', 'guru (rujukan)']]
-        .concat(s.absences.map((a) => [a.id, a.date, a.teacherId, a.from == null ? '' : a.from + 1, a.to == null ? '' : a.to + 1, a.reason || '', a.note || '', tname(a.teacherId)])),
-      Relief: [['id', 'kunci', 'tarikh', 'guru_tiada_id', 'unit', 'pelajaran_id', 'kelas_id', 'subjek_id', 'waktu', 'status', 'guru_ganti_id', 'catatan', 'guru_tiada (rujukan)', 'guru_ganti (rujukan)']]
-        .concat(s.reliefs.map((r) => [r.id, r.key, r.date, r.absentTeacherId, r.unitId || '', r.lessonId, list(r.classIds), r.subjectId || '', r.periods.map((p) => p + 1).join(','), r.status, r.reliefTeacherId || '', r.note || '', tname(r.absentTeacherId), tname(r.reliefTeacherId)]))
+      TidakHadir: [TT.ABSENCE_HEAD].concat(s.absences.map((a) => TT.absenceRow(s, a, tname))),
+      Relief: [TT.RELIEF_HEAD].concat(s.reliefs.map((r) => TT.reliefRow(s, r, tname)))
     };
   };
+
+  TT.RELIEF_HEAD = ['id', 'kunci', 'tarikh', 'guru_tiada_id', 'unit', 'pelajaran_id', 'kelas_id', 'subjek_id', 'waktu', 'status', 'guru_ganti_id', 'catatan', 'guru_tiada (rujukan)', 'guru_ganti (rujukan)', 'gabung_kelas_id'];
+  TT.ABSENCE_HEAD = ['id', 'tarikh', 'guru_id', 'dari_waktu', 'hingga_waktu', 'sebab', 'catatan', 'guru (rujukan)'];
+  TT.reliefRow = (s, r, tname) => [r.id, r.key, r.date, r.absentTeacherId, r.unitId || '', r.lessonId, list(r.classIds), r.subjectId || '', r.periods.map((p) => p + 1).join(','), r.status, r.reliefTeacherId || '', r.note || '', tname(r.absentTeacherId), tname(r.reliefTeacherId), r.mergeClassId || ''];
+  TT.absenceRow = (s, a, tname) => [a.id, a.date, a.teacherId, a.from == null ? '' : a.from + 1, a.to == null ? '' : a.to + 1, a.reason || '', a.note || '', tname(a.teacherId)];
 
   const rowsOf = (tabs, name) => {
     const t = tabs[name] || [];
@@ -89,6 +96,11 @@
     const lim = split(sk.had_waktu_sehari).map(Number).filter(Number.isFinite);
     if (lim.length) s.dayLimits = lim;
     try { if (str(sk.tetapan_relief)) s.settings.relief = Object.assign(TT.defaultRelief(), JSON.parse(str(sk.tetapan_relief))); } catch (e) { /* kekal nilai asal */ }
+    s.school.multiTime = yes(sk.waktu_berbeza);
+    if (str(sk.nama_set_utama)) s.school.mainSetName = str(sk.nama_set_utama);
+    try { if (str(sk.set_waktu_lain)) s.timeSets = JSON.parse(str(sk.set_waktu_lain)); } catch (e) { /* abaikan */ }
+    try { if (str(sk.sekatan_serentak)) s.blocks = JSON.parse(str(sk.sekatan_serentak)); } catch (e) { /* abaikan */ }
+    try { if (str(sk.arkib)) s.archives = JSON.parse(str(sk.arkib)); } catch (e) { /* abaikan */ }
     const per = rowsOf(tabs, 'Waktu').map((r) => ({ label: str(r.label), start: hhmm(r.mula), end: hhmm(r.tamat), type: /rehat|break/i.test(str(r.jenis)) ? 'break' : 'lesson' }));
     if (per.length) s.periods = per;
     s.subjects = rowsOf(tabs, 'Subjek').filter((r) => str(r.id)).map((r) => ({
@@ -97,9 +109,9 @@
     s.teachers = rowsOf(tabs, 'Guru').filter((r) => str(r.id)).map((r) => {
       const un = {};
       split(r['tidak_boleh (hari-waktu)']).forEach((k) => { const [d, p] = k.split('-').map(Number); if (d >= 1 && p >= 1) un[`${d - 1}-${p - 1}`] = true; });
-      return { id: str(r.id), name: str(r.nama), short: str(r.kod), dept: str(r.panitia), subjectIds: split(r.subjek_id), maxPerDay: num(r.had_sehari, 7), maxPerWeek: num(r.had_seminggu, 36), noRelief: yes(r.kecuali_relief), unavailable: un };
+      return { id: str(r.id), name: str(r.nama), short: str(r.kod), dept: str(r.panitia), subjectIds: split(r.subjek_id), maxPerDay: num(r.had_sehari, 7), maxPerWeek: num(r.had_seminggu, 36), noRelief: yes(r.kecuali_relief), unavailable: un, role: str(r.jawatan) };
     });
-    s.classes = rowsOf(tabs, 'Kelas').filter((r) => str(r.id)).map((r) => ({ id: str(r.id), name: str(r.nama), level: r.tingkatan, homeroomId: str(r.guru_kelas_id) || null }));
+    s.classes = rowsOf(tabs, 'Kelas').filter((r) => str(r.id)).map((r) => ({ id: str(r.id), name: str(r.nama), level: r.tingkatan, homeroomId: str(r.guru_kelas_id) || null, timeSet: str(r.set_waktu) }));
     s.rooms = rowsOf(tabs, 'Bilik').filter((r) => str(r.id)).map((r) => ({ id: str(r.id), name: str(r.nama), type: str(r.jenis) }));
     s.lessons = rowsOf(tabs, 'Pelajaran').filter((r) => str(r.id)).map((r) => ({
       id: str(r.id), classIds: split(r.kelas_id), subjectId: str(r.subjek_id), teacherIds: split(r.guru_id),
@@ -116,7 +128,7 @@
     s.reliefs = rowsOf(tabs, 'Relief').filter((r) => str(r.id)).map((r) => ({
       id: str(r.id), key: str(r.kunci), date: isoDate(r.tarikh), absentTeacherId: str(r.guru_tiada_id), unitId: str(r.unit), lessonId: str(r.pelajaran_id),
       classIds: split(r.kelas_id), subjectId: str(r.subjek_id), periods: split(r.waktu).map(Number).filter(Number.isFinite).map((p) => p - 1),
-      status: str(r.status) || 'assigned', reliefTeacherId: str(r.guru_ganti_id) || null, note: str(r.catatan)
+      status: str(r.status) || 'assigned', reliefTeacherId: str(r.guru_ganti_id) || null, note: str(r.catatan), mergeClassId: str(r.gabung_kelas_id) || null
     }));
     TT.migrate(s); TT.reconcile(s); TT.prunePlacements(s);
     return s;
@@ -146,6 +158,14 @@
     async create(title, tabs) {
       const r = await this.req('POST', API, { properties: { title }, sheets: (tabs || TT.SHEET_TABS).map((t) => ({ properties: { title: t } })) });
       return { id: r.spreadsheetId, url: r.spreadsheetUrl, title };
+    }
+
+    // Sheet baharu dengan tab dan isi sendiri (cth arkib sejarah). Nama tidak boleh mengandungi "Jadual Sekolah"
+    // supaya tidak disangka Sheet utama oleh findMaster.
+    async createWith(title, tabs) {
+      const names = Object.keys(tabs), r = await this.create(title, names);
+      await this.req('POST', `${API}/${r.id}/values:batchUpdate`, { valueInputOption: 'RAW', data: names.map((t) => ({ range: `'${t}'!A1`, values: tabs[t] })) });
+      return r;
     }
 
     async info(id) {

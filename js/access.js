@@ -47,7 +47,7 @@
     const from = TT.addDays(today, -62);
     const c = JSON.parse(JSON.stringify(s));
     delete c.auth;
-    c.school = { name: s.school.name, weekMode: s.school.weekMode, logo: s.school.logo, color: s.school.color };
+    c.school = { name: s.school.name, weekMode: s.school.weekMode, logo: s.school.logo, color: s.school.color, multiTime: !!s.school.multiTime, mainSetName: s.school.mainSetName };
     c.absences = s.absences.filter((a) => a.date >= from).map((a) => ({ id: a.id, date: a.date, teacherId: a.teacherId, from: a.from, to: a.to, reason: 'Tidak hadir', note: '' }));
     c.reliefs = s.reliefs.filter((r) => r.date >= from);
     c.published = Object.assign({ at: '', master: '' }, meta || {});
@@ -114,9 +114,9 @@
   };
   TT.reliefKeys = (s, tid, today) => TT.myReliefs(s, tid, today).map(relKey);
   TT.reliefNotice = (s, list) => {
-    const m = TT.maps(s), slots = TT.slots(s);
+    const m = TT.maps(s);
     const one = (r) => {
-      const sub = (m.subject.get(r.subjectId) || {}).short || '';
+      const sub = (m.subject.get(r.subjectId) || {}).short || '', slots = TT.slots(s, TT.setOfClasses(s, r.classIds));
       const a = slots[r.periods[0]], b = slots[r.periods[r.periods.length - 1]] || a;
       return `${TT.weekdayOf(r.date)} ${TT.shortDate(r.date)}${a ? ' ' + a.start + '-' + b.end : ''} · ${TT.classNames(s, r.classIds)}${sub ? ' ' + sub : ''}`;
     };

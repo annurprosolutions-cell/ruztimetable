@@ -14,8 +14,8 @@
     while (m < 1) { m += 12; y--; }
     return `${y}-${String(m).padStart(2, '0')}`;
   };
-  TT.periodLabel = (s, p0, p1) => {
-    const sl = TT.slots(s);
+  TT.periodLabel = (s, p0, p1, k) => {
+    const sl = TT.slots(s, k);
     const a = sl[p0] ? sl[p0].label : p0 + 1, b = sl[p1] ? sl[p1].label : p1 + 1;
     return p0 === p1 ? `Waktu ${a}` : `Waktu ${a}-${b}`;
   };
@@ -60,16 +60,18 @@
   };
 
   // apa yang guru buat pada satu tarikh: kelas sendiri + tugas relief
+  // k = set waktu item itu (kelas Tahap 1 dan Tahap 2 boleh berlainan masa)
   TT.teacherDay = (s, tid, iso) => {
     const day = TT.dateToDay(s, iso); if (day < 0) return [];
-    const m = TT.maps(s), slots = TT.slots(s), out = [];
+    const m = TT.maps(s), tm = TT.timeModel(s), out = [];
     for (const pl of s.placements) {
       if (pl.day !== day) continue;
       const l = m.lesson.get(pl.lessonId);
       if (!l || !l.teacherIds.includes(tid)) continue;
+      const k = TT.lessonSetIdx(s, l, m.cls);
       out.push({
-        kind: 'kelas', p0: pl.start, p1: pl.start + pl.len - 1, lesson: l, subject: m.subject.get(l.subjectId),
-        classes: TT.classNames(s, l.classIds), room: (m.room.get(l.roomId) || {}).name || '', absent: !!TT.absentAt(s, iso, tid, pl.start)
+        kind: 'kelas', k, p0: pl.start, p1: pl.start + pl.len - 1, lesson: l, subject: m.subject.get(l.subjectId),
+        classes: TT.classNames(s, l.classIds), room: (m.room.get(l.roomId) || {}).name || '', absent: !!TT.absentAt(s, iso, tid, pl.start, k, tm)
       });
     }
     const valid = new Set(TT.reliefNeeds(s, iso).map((n) => TT.reliefRecord(s, n)).filter(Boolean));
@@ -77,12 +79,12 @@
       if (r.status !== 'assigned' || r.reliefTeacherId !== tid) continue;
       const l = m.lesson.get(r.lessonId);
       out.push({
-        kind: 'relief', p0: r.periods[0], p1: r.periods[r.periods.length - 1], lesson: l, subject: l && m.subject.get(l.subjectId),
+        kind: 'relief', k: TT.setOfClasses(s, r.classIds), p0: r.periods[0], p1: r.periods[r.periods.length - 1], lesson: l, subject: l && m.subject.get(l.subjectId),
         classes: TT.classNames(s, r.classIds), room: (l && (m.room.get(l.roomId) || {}).name) || '', forTeacher: m.teacher.get(r.absentTeacherId) || null
       });
     }
-    out.sort((a, b) => a.p0 - b.p0);
-    out.forEach((x) => { x.start = slots[x.p0] ? slots[x.p0].start : ''; x.end = slots[x.p1] ? slots[x.p1].end : ''; });
+    out.forEach((x) => { const sl = tm.sets[x.k].slots; x.start = sl[x.p0] ? sl[x.p0].start : ''; x.end = sl[x.p1] ? sl[x.p1].end : ''; });
+    out.sort((a, b) => (tm.multi ? a.start.localeCompare(b.start) : 0) || a.p0 - b.p0);
     return out;
   };
 
@@ -127,6 +129,7 @@
     if (over.length) items.push({ sev: 'amaran', title: over.length === 1 ? `${over[0].name} melebihi had waktu seminggu` : `${over.length} guru melebihi had waktu seminggu`, when: 'Beban guru', btn: 'Lihat', go: { page: 'laporan' } });
     const noT = s.lessons.filter((l) => !l.teacherIds.length).length;
     if (noT) items.push({ sev: 'amaran', title: `${noT} pelajaran tiada guru`, when: 'Data pelajaran', btn: 'Betulkan', go: { page: 'data', tab: 'pelajaran' } });
+    if (TT.archiveDue && TT.archiveDue(s, iso)) items.push({ sev: 'info', title: 'Sejarah relief melebihi 12 bulan', when: 'Arkib supaya app kekal laju', btn: 'Arkib', go: { act: 'archiveOpen' } });
     if (!env.sheetLinked) {
       const lb = env.lastBackup ? env.lastBackup.slice(0, 10) : null;
       const ago = lb ? Math.round((Date.parse(iso) - Date.parse(lb)) / 864e5) : null;
@@ -146,7 +149,7 @@
       const when = d === iso ? 'Hari ini' : `${TT.weekdayOf(d)} ${TT.shortDate(d)}`;
       TT.teacherDay(s, tid, d).filter((x) => x.kind === 'relief').forEach((x) => items.push({
         sev: dueSev(s, iso, d),
-        title: `Relief ${x.subject ? x.subject.short + ' ' : ''}${x.classes}, ${TT.periodLabel(s, x.p0, x.p1).toLowerCase()}`,
+        title: `Relief ${x.subject ? x.subject.short + ' ' : ''}${x.classes}, ${TT.periodLabel(s, x.p0, x.p1, x.k).toLowerCase()}`,
         when: `${when} · ${x.start}${x.forTeacher ? ' · ganti ' + x.forTeacher.name : ''}`, btn: 'Slip', go: { act: 'mySlip', date: d }
       }));
       const a = s.absences.find((y) => y.date === d && y.teacherId === tid);

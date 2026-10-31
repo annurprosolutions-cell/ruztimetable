@@ -471,3 +471,42 @@ table.grid.master th.tcol { position: sticky; left: 0; z-index: 2; background: #
   .bname { display: none; }
 }
 .bname { display: flex; flex-direction: column; line-height: 1.15; }
+
+/* ---------- hari di kiri, set waktu ---------- */
+table.grid.left thead th { font-size: .7rem; text-transform: none; letter-spacing: 0; color: var(--ink); font-weight: 500; }
+table.grid.left thead th small { display: block; color: var(--mute); font-size: .62rem; font-weight: 400; }
+table.grid.left th.brkh { width: 26px; font-size: .6rem; color: var(--mute); }
+table.grid.left td.brkv { width: 26px; text-align: center; vertical-align: middle; background: #f1f4f9; border-radius: 9px; }
+table.grid.left td.brkv span { writing-mode: vertical-rl; transform: rotate(180deg); font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); }
+table.grid.left th.tcol { width: 76px; }
+table.grid.left .cell { height: 64px; }
+table.grid.atoms .cell { height: 34px; }
+table.grid.atoms .cell.filled { padding: 4px 7px; }
+.seth { margin: 14px 0 6px; font-size: .95rem; }
+.seth:first-child { margin-top: 0; }
+@media print { table.grid.left .cell { height: 50px; } table.grid.atoms .cell { height: 26px; } }
+input.setname { font: inherit; font-size: 1.05rem; font-weight: 600; border: 1px solid transparent; border-radius: 8px; padding: 2px 6px; background: transparent; max-width: 220px; }
+input.setname:hover, input.setname:focus { border-color: var(--line, #e1e6ee); background: #fff; }
+h3.sub { margin: 14px 0 2px; font-size: .9rem; }
+/* paparan semua guru (relief) */
+.seg.sub.mini { margin: 0; }
+.seg.sub.mini button { padding: 6px 10px; font-size: .78rem; }
+table.mxt { border-collapse: separate; border-spacing: 2px; font-size: .7rem; min-width: 640px; }
+table.mxt th { font-weight: 500; color: var(--mute); padding: 2px 4px; }
+table.mxt th.need { color: var(--red); font-weight: 700; }
+table.mxt th.tcol { text-align: left; white-space: nowrap; color: var(--ink); position: sticky; left: 0; background: #fff; }
+table.mxt th.tcol small { display: block; font-size: .6rem; color: var(--mute); max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+td.mx { min-width: 38px; height: 26px; border-radius: 5px; text-align: center; padding: 1px 3px; overflow: hidden; white-space: nowrap; }
+td.mx.free { background: #f7f9fc; border: 1px dashed #e1e6ee; }
+td.mx.free.pick { cursor: pointer; background: radial-gradient(#9fd8a9 1px, #f2fbf3 1px) 0 0/6px 6px; border: 1px solid #9fd8a9; }
+td.mx.free.pick:hover { background: #d8f2dc; }
+td.mx.busy { background: #eef1f6; color: var(--ink2); }
+td.mx.rel { background: var(--blue-soft, #e5efff); color: var(--blue, #2563eb); font-weight: 600; }
+td.mx.abs { background: var(--red-soft, #fdecec); color: var(--red); font-weight: 700; }
+td.mx.blk { background: repeating-linear-gradient(45deg, #fdecec, #fdecec 4px, #f9dcdb 4px, #f9dcdb 8px); }
+td.mx.n { font-weight: 700; }
+.slip tr.relrow td { background: #fff4d6; font-weight: 600; }
+.impgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin: 8px 0; }
+label.impk { display: flex; gap: 8px; align-items: flex-start; border: 1px solid #e1e6ee; border-radius: 10px; padding: 10px; }
+label.impk span { display: flex; flex-direction: column; gap: 2px; }
+label.impk small { color: var(--mute); } label.impk em { font-style: normal; font-size: .75rem; color: var(--ink2); }
