@@ -14,9 +14,9 @@ Pilih *External*, kemudian isi:
 | App name | Jadual Sekolah |
 | User support email | e-mel sokongan anda |
 | App logo | logo 120x120 (pilihan, tetapi dikehendaki jika mahu terbit penuh) |
-| Application home page | `https://annurprosolutions-cell.github.io/ruztimetable/` |
-| Application privacy policy link | `https://annurprosolutions-cell.github.io/ruztimetable/privasi.html` |
-| Authorized domains | `annurprosolutions-cell.github.io` (GitHub Pages) atau domain anda sendiri |
+| Application home page | `https://annurtimetable.com/` |
+| Application privacy policy link | `https://annurtimetable.com/privasi` |
+| Authorized domains | `annurtimetable.com` |
 | Developer contact | e-mel anda |
 
 Scopes: tambah `.../auth/drive.file`, `openid`, `.../auth/userinfo.email`.
@@ -27,7 +27,7 @@ Publishing status:
 
 ## 3. OAuth client
 Credentials > Create credentials > OAuth client ID > *Web application*.
-- Authorized JavaScript origins: `https://annurprosolutions-cell.github.io` (tanpa laluan, tanpa garis condong hujung). Tambah domain Cloudflare bila pindah.
+- Authorized JavaScript origins (tanpa laluan, tanpa garis condong hujung): `https://annurtimetable.com`, `https://www.annurtimetable.com`, `https://annurtimetable.annurprosolutions.workers.dev`. Alamat lama (`https://ruzjadual.netlify.app`, `https://annurprosolutions-cell.github.io`) dikekalkan supaya pautan lama masih berfungsi.
 - Salin Client ID ke `config.js` (`googleClientId`) dan ke `worker/wrangler.toml` (`GOOGLE_CLIENT_ID`).
 
 ## 4. Teks justifikasi skop (jika Google minta)
