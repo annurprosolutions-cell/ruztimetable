@@ -15,8 +15,8 @@ window.APP_CONFIG = {
   priceText: 'RM20 sebulan, atau RM200 setahun (jimat RM40).',
   // Alamat rasmi app (contoh 'https://annurtimetable.com'). Bila diisi, pelawat ke alamat lama dalam oldHosts
   // dihantar ke sini dengan laluan dan parameter yang sama. Kosong = tiada pindah alamat.
-  canonicalUrl: '',
-  oldHosts: ['ruzjadual.netlify.app', 'annurprosolutions-cell.github.io'],
+  canonicalUrl: 'https://annurtimetable.com',
+  oldHosts: ['ruzjadual.netlify.app', 'annurprosolutions-cell.github.io', 'annurtimetable.annurprosolutions.workers.dev', 'www.annurtimetable.com'],
   // Survey dalam mod demo (?demo): URL web app Google Apps Script yang berakhir dengan /exec (lihat appscript/README.md).
   // Kosong = survey tetap dipaparkan tetapi jawapan hanya tersimpan dalam pelayar pelawat dan belum dihantar.
   surveyUrl: 'https://script.google.com/macros/s/AKfycbw6OKT2xy0XM2VOUVLWNMj91OCG9x4ltDZMspboAvMWwMMQ39SgXKd1gkTnZ01hjWGr/exec',
