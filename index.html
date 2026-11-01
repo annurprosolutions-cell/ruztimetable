@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1d4d">
-<title>Jadual Sekolah</title>
+<title>Annur Time Table · Jadual Sekolah dan Relief Guru Ganti</title>
+<meta name="description" content="Annur Time Table: penjana jadual waktu sekolah dan sistem relief guru ganti untuk sekolah di Malaysia. Data disimpan dalam Google Drive milik sekolah sendiri.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
@@ -16,9 +17,34 @@
 <meta name="apple-mobile-web-app-title" content="Jadual">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="css/app.css">
+<style>
+/* kandungan statik di dalam #app: dibaca oleh perangkak yang tidak menjalankan JavaScript (Google, enjin carian);
+   diganti sebaik app dimulakan */
+.boot { max-width: 640px; margin: 0 auto; padding: 56px 24px; font-family: Inter, system-ui, sans-serif; color: #0b1d4d; line-height: 1.55; }
+.boot img { width: 64px; height: 64px; border-radius: 14px; }
+.boot h1 { margin: 16px 0 4px; font-size: 1.8rem; }
+.boot h2 { margin: 0 0 18px; font-size: 1.05rem; font-weight: 500; color: #475569; }
+.boot ul { padding-left: 20px; } .boot li { margin: 4px 0; }
+.boot a { color: #1d4ed8; }
+.boot p.links { margin-top: 24px; }
+</style>
 </head>
 <body>
-<div id="app"></div>
+<div id="app"><main class="boot">
+<img src="icons/icon-192.png" alt="Logo Annur Time Table" width="64" height="64">
+<h1>Annur Time Table</h1>
+<h2>Jadual Sekolah dan Relief Guru Ganti</h2>
+<p>Annur Time Table ialah aplikasi web untuk menyusun jadual waktu sekolah dan mengurus guru ganti (relief), dibina untuk pentadbir sekolah dan guru di Malaysia.</p>
+<ul>
+<li>Jana jadual waktu secara automatik, termasuk waktu berbeza untuk Tahap 1 dan Tahap 2.</li>
+<li>Agih guru ganti dengan cadangan yang adil, cetak slip dan hantar mesej WhatsApp.</li>
+<li>Import senarai kelas, guru, subjek dan bilik daripada Excel.</li>
+<li>Pentadbir log masuk dengan akaun Google. Data jadual disimpan dalam Google Drive milik sekolah sendiri; pembekal tidak menyimpan data jadual sekolah.</li>
+</ul>
+<p class="links"><a href="/?demo">Cuba demo</a> · <a href="/privasi.html">Dasar Privasi</a> · <a href="mailto:annurprosolutions@gmail.com">Hubungi kami</a></p>
+<noscript><p>Aplikasi ini memerlukan JavaScript. Sila dayakan JavaScript dalam pelayar anda.</p></noscript>
+<p>Pembekal: AnnurPro Solutions, Nibong Tebal, Pulau Pinang, Malaysia.</p>
+</main></div>
 <div id="modal"></div>
 <div id="toast" aria-live="polite"></div>
 <div id="printArea"></div>
