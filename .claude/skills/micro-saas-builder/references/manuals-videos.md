@@ -15,7 +15,8 @@ One-page summary · architecture diagram (inline SVG) · accounts and assets tab
 - Per scene: fresh backend (fake Sheets, in-process licence Worker with Map KV, mocked Google token client, tokeninfo, userinfo, Drive, gviz); fixed clock; `serviceWorkers: 'block'`.
 - Two modes from the same scene code: `shot` (no overlay, fast, JPEG screenshots for the manual) and `video` (overlay: caption bar, fake cursor that follows mouse/drag events, click ripple, title and end cards, highlight box; `recordVideo` at 1280x720 or a phone viewport).
 - Show print layouts by calling the app's print action with `window.print` stubbed, then `page.emulateMedia({ media: 'print' })`.
-- Trim the blank start with ffmpeg `-ss <seconds until ready>` and encode H.264 (`-crf 20 -pix_fmt yuv420p -movflags +faststart`). Run 3 scenes in parallel.
+- Trim the blank start with ffmpeg `-ss <seconds until ready>` and encode H.264 (`-crf 20 -pix_fmt yuv420p -movflags +faststart`). Record one scene at a time: three parallel recordings on 4 CPUs starved the input events and added 10-25 s of frozen screen per video. Screenshot mode can run fast and sequentially too.
+- Check each video before sending: total length, and a 1 fps contact sheet of the first 20 s (`ffmpeg -t 20 -i v.mp4 -vf fps=1,scale=400:-1,tile=6x4 -frames:v 1 sheet.jpg`). A static stretch with no caption change means a helper waited on something.
 - Pace for ~60 s: caption time about 50 ms per character (min ~2.3 s), clicks 0.8 s, title card 2.7 s, end card 2.3 s. Give every wait helper a short timeout; one missing selector with a default 30 s wait adds half a minute.
 - Scenes that need prior state (e.g. a shared data sheet before showing the phone view) get a `prep()` that runs unrecorded in the same backend and returns the URL to open.
 

@@ -78,7 +78,7 @@ Give the owner browser-console snippets for the licence admin API (list, add mon
 - **drive.file** only sees files the app created; searching by title can match the wrong file, so give archive/other sheets titles that never contain the master sheet's title.
 - **Popups**: Google sign-in must be triggered directly by a click, or browsers block it.
 - **Webhook security**: BCL webhooks are unsigned; keep a long random key in the URL path and always re-fetch the transaction from the API (status success, amount and order match) before granting anything.
-- **Videos**: Playwright's `locator.evaluate` waits up to 30 s when a selector is missing; always pass a short timeout in recording helpers or videos balloon.
+- **Videos**: Playwright's `locator.evaluate` waits up to 30 s when a selector is missing; always pass a short timeout in recording helpers or videos balloon. Record scenes one at a time; parallel recording starves CPU and leaves 10-25 s of frozen screen.
 
 ## Bundled files
 - `references/licence-worker.md` - endpoints, KV keys, rules, admin console snippets.

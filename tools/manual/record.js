@@ -23,7 +23,7 @@ const args = process.argv.slice(2);
 const pick = (flag) => { const i = args.indexOf(flag); return i < 0 ? null : (args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1].split(',') : []); };
 const ONLY_SHOTS = args.includes('--shots');
 const VIDS = pick('--videos');
-const PAR = +(process.env.PAR || 3);
+const PAR = +(process.env.PAR || 1); // rakam satu demi satu: rakaman serentak berebut CPU dan menambah jeda kaku dalam video
 
 // ---------------- laman app dihidang terus dari repo di bawah alamat sebenar (tiada rangkaian) ----------------
 // /s/<nama>: index.html dengan <base href="/"> disuntik, sama seperti edge/worker.js
@@ -194,8 +194,10 @@ function helpers(pg, mode, name, log) {
     async click(sel, o) {
       o = o || {};
       try {
-        const l = await loc(sel, o.timeout); const b = await l.boundingBox();
+        const t0 = Date.now();
+        const l = await loc(sel, o.timeout); const b = await l.boundingBox(); const t1 = Date.now();
         if (video && b) { await moveTo(b.x + b.width / 2, b.y + b.height / 2); await pg.waitForTimeout(280); await pg.mouse.click(b.x + b.width / 2, b.y + b.height / 2); }
+        if (process.env.RECDEBUG) log(`  [${name}] klik ${sel}: cari ${t1 - t0} ms, gerak+klik ${Date.now() - t1} ms`);
         else await l.click();
         await W(o.after != null ? o.after : 800);
         return true;
