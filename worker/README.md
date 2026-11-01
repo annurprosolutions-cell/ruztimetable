@@ -94,3 +94,10 @@ Pentadbir berlangganan menempah nama supaya pautan guru menjadi `https://<alamat
 | `DELETE` | `/slug` | Token Google: lepaskan nama pemilik |
 
 KV: `slug:<nama>` dan `slugof:<email>`. Nama dikhaskan ada dalam `SLUG_RESERVED` (worker/index.mjs dan js/slug.js, simpan kedua-duanya selaras). Untuk menolak atau memadam nama tertentu secara manual: `DELETE /admin/licenses?key=slug:<nama>` (dan `slugof:<email>`).
+
+## Kaunter awam (`GET /stats`)
+Bilangan sahaja, tanpa nama atau e-mel: `{ "paid": 8 | null, "trial": 21, "min": 5 }`. Dipapar pada skrin log masuk app.
+- `paid` = lesen berbayar aktif (bukan percubaan, bukan `pilot`, belum tamat). Lesen domain dikira satu. Bernilai `null` selagi kurang daripada `STATS_MIN` (lalai 5), jadi nombor kecil tidak dipaparkan.
+- `trial` = percubaan aktif sentiasa dipaparkan.
+- `STATS_EXCLUDE` (e-mel atau domain, dipisah koma): akaun yang tidak dikira. **Isi dengan e-mel pemilik dan akaun ujian sendiri**, contoh `annurprosolutions@gmail.com`.
+- `STATS_TTL` (saat, lalai 3600): keputusan dicache dalam KV (`stats:cache`). Padam kunci itu untuk kira semula serta-merta.

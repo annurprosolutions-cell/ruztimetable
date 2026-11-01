@@ -257,10 +257,23 @@
   const back = (to) => `<button class="lnk gback" data-act="${to === 'wizard' ? 'gateBack' : 'gateGo'}" data-s="${to || 'role'}">${UI.icon('chevLeft')} Kembali</button>`;
   const msg = () => (G.busy ? `<p class="gbusy"><i class="spin"></i>${esc(G.busy)}</p>` : '') + (G.err ? `<p class="err" role="alert">${esc(G.err)}</p>` : '');
 
+  // kaunter awam (bilangan akaun berbayar dan percubaan): dimuat sekali, dipapar tanpa melukis semula skrin
+  let statsTxt = '', statsAsked = false;
+  function loadStats() {
+    const url = UI.cfg && UI.cfg.licenseUrl;
+    if (statsAsked || !url || UI.demo || !TT.fetchStats) return;
+    statsAsked = true;
+    TT.fetchStats(url, (u, o) => fetch(u, o)).then((s) => {
+      statsTxt = TT.statsText(s);
+      const el = document.getElementById('gStats'); if (el) el.textContent = statsTxt;
+    });
+  }
   function stepRole() {
+    loadStats();
     return `<h1>Log masuk</h1><p class="gsub">Pilih peranan anda.</p>
       <button class="gopt" data-act="gateGo" data-s="admin">${UI.icon('shield')}<span><b>Pentadbir jadual</b><small>Urus data, jadual dan relief. Perlu kata laluan.</small></span>${UI.icon('chevRight')}</button>
-      <button class="gopt" data-act="gateGo" data-s="guru">${UI.icon('user')}<span><b>Guru</b><small>Lihat jadual dan tugas relief sendiri. Pilih nama sahaja.</small></span>${UI.icon('chevRight')}</button>`;
+      <button class="gopt" data-act="gateGo" data-s="guru">${UI.icon('user')}<span><b>Guru</b><small>Lihat jadual dan tugas relief sendiri. Pilih nama sahaja.</small></span>${UI.icon('chevRight')}</button>
+      <p class="gstats" id="gStats">${esc(statsTxt)}</p>`;
   }
   function stepGoogle() {
     const s = sy(), last = s.auth.lastEmail();

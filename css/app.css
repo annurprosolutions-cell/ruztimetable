@@ -345,6 +345,8 @@ table.grid.master th.tcol { position: sticky; left: 0; z-index: 2; background: #
 .gate-card h1 { font-size: 1.35rem; margin: 4px 0 4px; }
 .gsub { color: var(--mute); margin: 0 0 16px; font-size: .9rem; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .gsub .ic { width: 16px; height: 16px; color: var(--green); }
+.gstats { margin: 18px 0 0; text-align: center; font-size: .82rem; color: var(--mute); min-height: 1.2em; }
+.gstats:empty { display: none; }
 .gbrand { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; margin-bottom: 14px; border-bottom: 1px solid var(--line2); }
 .gbrand .mark { width: 46px; height: 46px; } .gbrand .mark .ic { width: 23px; height: 23px; }
 .gbrand b { font-weight: 600; font-size: 1.02rem; display: block; }

@@ -12,6 +12,9 @@
 // Rahsia:          ADMIN_TOKEN, BCL_WEBHOOK_KEY (token rawak dalam URL webhook), BCL_API_TOKEN
 // Pemboleh ubah:   GOOGLE_CLIENT_ID, ALLOWED_ORIGINS (dipisah koma), GRACE_DAYS (lalai 7), TRIAL_DAYS (lalai 14),
 //                  BCL_API_URL (lalai https://api.bcl.my/v1), BCL_FORM_ID (pilihan: hanya terima borang ini), YEARLY_MIN_AMOUNT (lalai 150)
+//                  STATS_MIN (lalai 5: bilangan langganan hanya dipapar awam bila sampai had ini), STATS_TTL (saat cache, lalai 3600),
+//                  STATS_EXCLUDE (e-mel atau domain dipisah koma yang tidak dikira, contoh akaun pemilik sendiri)
+//                  GET /stats (awam): {paid|null, trial, min}; kunci cache "stats:cache"
 
 const json = (body, status, extra) => new Response(JSON.stringify(body), { status: status || 200, headers: Object.assign({ 'content-type': 'application/json' }, extra || {}) });
 
@@ -256,6 +259,39 @@ export async function processBcl(body, env, o) {
   return { ok: true, email, months, expires: lic.expires };
 }
 
+// ---------- statistik awam (bilangan sahaja) ----------
+// Langganan berbayar aktif (bukan percubaan, bukan pilot, bukan akaun dalam STATS_EXCLUDE) dan percubaan aktif.
+// Lesen domain dikira satu. Keputusan dicache dalam KV selama STATS_TTL saat supaya pengunjung tidak mencetus bacaan KV berulang.
+export async function computeStats(env, now) {
+  const t = today(now);
+  const skip = new Set(String(env.STATS_EXCLUDE || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean));
+  let paid = 0, trial = 0, cursor;
+  do {
+    const page = await env.LICENSES.list({ cursor });
+    for (const k of page.keys) {
+      const m = /^(email|domain):(.+)$/.exec(k.name);
+      if (!m || skip.has(m[2].toLowerCase()) || (m[1] === 'email' && skip.has((m[2].split('@')[1] || '').toLowerCase()))) continue;
+      let v; try { v = JSON.parse((await env.LICENSES.get(k.name)) || 'null'); } catch (e) { v = null; }
+      if (!v || !v.expires || v.expires < t) continue;
+      if (v.plan === PLAN_TRIAL) trial++; else if (v.plan !== 'pilot') paid++;
+    }
+    cursor = page.list_complete ? null : page.cursor;
+  } while (cursor);
+  return { paid, trial };
+}
+
+export async function publicStats(env, now) {
+  const ttl = Math.max(60, Number(env.STATS_TTL) || 3600) * 1000, min = Math.max(1, Number(env.STATS_MIN) || 5);
+  let c = null; try { c = JSON.parse((await env.LICENSES.get('stats:cache')) || 'null'); } catch (e) { c = null; }
+  if (!c || !(now - c.at < ttl)) {
+    const x = await computeStats(env, now);
+    c = { at: now, paid: x.paid, trial: x.trial };
+    await env.LICENSES.put('stats:cache', JSON.stringify(c));
+  }
+  // bilangan langganan hanya didedahkan bila mencapai had; sebelum itu null
+  return { paid: c.paid >= min ? c.paid : null, trial: c.trial, min };
+}
+
 async function admin(req, env, url, now) {
   if (!env.ADMIN_TOKEN || !safeEqual(bearer(req), env.ADMIN_TOKEN)) return json({ error: 'tidak dibenarkan' }, 401);
   if (req.method === 'GET') {
@@ -315,6 +351,10 @@ export async function handle(req, env, opts) {
   const cors = corsHeaders(req, env);
   if (req.method === 'OPTIONS') return new Response(null, { status: cors ? 204 : 403, headers: cors || {} });
   if (url.pathname === '/health') return json({ ok: true });
+  if (url.pathname === '/stats' && req.method === 'GET') {
+    // awam dan tanpa data peribadi: bilangan sahaja
+    return json(await publicStats(env, now), 200, { 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=600' });
+  }
   // webhook BCL: https://<worker>/bcl/<BCL_WEBHOOK_KEY>. Jawab segera; kerja diteruskan di latar (waitUntil).
   if (url.pathname.startsWith('/bcl/')) {
     if (!env.BCL_WEBHOOK_KEY || !safeEqual(url.pathname.slice(5), env.BCL_WEBHOOK_KEY)) return json({ error: 'tidak dijumpai' }, 404);

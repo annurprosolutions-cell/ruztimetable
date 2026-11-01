@@ -375,3 +375,37 @@ test('admin: tambah bulan secara manual (addMonths) dari tarikh tamat semasa ata
   assert.strictEqual((await add({ email: 'kekal@gmail.com', addMonths: 1 }))[0], 400);
   assert.strictEqual((await adminReq(env, 'POST', '/admin/licenses', { email: 'x@y.com', addMonths: 1 }, 'salah')).status, 401);
 });
+
+test('/stats: bilangan awam, had minimum, pengecualian, cache', async () => {
+  const env = mkEnv({ STATS_EXCLUDE: 'pemilik@gmail.com, sendiri.my' });
+  const put = (k, v) => env.LICENSES.put(k, JSON.stringify(v));
+  const stats = async (now = NOW) => { const r = await handle(new Request('https://w.test/stats'), env, { now }); return [r, await r.json()]; };
+  // 4 berbayar aktif + 2 percubaan aktif; tidak dikira: tamat, pilot, tanpa tarikh, pemilik, domain dikecualikan, bukan lesen
+  for (const e of ['a', 'b', 'c']) await put('email:' + e + '@gmail.com', { plan: 'bulanan', expires: '2026-12-01' });
+  await put('domain:sekolah.edu.my', { plan: 'tahunan', expires: '2027-06-01' });
+  await put('email:t1@gmail.com', { plan: 'percubaan', expires: '2026-11-05' });
+  await put('email:t2@gmail.com', { plan: 'percubaan', expires: '2026-10-26' });
+  await put('email:t3@gmail.com', { plan: 'percubaan', expires: '2026-10-20' });
+  await put('email:lama@gmail.com', { plan: 'bulanan', expires: '2026-09-01' });
+  await put('email:pilot@gmail.com', { plan: 'pilot', expires: '2027-01-01' });
+  await put('email:kekal@gmail.com', { plan: 'pilot' });
+  await put('email:pemilik@gmail.com', { plan: 'bulanan', expires: '2026-12-30' });
+  await put('email:cikgu@sendiri.my', { plan: 'tahunan', expires: '2027-01-01' });
+  await put('trial:t1@gmail.com', '2026-10-22');
+  let [r, s] = await stats();
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.headers.get('access-control-allow-origin'), '*');
+  assert.deepStrictEqual(s, { paid: null, trial: 2, min: 5 }, '4 langganan: di bawah had 5, tidak didedahkan');
+  assert.ok(!JSON.stringify(s).includes('@'), 'tiada e-mel');
+  // data berubah tetapi cache sejam masih dipakai
+  await put('email:d@gmail.com', { plan: 'bulanan', expires: '2026-12-01' });
+  [, s] = await stats(NOW + 60e3);
+  assert.strictEqual(s.paid, null, 'cache belum luput');
+  // cache luput: 5 langganan, had dicapai
+  [, s] = await stats(NOW + 3601e3);
+  assert.deepStrictEqual(s, { paid: 5, trial: 2, min: 5 });
+  // STATS_MIN boleh diubah
+  env.STATS_MIN = '10'; env.STATS_TTL = '60';
+  [, s] = await stats(NOW + 3700e3 + 61e3);
+  assert.deepStrictEqual(s, { paid: null, trial: 2, min: 10 });
+});
