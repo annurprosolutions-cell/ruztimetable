@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panduan Pengguna · Annur Time Table</title>
+<meta name="description" content="Panduan lengkap Annur Time Table untuk sekolah: log masuk, tetapan, data, jana jadual, relief guru ganti, Google Sheets, pautan guru dan langganan.">
+<style>
+:root{--ink:#0f172a;--mut:#475569;--line:#e2e8f0;--soft:#f1f5f9;--brand:#1d4ed8;--brand2:#1e3a8a;--ok:#047857;--warn:#b45309;--bad:#b91c1c}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:#fff;color:var(--ink);font:16px/1.65 Inter,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+a{color:var(--brand)}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px 60px}
+.cover{background:linear-gradient(135deg,var(--brand),var(--brand2) 60%,#0f172a);color:#fff;padding:64px 20px 56px}
+.cover .in{max-width:900px;margin:0 auto}
+.cover .k{letter-spacing:.14em;text-transform:uppercase;font-size:13px;opacity:.85}
+.cover h1{font-size:44px;line-height:1.1;margin:10px 0 12px;font-weight:800}
+.cover p{font-size:19px;opacity:.92;margin:0 0 6px;max-width:640px}
+.cover .meta{margin-top:26px;font-size:14px;opacity:.8}
+nav.toc{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin:28px 0}
+nav.toc h2{margin:0 0 8px;font-size:18px;border:0;padding:0}
+nav.toc ol{margin:0;padding-left:22px;columns:2;column-gap:28px}
+nav.toc li{margin:2px 0;break-inside:avoid}
+h2{font-size:27px;line-height:1.25;margin:48px 0 12px;padding-top:10px;border-top:3px solid var(--brand)}
+h2 .n{color:var(--brand)}
+h3{font-size:19px;margin:28px 0 8px}
+p,li{color:#1e293b}
+ol.steps{counter-reset:s;list-style:none;padding:0;margin:12px 0}
+ol.steps>li{counter-increment:s;position:relative;padding:2px 0 8px 44px}
+ol.steps>li::before{content:counter(s);position:absolute;left:0;top:0;width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+figure{margin:16px 0 22px;break-inside:avoid;page-break-inside:avoid}
+figure img{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:12px;box-shadow:0 4px 18px rgba(15,23,42,.08)}
+figcaption{font-size:13.5px;color:var(--mut);margin-top:6px;text-align:center}
+.phones{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0 22px;break-inside:avoid}
+.phones figure{margin:0}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;break-inside:avoid}
+.duo figure{margin:8px 0}
+.box{border-radius:12px;padding:12px 16px;margin:14px 0;border:1px solid;break-inside:avoid}
+.box b:first-child{display:block;margin-bottom:2px}
+.tip{background:#ecfdf5;border-color:#a7f3d0}
+.tip b:first-child{color:var(--ok)}
+.note{background:#eff6ff;border-color:#bfdbfe}
+.note b:first-child{color:var(--brand)}
+.warn{background:#fffbeb;border-color:#fde68a}
+.warn b:first-child{color:var(--warn)}
+.kbd,code{font-family:"DejaVu Sans Mono",Consolas,monospace;font-size:.88em;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+.btn{display:inline-block;font-weight:600;font-size:.92em;background:#0f172a;color:#fff;border-radius:999px;padding:0 10px;white-space:nowrap}
+table{border-collapse:collapse;width:100%;margin:12px 0 18px;font-size:14.5px;break-inside:avoid}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft)}
+.qa h3{font-size:17px;margin:20px 0 4px}
+.vid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:12px 0}
+.vid div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14.5px}
+.vid b{color:var(--brand)}
+footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);font-size:13.5px;color:var(--mut)}
+@media (max-width:700px){.cover h1{font-size:32px}nav.toc ol{columns:1}.phones{grid-template-columns:repeat(2,1fr)}.duo,.vid{grid-template-columns:1fr}h2{font-size:23px}}
+@page{size:A4;margin:16mm 14mm 16mm}
+@media print{
+  body{font-size:11.5pt;line-height:1.55}
+  .cover{padding:120px 40px 90px;-webkit-print-color-adjust:exact;print-color-adjust:exact;page-break-after:always;min-height:250mm}
+  .cover h1{font-size:40pt}
+  .wrap{padding:0;max-width:none}
+  h2{page-break-before:always;margin-top:0;font-size:20pt}
+  nav.toc{page-break-after:always}
+  .box,.btn,th,.vid div,ol.steps>li::before{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  figure img{box-shadow:none}
+  a{color:inherit;text-decoration:none}
+  .noprint{display:none}
+}
+</style>
+</head>
+<body>
+<header class="cover">
+  <div class="in">
+    <div class="k">Annur Time Table · Panduan Pengguna</div>
+    <h1>Jadual waktu dan relief guru ganti, dalam satu sistem</h1>
+    <p>Panduan lengkap untuk pentadbir jadual dan guru: dari log masuk pertama sampai jadual siap dicetak dan relief harian dihantar ke WhatsApp.</p>
+    <div class="meta">Versi app 2.2 · November 2026 · annurtimetable.com · AnnurPro Solutions</div>
+  </div>
+</header>
+
+<main class="wrap">
+<p class="noprint" style="margin-top:22px"><a href="Panduan-Annur-Time-Table.pdf">Muat turun versi PDF</a> · <a href="/">Buka Annur Time Table</a> · <a href="/?demo">Cuba demo</a></p>
+
+<nav class="toc">
+  <h2>Kandungan</h2>
+  <ol>
+    <li><a href="#kenali">Kenali sistem ini</a></li>
+    <li><a href="#mula">Mula cepat: 7 langkah</a></li>
+    <li><a href="#login">Log masuk kali pertama</a></li>
+    <li><a href="#skrin">Mengenali skrin utama</a></li>
+    <li><a href="#tetapan">Tetapan sekolah dan waktu</a></li>
+    <li><a href="#data">Data guru, subjek, kelas, bilik</a></li>
+    <li><a href="#pelajaran">Pelajaran dan beban mengajar</a></li>
+    <li><a href="#jana">Jana dan laras jadual</a></li>
+    <li><a href="#sekatan">Sekatan serentak</a></li>
+    <li><a href="#cetak">Cetak dan Excel</a></li>
+    <li><a href="#relief">Relief harian</a></li>
+    <li><a href="#relief2">Relief lanjutan dan peraturan</a></li>
+    <li><a href="#laporan">Laporan</a></li>
+    <li><a href="#sheets">Google Sheets dan backup</a></li>
+    <li><a href="#guru">Pautan guru dan paparan telefon</a></li>
+    <li><a href="#arkib">Arkib sejarah relief</a></li>
+    <li><a href="#lesen">Langganan dan lesen</a></li>
+    <li><a href="#faq">Soalan lazim dan masalah biasa</a></li>
+    <li><a href="#privasi">Privasi dan keselamatan data</a></li>
+    <li><a href="#video">Senarai video panduan</a></li>
+    <li><a href="#hubungi">Hubungi kami</a></li>
+  </ol>
+</nav>
+
+<h2 id="kenali"><span class="n">1.</span> Kenali sistem ini</h2>
+<p>Annur Time Table ialah sistem dalam talian untuk sekolah Malaysia. Ia buat dua kerja utama:</p>
+<ul>
+  <li><b>Jadual waktu</b>: isi data guru, kelas dan subjek, kemudian sistem jana jadual tanpa pertembungan dalam beberapa saat. Boleh laras sendiri dengan seret dan lepas, cetak, dan muat turun Excel.</li>
+  <li><b>Relief guru ganti</b>: rekod guru tidak hadir, sistem cadangkan guru ganti yang free dan paling kurang relief, kemudian hantar senarai ke WhatsApp atau cetak slip.</li>
+</ul>
+<h3>Siapa guna apa</h3>
+<table>
+  <tr><th>Peranan</th><th>Boleh buat</th><th>Perlu</th></tr>
+  <tr><td><b>Pentadbir jadual</b><br>(contoh PK Pentadbiran, SU Jadual Waktu, penyelaras relief)</td><td>Semua: data, jadual, relief, laporan, tetapan, simpanan Google Sheets, langganan</td><td>Akaun Google + kata laluan pentadbir</td></tr>
+  <tr><td><b>Guru</b></td><td>Lihat jadual sendiri dan tugas relief sendiri sahaja (baca sahaja)</td><td>Pautan guru daripada pentadbir. Tiada akaun, tiada kata laluan</td></tr>
+</table>
+<h3>Apa yang anda perlukan</h3>
+<ul>
+  <li>Komputer atau laptop dengan pelayar Google Chrome, Microsoft Edge atau Safari yang terkini. Telefon pun boleh, tetapi kerja menyusun jadual lebih selesa di skrin besar.</li>
+  <li>Akaun Google untuk pentadbir. Akaun DELIMa (@moe-dl.edu.my) atau Gmail biasa, kedua-duanya boleh.</li>
+  <li>Internet semasa log masuk dan semasa menyimpan ke Google Sheets. Kerja harian tetap boleh diteruskan jika internet terputus seketika; data disimpan dalam pelayar dahulu dan dihantar ke Sheet bila sambungan pulih.</li>
+</ul>
+<div class="box tip"><b>Cuba dahulu tanpa daftar</b>Buka <a href="https://annurtimetable.com/?demo">annurtimetable.com/?demo</a>. Mod demo ada data sekolah contoh lengkap. Tiada log masuk, tiada apa disimpan ke Google.</div>
+
+<h2 id="mula"><span class="n">2.</span> Mula cepat: 7 langkah</h2>
+<p>Ini turutan yang kami syorkan untuk sekolah baharu. Setiap langkah diterangkan dengan lebih terperinci dalam bab seterusnya.</p>
+<ol class="steps">
+  <li><b>Log masuk</b> di annurtimetable.com sebagai Pentadbir dengan akaun Google sekolah. Percubaan percuma 14 hari bermula automatik. (<a href="#login">Bab 3</a>)</li>
+  <li><b>Isi tetapan</b>: nama sekolah, logo, hari persekolahan, dan senarai waktu termasuk rehat. (<a href="#tetapan">Bab 5</a>)</li>
+  <li><b>Masukkan data</b>: guru, subjek, kelas dan bilik. Import dari aSc jika ada, atau tampal dari Excel. (<a href="#data">Bab 6</a>)</li>
+  <li><b>Isi pelajaran</b>: subjek apa, kelas mana, guru siapa, berapa waktu seminggu. (<a href="#pelajaran">Bab 7</a>)</li>
+  <li><b>Jana jadual</b>, semak, dan laras jika perlu. Kunci waktu yang tidak boleh diubah. (<a href="#jana">Bab 8</a>)</li>
+  <li><b>Simpan ke Google Sheets</b> di Tetapan, Storan &amp; backup. Selepas ini simpanan berjalan automatik. (<a href="#sheets">Bab 14</a>)</li>
+  <li><b>Kongsi pautan guru</b> dalam kumpulan WhatsApp guru, dan mula guna modul relief setiap pagi. (<a href="#guru">Bab 15</a>, <a href="#relief">Bab 11</a>)</li>
+</ol>
+
+<h2 id="login"><span class="n">3.</span> Log masuk kali pertama</h2>
+<ol class="steps">
+  <li>Buka <b>annurtimetable.com</b>. Pilih <span class="btn">Pentadbir jadual</span>.</li>
+</ol>
+<div class="duo">
+  <figure><img src="img/login-1-peranan.jpg" alt="Skrin pilih peranan"><figcaption>Pilih peranan: Pentadbir jadual atau Guru</figcaption></figure>
+  <figure><img src="img/login-2-google.jpg" alt="Log masuk dengan Google"><figcaption>Log masuk dengan Google</figcaption></figure>
+</div>
+<ol class="steps" start="2" style="counter-reset:s 1">
+  <li>Klik <span class="btn">Log masuk dengan Google</span> dan pilih akaun sekolah. Benarkan akses yang diminta. Sistem hanya boleh membuka fail yang dicipta oleh sistem ini dalam Google Drive anda, bukan fail lain.</li>
+  <li>Akaun baharu terus mendapat <b>percubaan percuma 14 hari</b> dengan semua ciri dibuka.</li>
+  <li>Isi <b>nama sekolah</b>, pilih warna tema, dan muat naik logo (pilihan).</li>
+  <li>Tetapkan <b>kata laluan pentadbir</b> (sekurang-kurangnya 6 aksara) dan taip sekali lagi untuk sahkan.</li>
+  <li>Pilih cara mula: <b>data contoh</b> (untuk belajar dahulu), <b>mula kosong</b>, atau <b>sekolah saya guna aSc sebelum ini</b> (terus ke import Excel aSc).</li>
+</ol>
+<div class="duo">
+  <figure><img src="img/login-3-nama-sekolah.jpg" alt="Nama sekolah"><figcaption>Tetapan awal: nama sekolah dan warna</figcaption></figure>
+  <figure><img src="img/login-4-kata-laluan.jpg" alt="Kata laluan pentadbir"><figcaption>Kata laluan pentadbir</figcaption></figure>
+  <figure><img src="img/login-5-pilih-data.jpg" alt="Pilih cara mula"><figcaption>Pilih cara mula</figcaption></figure>
+  <figure><img src="img/login-6-utama-percubaan.jpg" alt="Halaman Utama selepas log masuk"><figcaption>Siap. Notis percubaan muncul di halaman Utama</figcaption></figure>
+</div>
+<div class="box warn"><b>Simpan kata laluan pentadbir di tempat selamat</b>Kata laluan disimpan dalam bentuk hash (tidak boleh dibaca semula, termasuk oleh kami). Jika terlupa, klik <span class="btn">Lupa kata laluan?</span> di skrin log masuk dan ikut arahan.</div>
+<h3>Log masuk seterusnya dan di peranti lain</h3>
+<ul>
+  <li><b>Peranti yang sama</b>: sesi kekal sehingga 30 hari. Selepas itu sistem minta kata laluan pentadbir semula.</li>
+  <li><b>Peranti lain</b> (contoh laptop di rumah): buka annurtimetable.com, pilih Pentadbir jadual, log masuk dengan <b>akaun Google yang sama</b>. Sistem cari Sheet sekolah anda dan muat turun data.</li>
+  <li><b>Log keluar</b>: klik nama peranan di bar atas, kemudian Log keluar. Gunakan ini di komputer yang dikongsi.</li>
+</ul>
+<div class="box note"><b>Akaun DELIMa disekat?</b>Sesetengah akaun @moe-dl.edu.my dihadkan oleh pentadbir DELIMa untuk app luar. Jika skrin Google menunjukkan "Akses disekat", guna akaun Gmail lain dahulu. Data tetap milik sekolah dalam Google Drive akaun tersebut. Hubungi kami jika perlu bantuan.</div>
+
+<h2 id="skrin"><span class="n">4.</span> Mengenali skrin utama</h2>
+<figure><img src="img/utama.jpg" alt="Halaman Utama pentadbir"><figcaption>Halaman Utama pentadbir: ringkasan, hari ini, perlu tindakan</figcaption></figure>
+<ul>
+  <li><b>Menu atas</b>: Utama, Data, Jadual, Relief, Laporan, Tetapan. Di telefon, menu berada di bahagian bawah skrin.</li>
+  <li><b>Ringkasan saya</b>: peratus waktu diletak tanpa konflik, bilangan guru, kelas, dan relief bulan ini.</li>
+  <li><b>Hari ini</b>: kelas yang berjalan sekarang dan guru yang tidak hadir, dengan guru gantinya.</li>
+  <li><b>Perlu tindakan</b>: senarai perkara penting, contoh relief belum diagih, jadual belum lengkap, backup lama, langganan hampir tamat. Klik item untuk terus ke halaman berkaitan.</li>
+  <li><b>Status simpanan</b> (bar atas): <i>Disimpan</i>, <i>Belum disimpan</i>, <i>Menyimpan</i>, <i>Sambung semula</i> (log masuk Google semula) atau <i>Konflik data</i>.</li>
+  <li><b>Loceng</b>: notis dan peringatan. <b>Ikon ?</b>: halaman Bantuan.</li>
+</ul>
+<div class="box tip"><b>Sekolah yang hanya mahu modul relief</b>Di Tetapan, hidupkan <i>Mod fokus relief</i>. Menu jadi ringkas: Utama, Relief, Data, Tetapan. Halaman Jadual dan Laporan masih boleh dibuka dari Utama.</div>
+
+<h2 id="tetapan"><span class="n">5.</span> Tetapan sekolah dan waktu</h2>
+<h3>Tab Sekolah</h3>
+<figure><img src="img/tetapan-sekolah.jpg" alt="Tetapan sekolah"><figcaption>Tetapan, tab Sekolah</figcaption></figure>
+<p>Isi nama sekolah, minggu persekolahan (Isnin hingga Jumaat, atau Ahad hingga Khamis untuk Kedah, Kelantan, Terengganu dan Johor), warna tema dan logo. Nama dan logo dipapar pada cetakan jadual dan paparan guru.</p>
+<h3>Tab Waktu &amp; rehat</h3>
+<figure><img src="img/tetapan-waktu.jpg" alt="Tetapan waktu"><figcaption>Senarai waktu pelajaran dan rehat</figcaption></figure>
+<ol class="steps">
+  <li>Klik <span class="btn">Jana waktu</span> untuk bina senarai sekaligus: masa mula, tempoh setiap waktu (contoh 30 atau 40 minit), bilangan waktu dan kedudukan rehat.</li>
+  <li>Laras satu-satu jika perlu: ubah masa, tukar jenis (waktu pelajaran atau rehat), susun naik turun, tambah atau padam.</li>
+  <li>Perubahan disimpan automatik. Tiada butang Simpan.</li>
+</ol>
+<div class="box warn"><b>Ubah waktu selepas jadual dijana</b>Jika bilangan waktu berubah, sesetengah pelajaran mungkin keluar dari jadual. Semak senarai <i>Belum diletak</i> di halaman Jadual dan jana semula jika perlu.</div>
+<h3>Waktu berbeza ikut kumpulan kelas (Tahap 1 dan Tahap 2) · Beta</h3>
+<figure><img src="img/tetapan-mod-waktu.jpg" alt="Mod waktu"><figcaption>Pilihan waktu sama, atau waktu berbeza ikut kumpulan kelas</figcaption></figure>
+<p>Untuk sekolah rendah yang waktu Tahap 1 dan Tahap 2 tidak sama:</p>
+<ol class="steps">
+  <li>Pilih <b>Waktu berbeza ikut kumpulan kelas</b>.</li>
+  <li>Set pertama (contoh "Set utama") ialah waktu asal. Klik <span class="btn">+ Tambah set waktu</span> untuk set kedua dan isi waktunya.</li>
+  <li>Tetapkan set waktu bagi setiap kelas: guna butang tetapan ikut tahun (contoh Tahun 1 hingga 3 ke set Tahap 1), atau pilih dalam borang kelas.</li>
+</ol>
+<p>Penjana jadual dan modul relief mengira masa sebenar (jam), jadi guru yang mengajar di kedua-dua tahap tidak akan bertembung walaupun waktu bermula dan tamat pada jam berbeza.</p>
+<h3>Tab lain di Tetapan</h3>
+<ul>
+  <li><b>Sekatan serentak</b>: lihat <a href="#sekatan">Bab 9</a>.</li>
+  <li><b>Peraturan relief</b>: lihat <a href="#relief2">Bab 12</a>.</li>
+  <li><b>Storan &amp; backup</b>: Google Sheets, pautan guru, export, arkib. Lihat <a href="#sheets">Bab 14</a> hingga <a href="#arkib">Bab 16</a>.</li>
+</ul>
+
+<h2 id="data"><span class="n">6.</span> Data guru, subjek, kelas dan bilik</h2>
+<figure><img src="img/data-guru.jpg" alt="Senarai guru"><figcaption>Halaman Data, tab Guru</figcaption></figure>
+<p>Halaman Data ada lima tab: <b>Guru, Subjek, Kelas, Bilik, Pelajaran</b>. Isi mengikut turutan ini kerana Pelajaran memerlukan data tab lain.</p>
+<h3>Tambah atau edit satu rekod</h3>
+<p>Klik <span class="btn">Tambah guru</span> (atau subjek/kelas/bilik), atau <span class="btn">Edit</span> pada baris sedia ada.</p>
+<figure><img src="img/data-guru-borang.jpg" alt="Borang guru"><figcaption>Borang guru</figcaption></figure>
+<table>
+  <tr><th>Medan guru</th><th>Kegunaan</th></tr>
+  <tr><td>Nama, Kod</td><td>Kod pendek (2 hingga 4 huruf) dipapar dalam petak jadual.</td></tr>
+  <tr><td>Panitia</td><td>Untuk sekatan ikut panitia dan laporan.</td></tr>
+  <tr><td>Jawatan</td><td>Contoh GPK, Kaunselor. Boleh dikecualikan daripada relief di Peraturan relief.</td></tr>
+  <tr><td>Had waktu sehari / seminggu</td><td>Penjana tidak akan melebihi had ini.</td></tr>
+  <tr><td>Waktu tidak boleh mengajar</td><td>Klik petak waktu untuk tanda (contoh guru separuh masa, tugas luar tetap).</td></tr>
+  <tr><td>Dikecualikan daripada tugas relief</td><td>Guru ini tidak akan dicadangkan sebagai guru ganti (contoh pentadbir).</td></tr>
+</table>
+<h3>Tambah ramai sekaligus (tampal dari Excel)</h3>
+<figure><img src="img/data-tambah-ramai.jpg" alt="Tambah ramai"><figcaption>Satu rekod setiap baris</figcaption></figure>
+<ol class="steps">
+  <li>Klik <span class="btn">Tambah ramai sekaligus</span>.</li>
+  <li>Tampal senarai. Satu rekod setiap baris. Untuk guru: <code>Nama, Kod, Panitia</code>. Untuk kelas: <code>Nama, Tingkatan</code>. Lajur boleh dipisahkan koma atau tab (tampal terus dari Excel). Hanya nama yang wajib.</li>
+  <li>Klik <span class="btn">Tambah</span>. Kod yang kosong dijana automatik daripada nama.</li>
+</ol>
+<h3>Import dari aSc / Excel</h3>
+<p>Sekolah yang pernah guna aSc Timetables boleh bawa masuk senarai guru, subjek, kelas dan bilik terus dari fail Excel eksport aSc.</p>
+<ol class="steps">
+  <li>Di halaman Data, klik <span class="btn">Import dari aSc / Excel</span> dan pilih fail <code>.xlsx</code>.</li>
+  <li>Sistem tunjuk pratonton: berapa guru, subjek, kelas dan bilik dijumpai.</li>
+  <li>Pilih <b>Tambah</b> (gabung dengan data sedia ada, nama sama tidak diduplikasi) atau <b>Ganti</b> (padam data lama dan guna data import), kemudian sahkan.</li>
+  <li>Semak tab Pelajaran selepas import. Isi atau betulkan beban mengajar sebelum jana jadual.</li>
+</ol>
+<div class="box note"><b>Fail dibaca dalam pelayar anda</b>Fail Excel tidak dihantar ke mana-mana pelayan. Ia dibaca terus dalam pelayar.</div>
+<div class="duo">
+  <figure><img src="img/data-kelas.jpg" alt="Senarai kelas"><figcaption>Tab Kelas: nama, tingkatan/tahun, guru kelas</figcaption></figure>
+  <figure><img src="img/data-pelajaran.jpg" alt="Senarai pelajaran"><figcaption>Tab Pelajaran</figcaption></figure>
+</div>
+<p><b>Subjek</b>: nama, kod, warna petak, dan tanda <i>subjek berat</i> (penjana cuba elak subjek berat bertimbun dalam sehari). <b>Bilik</b>: makmal, bengkel, bilik komputer dan sebagainya. Bilik hanya perlu diisi jika pelajaran tertentu mesti di bilik khas.</p>
+
+<h2 id="pelajaran"><span class="n">7.</span> Pelajaran dan beban mengajar</h2>
+<p>Pelajaran ialah asas jadual. Setiap baris menyatakan: <b>subjek</b>, <b>kelas</b>, <b>guru</b>, <b>bilangan waktu seminggu</b>, dan berapa daripadanya <b>waktu berganda</b> (2 waktu berturut-turut).</p>
+<figure><img src="img/pelajaran-borang.jpg" alt="Borang pelajaran"><figcaption>Borang pelajaran</figcaption></figure>
+<ol class="steps">
+  <li>Klik <span class="btn">Tambah pelajaran</span>.</li>
+  <li>Pilih subjek. Pilih kelas (boleh lebih daripada satu untuk kelas gabungan, contoh Pendidikan Islam dan Pendidikan Moral, atau PJ beberapa kelas serentak).</li>
+  <li>Pilih guru (boleh lebih daripada satu untuk pengajaran berpasangan).</li>
+  <li>Isi waktu seminggu dan bilangan waktu berganda. Pilih bilik jika perlu bilik khas.</li>
+  <li>Simpan. Lajur jumlah di atas menunjukkan beban setiap guru dan amaran jika melebihi had.</li>
+</ol>
+<div class="box tip"><b>Semak sebelum jana</b>Jumlah waktu seminggu bagi setiap kelas sepatutnya sama dengan bilangan slot waktu pelajaran dalam seminggu. Jika lebih, penjana tidak dapat meletak semua pelajaran.</div>
+
+<h2 id="jana"><span class="n">8.</span> Jana dan laras jadual</h2>
+<ol class="steps">
+  <li>Buka halaman <b>Jadual</b>, klik <span class="btn">Jana jadual</span>.</li>
+  <li>Pilih usaha pengoptimuman: <i>Cepat</i> untuk cubaan, <i>Biasa</i> untuk kebanyakan sekolah, pilihan lebih lama untuk sekolah besar yang mahu jadual lebih kemas.</li>
+  <li>Klik <span class="btn">Mula</span>. Jadual siap dalam beberapa saat.</li>
+</ol>
+<div class="duo">
+  <figure><img src="img/jadual-jana-modal.jpg" alt="Jana jadual"><figcaption>Pilih usaha pengoptimuman</figcaption></figure>
+  <figure><img src="img/jadual-kelas.jpg" alt="Jadual kelas"><figcaption>Hasil: jadual kelas tanpa konflik</figcaption></figure>
+</div>
+<p>Penjana mematuhi: tiada guru, kelas atau bilik bertembung; had waktu guru; waktu guru tidak boleh mengajar; sekatan serentak; waktu berganda; dan cuba mengurangkan waktu kosong guru di tengah hari.</p>
+<h3>Laras sendiri dengan seret dan lepas</h3>
+<ul>
+  <li>Seret satu petak pelajaran ke petak lain. Petak <b>hijau</b> bermaksud boleh diletak tanpa konflik. Lepaskan atas petak berisi untuk <b>tukar tempat</b>.</li>
+  <li>Klik ikon <b>kunci</b> pada petak supaya waktu itu tidak diubah bila jadual dijana semula.</li>
+  <li>Panel <b>Belum diletak</b> di sisi menyenaraikan pelajaran yang tiada tempat. Seret dari panel ke jadual, atau seret petak ke panel untuk keluarkan dari jadual.</li>
+  <li><span class="btn">Kosongkan</span> memadam semua penempatan (pelajaran tidak dipadam).</li>
+</ul>
+<h3>Paparan</h3>
+<div class="duo">
+  <figure><img src="img/jadual-guru.jpg" alt="Jadual guru"><figcaption>Paparan ikut guru</figcaption></figure>
+  <figure><img src="img/jadual-induk.jpg" alt="Jadual induk"><figcaption>Jadual induk kelas (semua kelas)</figcaption></figure>
+</div>
+<p>Tab di atas jadual: <b>Kelas, Guru, Bilik, Induk kelas, Induk guru</b>. Guna anak panah atau senarai untuk tukar kelas/guru. Butang paksi menukar susunan (hari di atas atau hari di sisi).</p>
+
+<h2 id="sekatan"><span class="n">9.</span> Sekatan serentak</h2>
+<p>Sekatan mengosongkan waktu yang sama untuk sekumpulan guru. Contoh: mesyuarat panitia mingguan, kokurikulum, perhimpunan, atau program tetap.</p>
+<div class="duo">
+  <figure><img src="img/sekatan-senarai.jpg" alt="Senarai sekatan"><figcaption>Tetapan, tab Sekatan serentak</figcaption></figure>
+  <figure><img src="img/sekatan-borang.jpg" alt="Borang sekatan"><figcaption>Borang sekatan</figcaption></figure>
+</div>
+<ol class="steps">
+  <li>Tetapan, tab <b>Sekatan serentak</b>, klik <span class="btn">Tambah sekatan</span>.</li>
+  <li>Isi nama, pilih hari, dan julat waktu (dari waktu ke, hingga waktu ke).</li>
+  <li>Pilih siapa terlibat: <b>semua guru</b>, <b>satu panitia</b>, atau <b>guru tertentu</b>.</li>
+  <li>Simpan, kemudian <b>jana semula jadual</b> supaya sekatan baharu dipatuhi.</li>
+</ol>
+<p>Guru yang terlibat juga tidak akan dicadangkan sebagai guru ganti pada waktu sekatan.</p>
+
+<h2 id="cetak"><span class="n">10.</span> Cetak dan muat turun Excel</h2>
+<figure><img src="img/cetak-jadual-kelas.jpg" alt="Contoh cetakan"><figcaption>Contoh cetakan jadual kelas (satu jadual satu halaman)</figcaption></figure>
+<ul>
+  <li><span class="btn">Cetak</span>: cetak jadual yang sedang dipapar. Pilih "Simpan sebagai PDF" dalam dialog cetak untuk dapatkan fail PDF.</li>
+  <li><span class="btn">Cetak semua</span>: semua kelas atau semua guru sekaligus, satu halaman setiap satu.</li>
+  <li><span class="btn">Excel</span>: muat turun jadual paparan semasa, atau semua jadual dalam satu fail (satu tab untuk setiap guru, kelas atau bilik).</li>
+  <li>Di halaman <b>Laporan</b>, ada pilihan cetak dan muat turun ikut Guru, Kelas atau Bilik sahaja.</li>
+</ul>
+<div class="box tip"><b>Tetapan cetak yang disyorkan</b>Orientasi landskap, saiz A4, dan hidupkan "Background graphics" supaya warna subjek ikut dicetak.</div>
+
+<h2 id="relief"><span class="n">11.</span> Relief harian</h2>
+<figure><img src="img/relief-harian.jpg" alt="Relief harian"><figcaption>Relief harian: guru tidak hadir dan keperluan relief</figcaption></figure>
+<h3>Rekod guru tidak hadir</h3>
+<ol class="steps">
+  <li>Buka <b>Relief</b>, pastikan tarikh betul (anak panah untuk tukar hari, <span class="btn">Hari ini</span> untuk kembali).</li>
+  <li>Klik <span class="btn">Guru tidak hadir</span>. Pilih guru, sebab (MC, Cuti Rehat, Cuti Kecemasan, Kursus / Bengkel, Urusan Rasmi, Cuti Bersalin, Lain-lain), dan tempoh.</li>
+  <li><b>Tempoh</b>: sehari penuh, atau waktu tertentu sahaja (contoh waktu 3 hingga 5). Untuk cuti beberapa hari, isi <i>Hingga tarikh</i>; hujung minggu dilangkau automatik.</li>
+  <li>Simpan. Kelas guru itu terus muncul dalam senarai <b>Keperluan relief</b>.</li>
+</ol>
+<figure><img src="img/relief-tidak-hadir-borang.jpg" alt="Borang guru tidak hadir"><figcaption>Borang guru tidak hadir</figcaption></figure>
+<h3>Agih guru ganti</h3>
+<ol class="steps">
+  <li>Klik <span class="btn">Agih automatik</span>. Sistem pilih guru yang free pada waktu itu, mematuhi peraturan relief sekolah, dan mengutamakan guru yang paling kurang relief bulan ini.</li>
+  <li>Semak cadangan. Tukar guru ganti melalui menu pilihan pada setiap baris jika perlu.</li>
+  <li>Jika guru ganti tidak cukup, pilih <b>gabung</b> untuk letak kelas itu bersama kelas lain yang ada guru.</li>
+</ol>
+<figure><img src="img/relief-diagih.jpg" alt="Relief diagih"><figcaption>Selepas agih automatik</figcaption></figure>
+<h3>Hantar dan cetak</h3>
+<div class="duo">
+  <figure><img src="img/relief-whatsapp.jpg" alt="Mesej WhatsApp"><figcaption>WhatsApp: mesej siap untuk disalin</figcaption></figure>
+  <figure><img src="img/relief-slip.jpg" alt="Slip relief"><figcaption>Slip relief bercetak (format jadual)</figcaption></figure>
+</div>
+<ul>
+  <li><span class="btn">WhatsApp</span>: salin mesej relief dan tampal dalam kumpulan WhatsApp guru.</li>
+  <li><span class="btn">Slip</span>: cetak slip relief untuk papan kenyataan atau bilik guru.</li>
+  <li>Guru yang ada pautan guru akan nampak tugas relief mereka sendiri di telefon (lihat <a href="#guru">Bab 15</a>).</li>
+</ul>
+
+<h2 id="relief2"><span class="n">12.</span> Relief lanjutan dan peraturan</h2>
+<h3>Paparan semua guru</h3>
+<figure><img src="img/relief-paparan-semua-guru.jpg" alt="Paparan semua guru"><figcaption>Siapa free pada setiap waktu</figcaption></figure>
+<p>Tukar ke <b>Paparan semua guru</b> untuk lihat jadual semua guru pada hari itu dalam satu skrin. Petak yang boleh diklik ialah guru yang layak jadi guru ganti pada waktu tersebut. Klik untuk terus pilih.</p>
+<h3>Kalendar, Statistik, Sejarah</h3>
+<div class="duo">
+  <figure><img src="img/relief-kalendar.jpg" alt="Kalendar relief"><figcaption>Kalendar ketidakhadiran sebulan</figcaption></figure>
+  <figure><img src="img/relief-statistik.jpg" alt="Statistik relief"><figcaption>Statistik kesaksamaan</figcaption></figure>
+</div>
+<ul>
+  <li><b>Kalendar</b>: semua ketidakhadiran dalam sebulan. Klik tarikh untuk buka relief hari itu.</li>
+  <li><b>Statistik</b>: jumlah waktu relief setiap guru bagi julat tarikh. Sisihan piawai yang kecil bermaksud agihan adil.</li>
+  <li><b>Sejarah</b>: semua rekod relief. Muat turun sebagai CSV untuk laporan.</li>
+</ul>
+<h3>Peraturan relief sekolah</h3>
+<figure><img src="img/peraturan-relief.jpg" alt="Peraturan relief"><figcaption>Tetapan, tab Peraturan relief</figcaption></figure>
+<table>
+  <tr><th>Peraturan</th><th>Maksud</th></tr>
+  <tr><td>Had relief sehari / seminggu</td><td>Bilangan maksimum waktu relief bagi seorang guru. 0 bermaksud tiada had.</td></tr>
+  <tr><td>Had jumlah waktu sehari</td><td>Waktu mengajar + relief tidak melebihi nombor ini.</td></tr>
+  <tr><td>Perlu rehat antara waktu</td><td>Guru tidak diberi relief jika waktu sebelum dan selepas sudah mengajar.</td></tr>
+  <tr><td>Jawatan dikecualikan</td><td>Contoh GPK, Kaunselor. Ditulis dipisahkan koma.</td></tr>
+  <tr><td>Hormati waktu guru tidak boleh</td><td>Waktu tidak boleh mengajar dalam profil guru turut dikira untuk relief.</td></tr>
+</table>
+<p>Sekatan serentak sentiasa dipatuhi. Klik <span class="btn">Pulihkan nilai asal</span> untuk kembali ke nilai lalai.</p>
+
+<h2 id="laporan"><span class="n">13.</span> Laporan</h2>
+<figure><img src="img/laporan.jpg" alt="Laporan"><figcaption>Halaman Laporan</figcaption></figure>
+<ul>
+  <li><b>Semakan jadual</b>: senarai isu seperti pelajaran belum diletak atau guru melebihi had.</li>
+  <li><b>Cetak dan muat turun</b> ikut Guru, Kelas atau Bilik sahaja (Excel atau cetak).</li>
+  <li><b>Beban mengajar</b> setiap guru dan ringkasan relief.</li>
+</ul>
+
+<h2 id="sheets"><span class="n">14.</span> Google Sheets dan backup</h2>
+<p>Data sekolah disimpan di dua tempat: dalam <b>pelayar</b> peranti anda, dan dalam <b>Google Sheet milik sekolah</b> di Google Drive akaun pentadbir. Kami (pembekal) tidak menyimpan data jadual atau relief anda.</p>
+<figure><img src="img/storan-sheets.jpg" alt="Google Sheets"><figcaption>Tetapan, Storan &amp; backup: disambung ke Google Sheet</figcaption></figure>
+<ol class="steps">
+  <li>Tetapan, tab <b>Storan &amp; backup</b>. Klik <span class="btn">Log masuk Google</span> jika belum.</li>
+  <li>Sistem semak lesen. Klik <span class="btn">Cipta Google Sheet</span> untuk simpanan pertama.</li>
+  <li>Selepas itu, setiap perubahan disimpan automatik (status <i>Disimpan</i> di bar atas). <span class="btn">Simpan sekarang</span> dan <span class="btn">Muat dari Sheet</span> ada untuk kawalan manual.</li>
+</ol>
+<h3>Status simpanan</h3>
+<table>
+  <tr><th>Status</th><th>Maksud dan tindakan</th></tr>
+  <tr><td>Disimpan</td><td>Data terkini sudah ada dalam Sheet.</td></tr>
+  <tr><td>Belum disimpan / Menyimpan</td><td>Perubahan sedang dihantar. Tunggu sebentar.</td></tr>
+  <tr><td>Sambung semula</td><td>Sesi Google tamat (biasanya selepas sejam). Klik untuk log masuk Google semula. Data tidak hilang.</td></tr>
+  <tr><td>Konflik data</td><td>Sheet diubah dari peranti lain. Pilih sama ada guna data Sheet atau data peranti ini. Sistem tidak akan menulis ganti secara senyap.</td></tr>
+  <tr><td>Tiada lesen</td><td>Percubaan atau langganan tamat. Lihat <a href="#lesen">Bab 17</a>.</td></tr>
+</table>
+<h3>Backup tambahan</h3>
+<ul>
+  <li><span class="btn">Export JSON</span>: muat turun salinan penuh data ke komputer. <span class="btn">Import JSON</span> untuk pulihkan.</li>
+  <li>Sistem mengingatkan di halaman Utama jika backup sudah lama.</li>
+</ul>
+<div class="box warn"><b>Jangan ubah Sheet secara manual</b>Sheet "Jadual Sekolah" dibaca dan ditulis oleh sistem. Mengubah struktur tab atau lajur secara manual boleh menyebabkan ralat. Buat perubahan melalui app.</div>
+
+<h2 id="guru"><span class="n">15.</span> Pautan guru dan paparan telefon</h2>
+<figure><img src="img/pautan-guru.jpg" alt="Pautan guru"><figcaption>Pautan guru dan nama pautan</figcaption></figure>
+<p>Selepas data disimpan ke Google Sheets, sistem cipta satu Sheet <b>Data Guru</b> berasingan (baca sahaja, tanpa kata laluan atau data peribadi sensitif) dan satu <b>pautan guru</b>.</p>
+<ol class="steps">
+  <li>Tetapan, Storan &amp; backup, bahagian <b>Pautan guru</b>. Klik <span class="btn">Salin</span> atau <span class="btn">WhatsApp</span>.</li>
+  <li>Kongsi dalam kumpulan WhatsApp guru.</li>
+  <li>Guru buka pautan, pilih nama sendiri, dan terus nampak jadual dan relief sendiri.</li>
+</ol>
+<h3>Nama pautan yang mudah (langganan berbayar)</h3>
+<figure><img src="img/nama-pautan.jpg" alt="Nama pautan"><figcaption>Contoh: annurtimetable.com/s/smkcontohjaya</figcaption></figure>
+<p>Pelanggan berbayar boleh pilih nama pautan seperti <code>annurtimetable.com/s/smkcontohjaya</code>. Huruf kecil, nombor dan sengkang sahaja, 3 hingga 30 aksara. Pertukaran nama kali pertama percuma, selepas itu sekali setiap 30 hari. Pautan panjang lama masih berfungsi.</p>
+<h3>Apa yang guru nampak</h3>
+<div class="phones">
+  <figure><img src="img/guru-1-pilih-nama.jpg" alt="Pilih nama"><figcaption>Pilih nama</figcaption></figure>
+  <figure><img src="img/guru-2-utama.jpg" alt="Utama guru"><figcaption>Utama: hari ini</figcaption></figure>
+  <figure><img src="img/guru-3-jadual-saya.jpg" alt="Jadual saya"><figcaption>Jadual saya</figcaption></figure>
+  <figure><img src="img/guru-4-relief-saya.jpg" alt="Relief saya"><figcaption>Relief saya</figcaption></figure>
+</div>
+<ul>
+  <li>Guru hanya boleh <b>membaca</b>. Mereka tidak boleh mengubah data.</li>
+  <li><b>Tambah ke skrin utama</b> (Chrome: menu ⋮, "Add to Home screen"; Safari: butang Kongsi, "Add to Home Screen") supaya pautan dibuka seperti aplikasi.</li>
+  <li>Hidupkan <b>notifikasi</b> di halaman Utama guru untuk dimaklumkan bila ada tugas relief baharu.</li>
+  <li>Data guru dikemas kini setiap kali pentadbir menyimpan ke Google Sheets.</li>
+</ul>
+
+<h2 id="arkib"><span class="n">16.</span> Arkib sejarah relief</h2>
+<figure><img src="img/arkib.jpg" alt="Arkib"><figcaption>Arkib dan bersih sejarah</figcaption></figure>
+<p>Selepas setahun, rekod relief dan ketidakhadiran bertambah banyak. Arkib memindahkan rekod lama ke fail berasingan supaya sistem kekal laju.</p>
+<ol class="steps">
+  <li>Tetapan, Storan &amp; backup, bahagian <b>Arkib dan bersih sejarah</b>.</li>
+  <li>Pilih tarikh potong. Cadangan lalai: 1 Januari tahun semasa (semua rekod tahun lepas).</li>
+  <li>Pilih simpan ke <b>Google Sheet arkib baharu</b> (tab Ringkasan, TidakHadir, Relief) atau <b>muat turun Excel</b>.</li>
+  <li>Selepas arkib berjaya, sistem buang rekod lama daripada data aktif.</li>
+</ol>
+<p>Halaman Utama mengingatkan bila ada rekod lebih 12 bulan.</p>
+
+<h2 id="lesen"><span class="n">17.</span> Langganan dan lesen</h2>
+<table>
+  <tr><th>Pelan</th><th>Harga</th><th>Catatan</th></tr>
+  <tr><td>Percubaan</td><td>Percuma 14 hari</td><td>Bermula automatik kali pertama log masuk Google. Semua ciri dibuka.</td></tr>
+  <tr><td>Bulanan</td><td>RM20 sebulan</td><td>Boleh bayar setiap bulan atau melalui auto-debit jika dipilih dalam borang.</td></tr>
+  <tr><td>Tahunan</td><td>RM200 setahun</td><td>Jimat RM40 berbanding bulanan.</td></tr>
+</table>
+<h3>Cara melanggan atau memperbaharui</h3>
+<ol class="steps">
+  <li>Klik <span class="btn">Langgan</span> (pada notis di halaman Utama, atau di Tetapan, Storan &amp; backup). Borang bayaran BCL dibuka di tab baharu.</li>
+  <li>Pilih Bulanan atau Tahunan dan kuantiti (contoh 3 untuk 3 bulan).</li>
+  <li>Dalam borang, isi <b>e-mel Google yang SAMA</b> dengan e-mel yang anda guna untuk log masuk Annur Time Table.</li>
+  <li>Bayar melalui FPX atau kaedah lain yang disediakan.</li>
+  <li>Lesen aktif automatik dalam beberapa minit. Muat semula halaman, atau log masuk Google semula di Tetapan, Storan &amp; backup.</li>
+</ol>
+<div class="box warn"><b>E-mel mesti sama</b>Lesen diikat kepada e-mel Google yang dipakai untuk log masuk. Jika tersalah isi e-mel dalam borang bayaran, hubungi kami dengan resit pembayaran. Kami akan pindahkan lesen.</div>
+<p>Pembaharuan awal tidak merugikan: tempoh baharu disambung dari tarikh tamat semasa.</p>
+<h3>Notis lesen di halaman Utama</h3>
+<div class="duo">
+  <figure><img src="img/lesen-percubaan-hampir-tamat.jpg" alt="Percubaan hampir tamat"><figcaption>Percubaan hampir tamat</figcaption></figure>
+  <figure><img src="img/lesen-tempoh-ihsan.jpg" alt="Tempoh ihsan"><figcaption>Lesen tamat, dalam tempoh ihsan</figcaption></figure>
+</div>
+<table>
+  <tr><th>Keadaan</th><th>Apa berlaku</th></tr>
+  <tr><td>Sepanjang percubaan</td><td>Baki hari dipapar di Perlu tindakan. Pada 3 hari terakhir, banner merah muncul di atas halaman Utama.</td></tr>
+  <tr><td>Langganan, 14 hari terakhir</td><td>Notis peringatan dengan butang Perbaharui. Banner merah pada 3 hari terakhir.</td></tr>
+  <tr><td>Langganan tamat, 7 hari pertama</td><td><b>Tempoh ihsan</b>: semua masih berfungsi, notis merah setiap hari. (Percubaan tiada tempoh ihsan.)</td></tr>
+  <tr><td>Tamat sepenuhnya</td><td>Simpanan ke Google Sheets berhenti, jadi pautan guru tidak lagi menerima kemas kini, dan nama pautan /s/ tidak berfungsi. Data anda <b>tidak dipadam</b>: kekal dalam pelayar dan dalam Google Sheet sekolah. Perbaharui bila-bila masa untuk sambung semula.</td></tr>
+</table>
+<figure><img src="img/lesen-tamat.jpg" alt="Lesen tamat"><figcaption>Lesen telah tamat</figcaption></figure>
+<p>Status lesen, pelan dan tarikh tamat sentiasa dipapar di Tetapan, Storan &amp; backup.</p>
+
+<h2 id="faq"><span class="n">18.</span> Soalan lazim dan masalah biasa</h2>
+<div class="qa">
+<h3>Tetingkap log masuk Google tidak muncul</h3>
+<p>Pelayar mungkin menyekat popup. Benarkan popup untuk annurtimetable.com (ikon di hujung bar alamat), kemudian cuba lagi.</p>
+<h3>"Akses disekat" bila log masuk dengan akaun DELIMa</h3>
+<p>Pentadbir DELIMa negeri atau sekolah mungkin menghadkan app luar. Guna akaun Gmail lain buat sementara. Lesen boleh dipindahkan ke e-mel baharu; hubungi kami.</p>
+<h3>Status "Sambung semula" muncul</h3>
+<p>Sesi Google tamat selepas tempoh tertentu (keselamatan Google). Klik butang itu dan log masuk semula. Perubahan anda masih dalam pelayar dan akan disimpan selepas sambung.</p>
+<h3>Saya terpadam data pelayar (clear browsing data)</h3>
+<p>Jika data sudah disimpan ke Google Sheets, log masuk semula dengan akaun Google yang sama. Sistem muat semula data dari Sheet. Jika belum pernah disimpan ke Sheets dan tiada Export JSON, data tidak dapat dipulihkan. Sebab itu simpan ke Google Sheets dari awal.</p>
+<h3>Penjana tidak dapat meletak semua pelajaran</h3>
+<p>Semak: jumlah waktu seminggu setiap kelas tidak melebihi slot yang ada; guru tidak melebihi had; waktu tidak boleh mengajar dan sekatan tidak terlalu ketat; bilik khas mencukupi. Cuba usaha pengoptimuman lebih tinggi. Pelajaran yang tinggal boleh diseret secara manual dari panel <i>Belum diletak</i>.</p>
+<h3>Guru tidak nampak kemas kini terbaru</h3>
+<p>Pastikan status di bar atas pentadbir ialah <i>Disimpan</i>. Minta guru tarik ke bawah atau muat semula halaman. Pastikan juga langganan masih aktif.</p>
+<h3>Boleh guna di lebih daripada satu komputer?</h3>
+<p>Boleh. Log masuk dengan akaun Google yang sama. Elakkan dua orang menyunting serentak; jika berlaku, sistem tunjuk dialog konflik dan anda pilih data mana yang hendak dikekalkan.</p>
+<h3>Boleh import jadual penuh dari aSc?</h3>
+<p>Buat masa ini import membawa masuk senarai guru, subjek, kelas dan bilik. Beban mengajar diisi di tab Pelajaran, kemudian jadual dijana oleh sistem.</p>
+<h3>Waktu kelas Tahap 1 dan Tahap 2 berbeza</h3>
+<p>Guna pilihan <i>Waktu berbeza ikut kumpulan kelas</i> di Tetapan, Waktu &amp; rehat (<a href="#tetapan">Bab 5</a>). Ciri ini masih Beta; laporkan kepada kami jika ada yang tidak kena.</p>
+</div>
+
+<h2 id="privasi"><span class="n">19.</span> Privasi dan keselamatan data</h2>
+<ul>
+  <li><b>Data jadual dan relief milik sekolah</b>, disimpan dalam pelayar dan dalam Google Sheet di Drive akaun pentadbir. Pembekal tidak menyimpan salinan data tersebut.</li>
+  <li>Sistem guna kebenaran Google <code>drive.file</code>: ia hanya boleh membuka fail yang dicipta sendiri oleh sistem, bukan fail lain dalam Drive anda.</li>
+  <li>Pelayan lesen hanya menyimpan e-mel log masuk, nama sekolah, pelan dan tarikh tamat. Rekod bayaran diurus oleh BCL (Bayarcash).</li>
+  <li>Kata laluan pentadbir disimpan sebagai hash PBKDF2, tidak boleh dibaca semula.</li>
+  <li>Sheet Data Guru hanya mengandungi maklumat yang perlu untuk paparan guru (nama, jadual, relief), tanpa kata laluan.</li>
+  <li>Dasar privasi penuh: <a href="https://annurtimetable.com/privasi">annurtimetable.com/privasi</a>.</li>
+</ul>
+
+<h2 id="video"><span class="n">20.</span> Senarai video panduan</h2>
+<p>Setiap video kira-kira satu minit, mengikut turutan kerja sebenar.</p>
+<div class="vid">
+  <div><b>01</b> Kenali Annur Time Table</div>
+  <div><b>02</b> Log masuk dan percubaan 14 hari</div>
+  <div><b>03</b> Tetapan sekolah dan waktu</div>
+  <div><b>04</b> Data guru, subjek, kelas dan bilik</div>
+  <div><b>05</b> Pelajaran dan beban mengajar</div>
+  <div><b>06</b> Jana dan laras jadual</div>
+  <div><b>07</b> Sekatan serentak</div>
+  <div><b>08</b> Cetak dan Excel</div>
+  <div><b>09</b> Relief harian</div>
+  <div><b>10</b> Relief lanjutan dan peraturan</div>
+  <div><b>11</b> Google Sheets, backup dan pautan guru</div>
+  <div><b>12</b> Paparan guru di telefon</div>
+  <div><b>13</b> Langganan dan lesen</div>
+</div>
+
+<h2 id="hubungi"><span class="n">21.</span> Hubungi kami</h2>
+<table>
+  <tr><th>Saluran</th><th>Butiran</th></tr>
+  <tr><td>WhatsApp</td><td><a href="https://wa.me/601120879149">011-2087 9149</a></td></tr>
+  <tr><td>E-mel</td><td><a href="mailto:annurprosolutions@gmail.com">annurprosolutions@gmail.com</a></td></tr>
+  <tr><td>Laman</td><td><a href="https://annurtimetable.com">annurtimetable.com</a></td></tr>
+</table>
+<p>Bila menghubungi kami, sertakan: nama sekolah, e-mel Google yang digunakan, tangkapan skrin masalah, dan langkah yang dibuat sebelum masalah berlaku.</p>
+<footer>Annur Time Table · AnnurPro Solutions, Nibong Tebal, Pulau Pinang · Panduan ini untuk versi app 2.2 (November 2026). Gambar skrin menggunakan data sekolah contoh.</footer>
+</main>
+</body>
+</html>

@@ -14,3 +14,4 @@ wrangler.jsonc
 .assetsignore
 .wrangler
 edge
+.claude

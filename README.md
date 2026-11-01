@@ -201,10 +201,22 @@ Bila waktu berbeza ikut set, kelas disemak ikut grid waktu setnya, manakala guru
 
 Ujian beban (`npm run bench`, data sintetik sekolah menengah dengan PI/PM serentak dan blok elektif Tingkatan 4-5): 24 kelas/51 guru, 35/70, 50/100, 50/300 dan 110 kelas/300 guru (3,202 waktu) semuanya diletak tanpa konflik, fasa letak di bawah 0.2 saat. Data yang mustahil dimuatkan dihentikan selepas 30 saat dengan sebab bagi setiap waktu yang tidak diletak.
 
+## Panduan pengguna dan video
+
+- **Manual pengguna** (untuk sekolah): `panduan/index.html`, diterbitkan di `annurtimetable.com/panduan/`, dengan PDF `panduan/Panduan-Annur-Time-Table.pdf`. Dipautkan dari halaman Bantuan dan laman utama.
+- **Gambar skrin dan video panduan** dijana daripada app sebenar dengan Google, Sheets dan Worker lesen tiruan (tiada data sebenar):
+  ```bash
+  node tools/manual/record.js --shots            # 47 gambar skrin ke tools/manual/out/shots
+  node tools/manual/record.js --videos V06,V09   # video tertentu (13 babak dalam tools/manual/scenes.js)
+  node tools/manual/build.js panduan/index.html panduan/Panduan-Annur-Time-Table.pdf
+  ```
+  Salin gambar baharu ke `panduan/img/` sebelum bina PDF. Video (mp4) tidak disimpan dalam repo; muat naik ke YouTube atau hos lain.
+- **Skill pembina SaaS** untuk projek seterusnya: `.claude/skills/micro-saas-builder/`.
+
 ## Ujian
 
 ```bash
-npm test                               # 116 ujian unit, tanpa dependency
+npm test                               # 140 ujian unit, tanpa dependency
 npm i playwright && npm run test:e2e   # klik seluruh aliran dalam Chromium
 ```
 
