@@ -31,6 +31,13 @@ curl -X DELETE "$URL/admin/licenses?key=email:admin@smkcontoh.edu.my" -H "Author
 ```
 Pembaharuan = hantar POST yang sama dengan `expires` baharu.
 
+Tambah bulan tanpa kira tarikh sendiri (contoh hadiah, pembayaran luar BCL, atau lesen untuk diri sendiri). Disambung dari tarikh tamat semasa jika masih aktif, jika tidak dari hari ini; percubaan ditukar kepada berbayar:
+```bash
+curl -X POST $URL/admin/licenses -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+  -d '{"email":"saya@gmail.com","school":"Nama sekolah","addMonths":12}'
+```
+Di Console pelayar (pada halaman Worker): `fetch('/admin/licenses',{method:'POST',headers:{authorization:'Bearer ISI_ADMIN_TOKEN','content-type':'application/json'},body:JSON.stringify({email:'saya@gmail.com',addMonths:12})}).then(r=>r.json()).then(console.log)`. Kuantiti dalam borang BCL dikira: Bulanan x3 = 3 bulan, Tahunan x2 = 24 bulan.
+
 ## Tingkah laku
 - Lesen tamat: tempoh ihsan 7 hari (`GRACE_DAYS`), kemudian simpanan Google Sheets dihentikan. Data tempatan dalam pelayar kekal boleh digunakan.
 - Pelayan lesen tak dapat dihubungi: app guna semakan terakhir yang berjaya selama 7 hari.

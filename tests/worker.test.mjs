@@ -145,7 +145,7 @@ test('BCL tahunan: disahkan dengan API, lesen 12 bulan untuk e-mel log masuk (bu
   const api = bclApi({ 'LINK-1': { order_number: 'LINK-1', status: 'success', status_code: 3, amount: 201, items: [{ name: 'Langganan Tahunan', amount: 200 }] } }, calls);
   const r = await hook(env, sale('LINK-1', 'Langganan Tahunan', '200.00'), api);
   assert.deepStrictEqual([r.ok, r.email, r.months, r.expires], [true, 'admin@smkcontoh.edu.my', 12, '2027-10-26']);
-  assert.deepStrictEqual(JSON.parse(await env.LICENSES.get('email:admin@smkcontoh.edu.my')), { school: 'SK Contoh', plan: 'tahunan', expires: '2027-10-26' });
+  assert.deepStrictEqual(JSON.parse(await env.LICENSES.get('email:admin@smkcontoh.edu.my')), { school: 'SK Contoh', plan: 'tahunan', expires: '2027-10-26', day: 26 });
   assert.strictEqual(calls[0].url, 'https://bcl.test/api/transactions/LINK-1');
   assert.strictEqual(calls[0].auth, 'Bearer api-tok');
   assert.ok(calls[0].ua && !/curl|python/i.test(calls[0].ua), 'User-Agent sendiri');
@@ -306,4 +306,72 @@ test('nama pautan: lesen domain boleh digunakan oleh akaun domain itu', async ()
   await adminReq(env, 'POST', '/admin/licenses', { domain: 'smkcontoh.edu.my', school: 'SMK Contoh', plan: 'tahunan', expires: '2027-06-01' });
   const r = await slugReq(env, 'POST', '/slug', { token: 'good', body: { slug: 'smkcontoh', gid: GID, school: 'SMK Contoh' } });
   assert.strictEqual(r.status, 200);
+});
+
+test('BCL kuantiti: bulan = bulan setiap unit x kuantiti (bulanan x3 = 3 bulan, tahunan x2 = 24 bulan)', async () => {
+  const { planMonths } = await import('../worker/index.mjs');
+  assert.strictEqual(planMonths([{ item: 'LANGGANAN BULANAN', quantity: 1 }], '20.00', {}), 1);
+  assert.strictEqual(planMonths([{ item: 'LANGGANAN BULANAN', quantity: 3 }], '60.00', {}), 3);
+  assert.strictEqual(planMonths([{ item: 'LANGGANAN BULANAN', quantity: 12 }], '240.00', {}), 12);
+  assert.strictEqual(planMonths([{ item: 'LANGGANAN TAHUNAN', quantity: 2 }], '400.00', {}), 24);
+  assert.strictEqual(planMonths([{ item: 'LANGGANAN BULANAN' }], '20.00', {}), 1, 'kuantiti tiada = 1');
+  assert.strictEqual(planMonths([{ item: 'LANGGANAN BULANAN', quantity: 0 }, { item: 'LANGGANAN TAHUNAN', quantity: 1 }], '220.00', {}), 13, 'campuran, kuantiti sifar dikira 1');
+  assert.strictEqual(planMonths([{ item: 'LANGGANAN BULANAN', quantity: 99999 }], '1', {}), 120, 'had selamat');
+  // senarai API tiada nama dikenali: guna senarai webhook, kemudian jumlah bayaran
+  assert.strictEqual(planMonths([{ id: 1 }], '60.00', {}, [{ item: 'LANGGANAN BULANAN', quantity: 3 }]), 3);
+  assert.strictEqual(planMonths([], '200.00', {}), 12);
+  assert.strictEqual(planMonths(undefined, '20.00', {}), 1);
+  // end-to-end: bayaran 3 bulan dalam satu transaksi
+  const env = bclEnv();
+  const api = bclApi({ 'LINK-Q': { order_number: 'LINK-Q', status_code: 3, amount: 61, items: [{ name: 'LANGGANAN BULANAN', quantity: 3, amount: 60 }] } });
+  const body = sale('LINK-Q', 'LANGGANAN BULANAN', '60.00'); body.data.main_data.items = [{ item: 'LANGGANAN BULANAN', quantity: 3, amount: '60.00' }];
+  const r = await hook(env, body, api);
+  assert.deepStrictEqual([r.ok, r.months, r.expires], [true, 3, '2027-01-26']);
+});
+
+test('lesen bulanan: hari dalam bulan dikekalkan selepas Februari, dan 12 bayaran bulanan = 12 bulan penuh', async () => {
+  const { addMonths } = await import('../worker/index.mjs');
+  assert.strictEqual(addMonths('2027-01-31', 1, 31), '2027-02-28');
+  assert.strictEqual(addMonths('2027-02-28', 1, 31), '2027-03-31', 'kembali ke hari asal');
+  assert.strictEqual(addMonths('2028-01-31', 1, 31), '2028-02-29', 'tahun lompat');
+  assert.strictEqual(addMonths('2026-10-26', 12), '2027-10-26');
+  const env = bclEnv();
+  const orders = {}; for (let i = 1; i <= 12; i++) orders['LINK-M' + i] = { order_number: 'LINK-M' + i, status_code: 3, amount: 21, items: [{ name: 'LANGGANAN BULANAN', quantity: 1 }] };
+  const api = bclApi(orders);
+  let last; const NOW30 = Date.parse('2026-11-30T00:00:00Z');
+  for (let i = 1; i <= 12; i++) last = await hook(env, sale('LINK-M' + i, 'LANGGANAN BULANAN', '20.00'), api, NOW30);
+  assert.strictEqual(last.expires, '2027-11-30', '12 bulan penuh dari 30 Nov, bukan 28 Nov');
+  assert.strictEqual(JSON.parse(await env.LICENSES.get('email:admin@smkcontoh.edu.my')).day, 30);
+});
+
+test('bayar sebelum tamat menyambung dari tarikh tamat; bayar selepas tamat bermula dari hari ini', async () => {
+  const env = bclEnv();
+  await adminReq(env, 'POST', '/admin/licenses', { email: 'admin@smkcontoh.edu.my', plan: 'bulanan', expires: '2026-11-10' });
+  const api = bclApi({ 'LINK-A': { order_number: 'LINK-A', status_code: 3, amount: 21, items: [{ name: 'LANGGANAN BULANAN', quantity: 1 }] }, 'LINK-B': { order_number: 'LINK-B', status_code: 3, amount: 21, items: [{ name: 'LANGGANAN BULANAN', quantity: 1 }] } });
+  assert.strictEqual((await hook(env, sale('LINK-A', 'LANGGANAN BULANAN', '20.00'), api)).expires, '2026-12-10', 'sebelum tamat: sambung dari 10 Nov');
+  await adminReq(env, 'POST', '/admin/licenses', { email: 'admin@smkcontoh.edu.my', plan: 'bulanan', expires: '2026-09-01' });
+  assert.strictEqual((await hook(env, sale('LINK-B', 'LANGGANAN BULANAN', '20.00'), api)).expires, '2026-11-26', 'selepas tamat: mula dari hari ini (26 Okt)');
+});
+
+test('admin: tambah bulan secara manual (addMonths) dari tarikh tamat semasa atau dari hari ini', async () => {
+  const env = mkEnv();
+  const add = (body) => adminReq(env, 'POST', '/admin/licenses', body).then(async (r) => [r.status, await r.json()]);
+  // tiada lesen: bermula dari hari ini (26 Okt 2026) dan jadi lesen berbayar
+  assert.deepStrictEqual(await add({ email: 'saya@gmail.com', addMonths: 3, school: 'Saya' }), [200, { ok: true, key: 'email:saya@gmail.com', expires: '2027-01-26', plan: 'bulanan' }]);
+  // masih aktif: sambung dari tarikh tamat
+  assert.strictEqual((await add({ email: 'saya@gmail.com', addMonths: 12 }))[1].expires, '2028-01-26');
+  assert.strictEqual(JSON.parse(await env.LICENSES.get('email:saya@gmail.com')).plan, 'bulanan', 'pelan sedia ada dikekalkan');
+  // sudah tamat: dari hari ini
+  await add({ email: 'tamat@gmail.com', plan: 'bulanan', expires: '2026-01-01' });
+  assert.strictEqual((await add({ email: 'tamat@gmail.com', addMonths: 1 }))[1].expires, '2026-11-26');
+  // percubaan ditukar kepada berbayar (boleh tuntut nama pautan), baki percubaan tidak hilang
+  await check(env, 'good');
+  const t = (await add({ email: 'admin@smkcontoh.edu.my', addMonths: 12 }))[1];
+  assert.deepStrictEqual([t.plan, t.expires], ['tahunan', '2027-11-08']);
+  // domain, input tidak sah, lesen tanpa tarikh luput
+  assert.strictEqual((await add({ domain: 'sekolah.edu.my', addMonths: 6 }))[1].key, 'domain:sekolah.edu.my');
+  for (const bad of [0, -1, 1.5, 121, 'abc']) assert.strictEqual((await add({ email: 'saya@gmail.com', addMonths: bad }))[0], 400, String(bad));
+  await adminReq(env, 'POST', '/admin/licenses', { email: 'kekal@gmail.com', plan: 'pilot' });
+  assert.strictEqual((await add({ email: 'kekal@gmail.com', addMonths: 1 }))[0], 400);
+  assert.strictEqual((await adminReq(env, 'POST', '/admin/licenses', { email: 'x@y.com', addMonths: 1 }, 'salah')).status, 401);
 });

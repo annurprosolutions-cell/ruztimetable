@@ -67,11 +67,13 @@ export function evaluate(lic, now, graceDays) {
 // ---------- tarikh ----------
 const PLAN_TRIAL = 'percubaan';
 export const addDays = (iso, n) => new Date(Date.parse(iso + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
-// tambah bulan kalendar; 31 Jan + 1 bulan = 28/29 Feb
-export const addMonths = (iso, n) => {
-  const [y, m, d] = iso.split('-').map(Number), t = new Date(Date.UTC(y, m - 1 + n, 1));
+// tambah bulan kalendar. `day` = hari dalam bulan yang dikekalkan (hari bayaran pertama), supaya 30 Nov + 1 bulan x 3
+// ialah 30 Dis, 30 Jan, 28 Feb, 30 Mac (bukan 28 Mac); bulan pendek dikecilkan kepada hari terakhir bulan itu.
+export const addMonths = (iso, n, day) => {
+  const [y, m, d] = iso.split('-').map(Number), want = Math.max(d, day | 0);
+  const t = new Date(Date.UTC(y, m - 1 + n, 1));
   const last = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate();
-  t.setUTCDate(Math.min(d, last));
+  t.setUTCDate(Math.min(want, last));
   return t.toISOString().slice(0, 10);
 };
 const numEnv = (v, d) => (v !== undefined && v !== '' && Number.isFinite(+v) ? +v : d);
@@ -99,20 +101,29 @@ export function pickSchool(custom) {
   const e = Object.entries(custom || {}).find(([k, v]) => /sekolah|school|institusi/i.test(k) && String(v || '').trim());
   return e ? String(e[1]).trim().slice(0, 120) : '';
 }
-// bulan langganan: nama produk menyebut tahun -> 12, bulan -> 1, jika tidak ikut jumlah bayaran
-export function planMonths(items, amount, env) {
-  const text = (items || []).map((i) => [i.item, i.name, i.option, i.sku].filter(Boolean).join(' ')).join(' ');
-  if (/tahun|year|annual|12 ?bulan/i.test(text)) return 12;
-  if (/bulan|month/i.test(text)) return 1;
-  return parseFloat(amount) >= numEnv(env.YEARLY_MIN_AMOUNT, 150) ? 12 : 1;
+// bulan langganan = jumlah (bulan setiap unit x kuantiti). Nama produk menyebut tahun -> 12, bulan -> 1. Jika tiada nama yang
+// dikenali (cuba senarai pilihan `alt` dahulu, contoh item dalam webhook), ikut jumlah bayaran: RM150 ke atas = 12, jika tidak 1.
+const unitMonths = (it) => {
+  const text = [it.item, it.name, it.option, it.sku].filter(Boolean).join(' ');
+  return /tahun|year|annual|12 ?bulan/i.test(text) ? 12 : /bulan|month/i.test(text) ? 1 : 0;
+};
+const sumMonths = (items) => {
+  let total = 0;
+  for (const it of items || []) { const u = unitMonths(it || {}); if (u) total += u * Math.min(120, Math.max(1, parseInt(it.quantity, 10) || 1)); }
+  return total;
+};
+export function planMonths(items, amount, env, alt) {
+  return sumMonths(items) || sumMonths(alt) || (parseFloat(amount) >= numEnv(env.YEARLY_MIN_AMOUNT, 150) ? 12 : 1);
 }
 
-// lanjutkan lesen e-mel: dari tarikh tamat semasa jika masih aktif (termasuk baki percubaan), jika tidak dari hari ini
+// lanjutkan lesen e-mel: dari tarikh tamat semasa jika masih aktif (termasuk baki percubaan), jika tidak dari hari ini.
+// `day` dalam rekod ialah hari dalam bulan yang dikekalkan (hari bayaran pertama).
 export async function extendLicense(env, email, months, school, now) {
   const key = 'email:' + email, t = today(now);
   let cur = null; try { cur = JSON.parse((await env.LICENSES.get(key)) || 'null'); } catch (e) { cur = null; }
-  const base = cur && cur.expires && cur.expires >= t ? cur.expires : t;
-  const lic = { school: school || (cur && cur.school) || '', plan: months >= 12 ? 'tahunan' : 'bulanan', expires: addMonths(base, months) };
+  const active = cur && cur.expires && cur.expires >= t, base = active ? cur.expires : t;
+  const day = active && cur.day ? cur.day : +base.slice(8);
+  const lic = { school: school || (cur && cur.school) || '', plan: months >= 12 ? 'tahunan' : 'bulanan', expires: addMonths(base, months, day), day };
   await env.LICENSES.put(key, JSON.stringify(lic));
   return Object.assign({ key }, lic);
 }
@@ -239,13 +250,13 @@ export async function processBcl(body, env, o) {
       Math.abs(parseFloat(v.amount) - parseFloat(md.subtotal_amount)) > 0.009) return { ok: false, reason: 'jumlah-tidak-sepadan' };
   const email = pickEmail(v.custom || d.custom_fields_data, v.payer_email || md.payer_email);
   if (!email) return { ok: false, reason: 'tiada-emel' };
-  const months = planMonths(v.items || md.items, md.subtotal_amount != null ? md.subtotal_amount : md.amount, env);
+  const months = planMonths(v.items, md.subtotal_amount != null ? md.subtotal_amount : md.amount, env, md.items);
   const lic = await extendLicense(env, email, months, school, o.now);
   await env.LICENSES.put('bcl:' + rid, JSON.stringify({ email, months, at: today(o.now), expires: lic.expires }));
   return { ok: true, email, months, expires: lic.expires };
 }
 
-async function admin(req, env, url) {
+async function admin(req, env, url, now) {
   if (!env.ADMIN_TOKEN || !safeEqual(bearer(req), env.ADMIN_TOKEN)) return json({ error: 'tidak dibenarkan' }, 401);
   if (req.method === 'GET') {
     const out = [];
@@ -271,6 +282,18 @@ async function admin(req, env, url) {
     if (!id || (kind === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(id)) || (kind === 'domain' && !/^[^@\s]+\.[^@\s]+$/.test(id))) return json({ error: 'email atau domain tidak sah' }, 400);
     if (b.expires && !/^\d{4}-\d{2}-\d{2}$/.test(b.expires)) return json({ error: 'expires mesti YYYY-MM-DD' }, 400);
     const key = kind + ':' + id;
+    // addMonths: tambah bulan pada lesen sedia ada (dari tarikh tamat jika masih aktif, jika tidak dari hari ini), tanpa kira tarikh sendiri
+    if (b.addMonths != null) {
+      const n = Number(b.addMonths);
+      if (!Number.isInteger(n) || n < 1 || n > 120) return json({ error: 'addMonths mesti nombor bulat 1 hingga 120' }, 400);
+      let cur = null; try { cur = JSON.parse((await env.LICENSES.get(key)) || 'null'); } catch (e) { cur = null; }
+      if (cur && !cur.expires) return json({ error: 'lesen ini tiada tarikh luput (tidak tamat), tiada apa untuk ditambah' }, 400);
+      const t = today(now), active = cur && cur.expires >= t, base = active ? cur.expires : t, day = active && cur.day ? cur.day : +base.slice(8);
+      const keep = cur && cur.plan && cur.plan !== PLAN_TRIAL ? cur.plan : n >= 12 ? 'tahunan' : 'bulanan';
+      const rec = { school: String(b.school != null ? b.school : (cur && cur.school) || ''), plan: String(b.plan || keep), expires: addMonths(base, n, day), day };
+      await env.LICENSES.put(key, JSON.stringify(rec));
+      return json({ ok: true, key, expires: rec.expires, plan: rec.plan });
+    }
     await env.LICENSES.put(key, JSON.stringify({ school: String(b.school || ''), plan: String(b.plan || 'pilot'), expires: b.expires || '' }));
     return json({ ok: true, key });
   }
@@ -288,7 +311,7 @@ export async function handle(req, env, opts) {
   const now = opts.now != null ? opts.now : Date.now();
   const fetchFn = opts.fetch || fetch;
   const url = new URL(req.url);
-  if (url.pathname.startsWith('/admin/licenses')) return admin(req, env, url);
+  if (url.pathname.startsWith('/admin/licenses')) return admin(req, env, url, now);
   const cors = corsHeaders(req, env);
   if (req.method === 'OPTIONS') return new Response(null, { status: cors ? 204 : 403, headers: cors || {} });
   if (url.pathname === '/health') return json({ ok: true });
