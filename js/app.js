@@ -15,10 +15,23 @@
     return ['utama', 'relief', 'data', 'tetapan'].map((k) => by.get(k));
   };
 
+  // status lesen untuk "Perlu tindakan": keputusan semakan sesi ini, atau semakan berjaya yang terakhir (cache) bila
+  // token Google sudah tamat. Cache yang ditolak tidak digunakan: pelanggan yang baru bayar tidak patut dimarahi.
+  function licenseEnv() {
+    const sy = UI.sync;
+    if (UI.demo || !UI.cfg.licenseUrl || !sy || !UI.isAdmin()) return null;
+    const L = sy.license || {};
+    if (L.state === 'denied') return { ok: false, message: L.message };
+    const c = L.cache || UI.prefs.license;
+    if (!c || !c.ok || !c.expires) return null;
+    if (sy.email && c.email && c.email !== sy.email) return null;
+    return { ok: true, plan: c.plan, expires: c.expires };
+  }
+
   function computeItems() {
     const s = UI.state, today = TT.todayISO();
     if (UI.isGuru()) { const t = UI.meTeacher(); return t ? TT.teacherActions(s, t.id, today) : []; }
-    return TT.actionItems(s, today, { lastBackup: UI.prefs.lastBackup, sheetLinked: !!(UI.sync && UI.sync.linked()) });
+    return TT.actionItems(s, today, { lastBackup: UI.prefs.lastBackup, sheetLinked: !!(UI.sync && UI.sync.linked()), license: licenseEnv(), hasBuy: !!UI.buyUrl() });
   }
 
   function syncPill() {

@@ -407,6 +407,24 @@ async function sheetsFlow(b) {
     await pg.waitForFunction(() => UI.sync.licensed());
     await pg.waitForSelector('text=SMK Pilot');
     step('lesen didaftar (domain), semak semula berjaya');
+
+    // notis lesen di halaman Utama: lesen domain tahun 2027 senyap; percubaan hampir tamat muncul sebagai banner dan item
+    await pg.evaluate(() => { UI.page = 'utama'; UI.render(); });
+    assert.strictEqual(await pg.locator('.act-item', { hasText: 'Percubaan percuma' }).count(), 0, 'lesen jauh dari tamat: tiada notis');
+    await pg.evaluate(() => {
+      const c = { email: UI.sync.email, ok: true, plan: 'percubaan', expires: TT.addDays(TT.todayISO(), 2), checkedAt: Date.now() };
+      UI.sync.license = Object.assign({}, UI.sync.license, { cache: c }); UI.render();
+    });
+    assert.ok(await pg.locator('.alert, .banner-alert, .abanner', { hasText: 'Percubaan percuma: 3 hari lagi' }).count() || await pg.locator('text=Percubaan percuma: 3 hari lagi').count(), 'banner percubaan 3 hari');
+    await pg.evaluate(() => { const c = Object.assign({}, UI.sync.license.cache, { plan: 'bulanan', expires: TT.addDays(TT.todayISO(), -10) }); UI.sync.license = Object.assign({}, UI.sync.license, { cache: c }); UI.render(); });
+    assert.ok(await pg.locator('text=Lesen telah tamat').count(), 'lesen tamat melebihi tempoh ihsan: kritikal');
+    await pg.evaluate(() => { UI.sync.license = Object.assign({}, UI.sync.license, { state: 'denied', message: 'x' }); UI.render(); });
+    assert.ok(await pg.locator('text=Akaun ini belum berlesen').count(), 'ditolak: kritikal');
+    // butang Langgan membuka borang BCL dalam tab baharu
+    await pg.evaluate(() => { window.open = (u, t, f) => { window.__opened = [u, t, f]; return null; }; UI.sync.license = Object.assign({}, UI.sync.license, { buyUrl: 'https://beli.test/form' }); UI.actions.openBuy(); });
+    assert.deepStrictEqual(await pg.evaluate(() => window.__opened), ['https://beli.test/form', '_blank', 'noopener']);
+    await pg.evaluate(() => { UI.sync.license = Object.assign({}, UI.sync.license, { state: 'ok', message: '' }); const c = Object.assign({}, UI.sync.license.cache, { plan: 'tahunan', expires: '2027-12-31' }); UI.sync.license = Object.assign({}, UI.sync.license, { cache: c }); UI.page = 'tetapan'; UI.setTab = 'storan'; UI.render(); });
+    step('notis lesen di halaman Utama: senyap bila jauh, percubaan 3 hari, tamat, ditolak, butang Langgan membuka borang');
     await pg.click('button[data-act="syncCreate"]');
     await pg.waitForFunction(() => UI.prefs.sheet && UI.sync.status === 'saved');
     const book = [...fake.db.values()][0];

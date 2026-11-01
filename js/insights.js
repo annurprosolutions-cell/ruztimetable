@@ -95,14 +95,50 @@
   const dueSev = (s, iso, d) => (d === iso ? 'hari-ini' : d === TT.nextSchoolDay(s, iso) ? 'segera' : 'perhatian');
   const bySev = (a, b) => SEV[a.sev] - SEV[b.sev];
 
-  // senarai "Perlu tindakan" untuk pentadbir. env: { lastBackup, sheetLinked }
+  // ---------- lesen: perlu tindakan ----------
+  // lic: { ok, plan, expires, message } daripada semakan lesen (atau cache semakan terakhir). Tempoh ihsan 7 hari
+  // sama dengan GRACE_DAYS lalai Worker, dan hanya untuk langganan berbayar (percubaan tamat terus).
+  const LICENSE_GRACE = 7;
+  TT.licenseStatus = (lic, today) => {
+    if (!lic) return null;
+    if (lic.ok === false) return { state: 'denied', message: lic.message || '' };
+    if (!lic.expires) return null;
+    const left = Math.round((Date.parse(lic.expires) - Date.parse(today)) / 864e5), trial = lic.plan === 'percubaan';
+    const base = { plan: lic.plan || '', expires: lic.expires, daysLeft: left };
+    if (left >= 0) return Object.assign(base, { state: trial ? 'trial' : 'paid' });
+    if (!trial && -left <= LICENSE_GRACE) return Object.assign(base, { state: 'grace', graceLeft: LICENSE_GRACE + left });
+    return Object.assign(base, { state: 'expired' });
+  };
+  // item Perlu tindakan untuk status lesen, atau null jika tiada apa yang perlu dilakukan
+  TT.licenseItem = (st, hasBuy) => {
+    if (!st) return null;
+    const go = hasBuy ? { act: 'openBuy' } : { act: 'archiveOpen' };
+    const mk = (sev, title, when, btn) => ({ sev, title, when, btn, go, kind: 'lesen' });
+    const trial = st.plan === 'percubaan', date = st.expires ? TT.fmtDate(st.expires) : '';
+    if (st.state === 'denied') return mk('kritikal', 'Akaun ini belum berlesen: simpanan Google Sheets terhenti', 'Langgan, atau log masuk dengan e-mel yang dibayar', 'Langgan');
+    if (st.state === 'expired') return mk('kritikal', trial ? 'Percubaan percuma telah tamat' : 'Lesen telah tamat', `Tamat ${date} · simpanan Google Sheets terhenti`, trial ? 'Langgan' : 'Perbaharui');
+    if (st.state === 'grace') return mk('segera', `Lesen tamat, tempoh ihsan tinggal ${st.graceLeft} hari`, `Tamat ${date}`, 'Perbaharui');
+    if (st.state === 'trial') {
+      const n = st.daysLeft + 1;
+      return mk(n <= 3 ? 'segera' : n <= 7 ? 'perhatian' : 'info', `Percubaan percuma: ${n} hari lagi`, `Tamat ${date}`, 'Langgan');
+    }
+    if (st.state === 'paid' && st.daysLeft <= 14) {
+      return mk(st.daysLeft <= 3 ? 'segera' : 'perhatian', st.daysLeft === 0 ? 'Lesen tamat hari ini' : `Lesen tamat dalam ${st.daysLeft} hari`, `Tamat ${date}`, 'Perbaharui');
+    }
+    return null;
+  };
+
+  // senarai "Perlu tindakan" untuk pentadbir. env: { lastBackup, sheetLinked, license, hasBuy }
   TT.actionItems = (s, iso, env) => {
     env = env || {};
     const items = [];
+    const lic = TT.licenseItem(TT.licenseStatus(env.license, iso), !!env.hasBuy);
     if (!s.teachers.length && !s.classes.length) {
       items.push({ sev: 'info', title: 'Belum ada data sekolah', when: 'Langkah pertama', btn: 'Muat contoh', go: { act: 'loadSample' } });
-      return items;
+      if (lic) items.push(lic);
+      return items.sort(bySev);
     }
+    if (lic) items.push(lic);
     const pre = TT.precheck(s).filter((e) => e.sev === 'error');
     pre.slice(0, 3).forEach((e) => items.push({ sev: 'kritikal', title: e.msg, when: 'Menghalang penjanaan', btn: 'Betulkan', go: { page: 'data' } }));
     if (pre.length > 3) items.push({ sev: 'kritikal', title: `${pre.length - 3} lagi masalah data`, when: 'Semakan data', btn: 'Lihat', go: { page: 'laporan' } });

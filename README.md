@@ -40,6 +40,7 @@ Aliran kerja pentadbir:
 - Kad "Hari ini": blok relief hari ini dengan status (Siap / Agih / Kendiri) dan ketidakhadiran minggu ini. Untuk guru: kelas sendiri ikut masa, tugas relief diserlahkan, cip "Sekarang".
 - Banner merah untuk perkara paling mendesak, contohnya relief hari ini atau hari persekolahan seterusnya yang belum diagih, atau konflik jadual.
 - "Perlu tindakan" dan loceng notifikasi: konflik, waktu belum diletak, relief belum diagih untuk 7 hari akan datang, guru melebihi had, data belum dibackup.
+- Notis lesen (pentadbir yang log masuk Google): baki percubaan percuma, lesen yang hampir tamat (14 hari terakhir), tempoh ihsan, dan lesen tamat atau akaun belum berlesen (kritikal, dengan butang Langgan/Perbaharui yang membuka borang BCL). Lesen berbayar yang masih jauh dari tamat tidak dipaparkan.
 - Heatmap aktiviti relief sebulan. Klik satu hari untuk terus ke relief tarikh itu.
 
 **Penjana jadual**

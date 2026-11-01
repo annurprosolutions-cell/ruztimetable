@@ -23,6 +23,14 @@
     if (sync.signedIn()) sync.msg = 'Disambung';
   }
 
+  // pautan borang langganan: Worker (BUY_URL) diutamakan, kemudian config.js
+  UI.buyUrl = () => (sync.license && sync.license.buyUrl) || CFG.buyUrl || '';
+  actions.openBuy = () => {
+    const u = UI.buyUrl();
+    if (u) window.open(u, '_blank', 'noopener');
+    else if (actions.archiveOpen) actions.archiveOpen();
+  };
+
   sync.checkLicense = async () => {
     if (!LURL) { sync.license = TT.licenseDecision({ disabled: true }); return sync.license; }
     let result = null, error = null;
