@@ -39,6 +39,7 @@ async function site(ctx) {
     let p = decodeURIComponent(new URL(route.request().url()).pathname);
     const pretty = /^\/s\/[^/]+\/?$/.test(p);
     if (p === '/' || pretty) p = '/index.html';
+    else if (p.endsWith('/') && fs.existsSync(path.join(ROOT, p, 'index.html'))) p += 'index.html';
     else if (!path.extname(p) && fs.existsSync(path.join(ROOT, p + '.html'))) p += '.html';
     const f = path.join(ROOT, p);
     if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) return route.fulfill({ status: 404, body: '' });
@@ -166,9 +167,9 @@ function helpers(pg, mode, name, log) {
     await l.scrollIntoViewIfNeeded().catch(() => {});
     return l;
   };
-  const moveTo = async (x, y) => {
+  const moveTo = async (x, y, fast) => {
     if (!video) return;
-    const steps = Math.max(10, Math.min(40, Math.round(Math.hypot(x - cur.x, y - cur.y) / 16)));
+    const steps = fast ? Math.max(6, Math.min(14, Math.round(Math.hypot(x - cur.x, y - cur.y) / 40))) : Math.max(10, Math.min(40, Math.round(Math.hypot(x - cur.x, y - cur.y) / 16)));
     await pg.mouse.move(x, y, { steps }); cur = { x, y };
   };
   const h = {
@@ -201,9 +202,9 @@ function helpers(pg, mode, name, log) {
       try {
         const t0 = Date.now();
         const l = await loc(sel, o.timeout); const b = await l.boundingBox(); const t1 = Date.now();
-        if (video && b) { await moveTo(b.x + b.width / 2, b.y + b.height / 2); await pg.waitForTimeout(280); await pg.mouse.click(b.x + b.width / 2, b.y + b.height / 2); }
-        if (process.env.RECDEBUG) log(`  [${name}] klik ${sel}: cari ${t1 - t0} ms, gerak+klik ${Date.now() - t1} ms`);
+        if (video && b) { await moveTo(b.x + b.width / 2, b.y + b.height / 2, o.fast); await pg.waitForTimeout(o.fast ? 90 : 280); await pg.mouse.click(b.x + b.width / 2, b.y + b.height / 2); }
         else await l.click();
+        if (process.env.RECDEBUG) log(`  [${name}] klik ${sel}: cari ${t1 - t0} ms, gerak+klik ${Date.now() - t1} ms`);
         await W(o.after != null ? o.after : 800);
         return true;
       } catch (e) { log(`  ! [${name}] klik ${sel}: ${e.message.split('\n')[0]}`); return false; }
@@ -223,8 +224,8 @@ function helpers(pg, mode, name, log) {
     async select(sel, value) {
       try { const l = await loc(sel); await h.hover(l, 300); await l.selectOption(value); await W(700); return true; } catch (e) { log(`  ! [${name}] pilih ${sel}: ${e.message.split('\n')[0]}`); return false; }
     },
-    async nav(p) { return h.click(`nav button[data-p="${p}"]`, { after: 900 }); },
-    async tab(scope, k) { return h.click(`button[data-act="tab"][data-scope="${scope}"][data-k="${k}"]`, { after: 850 }); },
+    async nav(p, o) { return h.click(`nav button[data-p="${p}"]`, Object.assign({ after: 900 }, o)); },
+    async tab(scope, k, o) { return h.click(`button[data-act="tab"][data-scope="${scope}"][data-k="${k}"]`, Object.assign({ after: 850 }, o)); },
     async scroll(y, ms) { await pg.evaluate((y) => window.scrollTo({ top: y, behavior: 'smooth' }), y); await W(ms || 1200); },
     async scrollTo(sel, ms) { try { await pg.locator(sel).first().evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), null, { timeout: 2000 }); } catch (e) { log(`  ! [${name}] skrol ${sel}`); } await W(ms || 1200); },
     async scrollDlg(ms) { try { await pg.locator('.overlay .dlg-b').first().evaluate((el) => el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' }), null, { timeout: 2000 }); } catch (e) { /* abaikan */ } await W(ms || 1300); },
@@ -324,7 +325,7 @@ async function pool(items, n, fn) {
   await Promise.all(Array.from({ length: Math.min(n, items.length) }, run));
 }
 
-(async () => {
+if (require.main === module) (async () => {
   ['shots', 'video', 'raw'].forEach((d) => fs.mkdirSync(path.join(OUT, d), { recursive: true }));
   const base = SITE;
   const browser = await chromium.launch();
@@ -344,3 +345,5 @@ async function pool(items, n, fn) {
     await browser.close();
   }
 })().catch((e) => { console.error(e); process.exit(1); });
+
+module.exports = { site, backend, OVERLAY, helpers, seedState, SITE, EMAIL, FIXED, OUT };

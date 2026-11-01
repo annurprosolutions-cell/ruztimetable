@@ -26,3 +26,11 @@ One-page summary · architecture diagram (inline SVG) · accounts and assets tab
 ## Publishing
 - Put the user manual in a public folder of the site (e.g. `/panduan/`) with `img/` and the PDF; link it from the app's Help page and landing page.
 - Videos (2-5 MB each) are better on YouTube (unlisted) or a CDN than in git; list them in the manual.
+
+## Promo video synced to a voice-over (`assets/promo-sync-template.js`)
+When the owner supplies an AI voice track (wav) for an ad or intro:
+1. Transcribe with timestamps to get each sentence's start time: `pip install faster-whisper` in a venv, decode the wav to 16 kHz float32 with ffmpeg and pass the numpy array (passing a path failed with the installed `av`), `language="ms"`, `WhisperModel("small")` downloads from Hugging Face fine. Names get misheard ("unknown timetable"); use the timings, not the text, and keep the owner's script as the caption text.
+2. Split the timeline into clips at sentence boundaries (desktop, phone, desktop). Record each clip separately and cut it to the exact audio length; one clip per context means a slow action can never push the rest out of sync.
+3. Inside a clip use `at(t)` (wait until t seconds since the clip's t0) before each action; log anything more than 0.5 s late and shorten that step (use `fast` clicks and `page.selectOption` instead of cursor-animated selects).
+4. Composite: concatenate clips, burn captions with `drawtext` (Inter, one text file per caption, wrapped at ~46 chars, `enable='between(t,a,b)'`), mux the wav as AAC, `-shortest`. Phone clips go on a blurred copy of themselves.
+5. Verify by extracting frames at the time each sentence starts (contact sheet) before sending. Tell the owner anything in the script the product does not actually implement (e.g. a promo that is not set up in the payment form).
