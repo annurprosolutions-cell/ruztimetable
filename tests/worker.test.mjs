@@ -215,3 +215,95 @@ test('admin: senarai lalai hanya lesen, ?semua=1 termasuk rekod bayaran', async 
   const all = await (await adminReq(env, 'GET', '/admin/licenses?semua=1')).json();
   assert.ok(all.licenses.some((x) => x.key.startsWith('trial:')));
 });
+
+// ---------- pautan guru cantik /s/<nama> ----------
+const GID = 'g'.repeat(44);
+const slugReq = (env, method, path, { token, body, origin = ORIGIN, now = NOW } = {}) => handle(new Request('https://w.test' + path, {
+  method, headers: Object.assign({ origin, 'content-type': 'application/json' }, token ? { authorization: 'Bearer ' + token } : {}), body: body ? JSON.stringify(body) : undefined
+}), env, { now, fetch: google(TOKENS) });
+const paid = async (env, extra) => adminReq(env, 'POST', '/admin/licenses', Object.assign({ email: 'admin@smkcontoh.edu.my', school: 'SMK Contoh', plan: 'tahunan', expires: '2027-06-01' }, extra));
+
+test('nama pautan: semakan format dan nama dikhaskan', async () => {
+  const { slugCheck } = await import('../worker/index.mjs');
+  assert.strictEqual(slugCheck(' SMK-Wakanda ').slug, 'smk-wakanda');
+  for (const bad of ['ab', 'a'.repeat(31), 'smk wakanda', 'smk_wakanda', '-smk', 'smk-', 'smk--x', 'sekolah', 'admin', 'xn--abc', 'smk/../x', '']) assert.ok(slugCheck(bad).problem, bad);
+});
+
+test('nama pautan: hanya pelanggan berbayar boleh tuntut; percubaan dan tanpa lesen ditolak', async () => {
+  const env = mkEnv();
+  const claim = (extra) => slugReq(env, 'POST', '/slug', { token: 'good', body: Object.assign({ slug: 'smkwakanda', gid: GID, school: 'SMK Wakanda' }, extra) });
+  let r = await claim(); assert.deepStrictEqual([r.status, (await r.json()).reason], [403, 'perlu-langganan'], 'tiada lesen');
+  await check(env, 'good'); // mulakan percubaan
+  r = await claim(); assert.deepStrictEqual([r.status, (await r.json()).reason], [403, 'perlu-langganan'], 'percubaan');
+  await paid(env);
+  r = await claim(); assert.deepStrictEqual([r.status, await r.json()], [200, { ok: true, slug: 'smkwakanda' }]);
+  assert.strictEqual((await slugReq(env, 'POST', '/slug', { body: {} })).status, 401, 'tanpa token');
+  assert.strictEqual((await slugReq(env, 'POST', '/slug', { token: 'salah', body: {} })).status, 401, 'token tidak sah');
+  assert.strictEqual((await slugReq(env, 'POST', '/slug', { token: 'good', body: {}, origin: 'https://jahat.example' })).status, 403, 'asal tidak dibenarkan');
+});
+
+test('nama pautan: terjemah awam, 404 bila tiada, dan berhenti bila lesen pemilik tamat', async () => {
+  const env = mkEnv();
+  await paid(env);
+  await slugReq(env, 'POST', '/slug', { token: 'good', body: { slug: 'smkwakanda', gid: GID, school: 'SMK Wakanda' } });
+  let r = await slugReq(env, 'GET', '/slug/SMKWakanda'); // tanpa token, tidak sensitif huruf
+  assert.deepStrictEqual([r.status, await r.json()], [200, { ok: true, gid: GID, school: 'SMK Wakanda' }]);
+  assert.strictEqual(r.headers.get('cache-control'), 'no-store');
+  assert.strictEqual((await slugReq(env, 'GET', '/slug/tiada-nama')).status, 404);
+  assert.strictEqual((await slugReq(env, 'GET', '/slug/ab')).status, 404, 'format tidak sah');
+  assert.strictEqual((await slugReq(env, 'GET', '/slug/smkwakanda', { origin: 'https://jahat.example' })).status, 403);
+  // lesen tamat 8 hari lalu (melepasi tempoh ihsan 7 hari): pautan berhenti; dalam tempoh ihsan masih berfungsi
+  await paid(env, { expires: '2026-10-18' });
+  r = await slugReq(env, 'GET', '/slug/smkwakanda'); assert.deepStrictEqual([r.status, (await r.json()).reason], [404, 'lesen-tamat']);
+  await paid(env, { expires: '2026-10-22' });
+  assert.strictEqual((await slugReq(env, 'GET', '/slug/smkwakanda')).status, 200);
+});
+
+test('nama pautan: nama sudah digunakan, ID Sheet tidak sah, kemas kini oleh pemilik', async () => {
+  const env = mkEnv();
+  await paid(env);
+  await paid(env, { email: 'lain@sekolah.edu.my', school: 'SK Lain' });
+  TOKENS.lain = { email: 'lain@sekolah.edu.my', email_verified: 'true', aud: CID };
+  const body = { slug: 'smkwakanda', gid: GID, school: 'SMK Wakanda' };
+  assert.strictEqual((await slugReq(env, 'POST', '/slug', { token: 'good', body })).status, 200);
+  const taken = await slugReq(env, 'POST', '/slug', { token: 'lain', body });
+  assert.deepStrictEqual([taken.status, (await taken.json()).reason], [409, 'telah-digunakan']);
+  const bad = await slugReq(env, 'POST', '/slug', { token: 'good', body: { slug: 'smkwakanda', gid: 'pendek' } });
+  assert.deepStrictEqual([bad.status, (await bad.json()).reason], [400, 'gid-tidak-sah']);
+  const dup = await slugReq(env, 'POST', '/slug', { token: 'good', body: { slug: 'sekolah', gid: GID } });
+  assert.deepStrictEqual([dup.status, (await dup.json()).reason], [400, 'nama-tidak-sah']);
+  // pemilik kemas kini ID Sheet baharu pada nama yang sama
+  const gid2 = 'h'.repeat(44);
+  assert.strictEqual((await slugReq(env, 'POST', '/slug', { token: 'good', body: Object.assign({}, body, { gid: gid2 }) })).status, 200);
+  assert.strictEqual((await (await slugReq(env, 'GET', '/slug/smkwakanda')).json()).gid, gid2);
+});
+
+test('nama pautan: tukar nama sekali bebas, kemudian sekali setiap 30 hari; nama lama dilepaskan', async () => {
+  const env = mkEnv();
+  await paid(env);
+  const claim = (slug, now) => slugReq(env, 'POST', '/slug', { token: 'good', body: { slug, gid: GID, school: 'S' }, now });
+  assert.strictEqual((await claim('nama-satu', NOW)).status, 200);
+  assert.strictEqual((await claim('nama-dua', NOW + 864e5)).status, 200, 'tukar pertama bebas');
+  assert.strictEqual((await slugReq(env, 'GET', '/slug/nama-satu')).status, 404, 'nama lama dilepaskan');
+  const r = await claim('nama-tiga', NOW + 10 * 864e5);
+  assert.deepStrictEqual([r.status, (await r.json()).daysLeft], [429, 21], 'tukar kedua dalam 30 hari ditolak');
+  assert.strictEqual((await claim('nama-tiga', NOW + 40 * 864e5)).status, 200, 'selepas 30 hari dibenarkan');
+  assert.strictEqual(await env.LICENSES.get('slug:nama-dua'), null);
+});
+
+test('nama pautan: lepaskan nama oleh pemilik', async () => {
+  const env = mkEnv();
+  await paid(env);
+  await slugReq(env, 'POST', '/slug', { token: 'good', body: { slug: 'smkwakanda', gid: GID } });
+  assert.strictEqual((await slugReq(env, 'DELETE', '/slug', { token: 'good' })).status, 200);
+  assert.strictEqual((await slugReq(env, 'GET', '/slug/smkwakanda')).status, 404);
+  assert.strictEqual(await env.LICENSES.get('slugof:admin@smkcontoh.edu.my'), null);
+  assert.strictEqual((await slugReq(env, 'DELETE', '/slug', { token: 'good' })).status, 200, 'idempoten');
+});
+
+test('nama pautan: lesen domain boleh digunakan oleh akaun domain itu', async () => {
+  const env = mkEnv();
+  await adminReq(env, 'POST', '/admin/licenses', { domain: 'smkcontoh.edu.my', school: 'SMK Contoh', plan: 'tahunan', expires: '2027-06-01' });
+  const r = await slugReq(env, 'POST', '/slug', { token: 'good', body: { slug: 'smkcontoh', gid: GID, school: 'SMK Contoh' } });
+  assert.strictEqual(r.status, 200);
+});

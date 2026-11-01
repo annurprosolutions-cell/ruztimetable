@@ -41,6 +41,7 @@
     const cur = UI.state || {};
     if (!next.auth && cur.auth) next.auth = cur.auth;
     if (!next.school.guruSheet && cur.school && cur.school.guruSheet) next.school.guruSheet = cur.school.guruSheet;
+    if (!next.school.guruSlug && cur.school && cur.school.guruSlug) next.school.guruSlug = cur.school.guruSlug;
     return next;
   };
   UI.commit = () => { TT.reconcile(UI.state); TT.prunePlacements(UI.state); UI.save(); UI.render(); };

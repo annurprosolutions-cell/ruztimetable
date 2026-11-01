@@ -76,3 +76,14 @@ URL webhook: `https://<worker>/bcl/<BCL_WEBHOOK_KEY>`. Tandakan peristiwa **Paym
 ```bash
 curl "$URL/admin/licenses?semua=1" -H "Authorization: Bearer $TOKEN"   # lesen, percubaan, bayaran, mandat dan log 90 hari
 ```
+
+## Nama pautan guru (`/slug`)
+Pentadbir berlangganan menempah nama supaya pautan guru menjadi `https://<alamat app>/s/<nama>`.
+
+| Kaedah | Laluan | Guna |
+|---|---|---|
+| `GET` | `/slug/<nama>` | Awam (asal mesti dalam `ALLOWED_ORIGINS`): `{ok, gid, school}` atau 404 (`tiada`, `lesen-tamat`) |
+| `POST` | `/slug` | Token Google: `{slug, gid, school}`. Tuntut, tukar nama atau kemas kini ID Sheet. 403 `perlu-langganan` untuk percubaan atau tanpa lesen, 409 `telah-digunakan`, 429 `terlalu-kerap` (tukar nama sekali setiap 30 hari) |
+| `DELETE` | `/slug` | Token Google: lepaskan nama pemilik |
+
+KV: `slug:<nama>` dan `slugof:<email>`. Nama dikhaskan ada dalam `SLUG_RESERVED` (worker/index.mjs dan js/slug.js, simpan kedua-duanya selaras). Untuk menolak atau memadam nama tertentu secara manual: `DELETE /admin/licenses?key=slug:<nama>` (dan `slugof:<email>`).

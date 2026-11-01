@@ -13,3 +13,4 @@ package.json
 wrangler.jsonc
 .assetsignore
 .wrangler
+edge

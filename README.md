@@ -93,6 +93,8 @@ Sebelum app dibuka, skrin log masuk meminta peranan:
 
 **Pautan guru.** Setiap kali pentadbir simpan, app menulis salinan ringkas ke Sheet berasingan "Jadual Guru - (sekolah) (baca sahaja)" dan berkongsi Sheet itu sebagai *sesiapa dengan pautan boleh lihat*. Salinan ini tiada hash kata laluan, tiada sebab atau catatan cuti, dan hanya relief 2 bulan terakhir ke hadapan. Sheet utama kekal peribadi. Guru membaca salinan itu melalui `docs.google.com/.../gviz/tq?tqx=out:csv` tanpa log masuk. Jika domain (contohnya DELIMa) menyekat perkongsian awam, app memaparkan langkah kongsi manual.
 
+**Nama pautan guru (`/s/<nama>`).** Pautan panjang `?g=<ID Sheet>` susah diingat, jadi pentadbir berlangganan (bukan percubaan) boleh menempah nama sekolah di Tetapan > Storan > Pautan guru > Nama pautan, contoh `annurtimetable.com/s/smkwakanda`. Worker lesen menyimpan peta nama kepada ID Sheet Data Guru; app membaca nama daripada alamat, bertanya Worker, kemudian membuka paparan guru seperti `?g=`. Peraturan: 3 hingga 30 aksara (huruf kecil, nombor, sempang), nama dikhaskan ditolak (contoh `admin`, `kpm`, `sekolah`), satu nama setiap e-mel, tukar nama sekali bebas dan selepas itu sekali setiap 30 hari. Pautan hanya berfungsi selagi lesen pemilik sah (termasuk tempoh ihsan), dan pautan panjang sentiasa kekal berfungsi. Di Cloudflare, `edge/worker.js` menghidangkan alamat `/s/<nama>` dengan `<base href="/">` disuntik; di Cloudflare Pages atau hos lain tanpa Worker itu, hanya pautan panjang berfungsi.
+
 ## Mod demo
 
 Tambah `?demo` pada alamat app, contohnya `https://annurprosolutions-cell.github.io/ruztimetable/?demo`. Pelawat terus masuk sebagai pentadbir tanpa log masuk atau kata laluan, dengan SMK contoh yang jadualnya sudah dijana dan relief sudah diagih. Mereka boleh klik, ubah, jana semula dan lihat paparan guru.
@@ -172,6 +174,8 @@ tools/bench.js            ujian beban penjana (npm run bench)
 js/license.js             keputusan lesen di sisi app
 js/brand.js               palet warna dan semakan logo sekolah
 js/access.js              kata laluan (hash), sesi, data guru, CSV, notifikasi relief baharu
+js/slug.js                nama pautan guru (/s/<nama>): semakan nama, tuntut dan terjemah melalui Worker lesen
+edge/worker.js            Worker di hadapan fail statik: hidangkan /s/<nama> dengan <base href="/">
 js/ui-gate.js             skrin log masuk, tetapan awal, pilih nama guru
 js/ui-pwa.js              pasang app, notifikasi, muat semula data guru
 js/survey.js              skema soalan survey demo, semakan dan payload

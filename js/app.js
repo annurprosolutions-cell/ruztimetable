@@ -171,7 +171,28 @@
       if (UI.surveyNotice) UI.surveyNotice();
       return;
     }
-    const g = TT.guruIdFrom(new URLSearchParams(location.search).get('g') || '');
+    const g0 = TT.guruIdFrom(new URLSearchParams(location.search).get('g') || '');
+    const slug = g0 ? '' : TT.slugFromPath(location.pathname);
+    if (slug) { bootSlug(slug); return; }
+    bootRest(g0);
+  }
+
+  // /s/<nama>: terjemah nama kepada ID Sheet Data Guru melalui Worker lesen, kemudian teruskan seperti ?g=<ID>.
+  // Tanpa internet, peranti yang pernah membuka paparan guru terus menggunakan sambungan tersimpan.
+  function bootSlug(slug) {
+    const fail = (title, msg) => { $('app').innerHTML = `<div class="gate"><div class="gate-card"><h1>${esc(title)}</h1><p class="gsub">${esc(msg)}</p><p class="gate-foot"><a href="/">Laman utama</a></p></div></div>`; };
+    const url = UI.cfg.licenseUrl;
+    if (!url) { fail('Pautan tidak dapat dibuka', 'Pautan sekolah memerlukan pelayan lesen.'); return; }
+    $('app').innerHTML = '<div class="gate"><div class="gate-card"><p class="gbusy"><i class="spin"></i>Membuka jadual sekolah...</p></div></div>';
+    TT.fetchSlug(url, slug, (u, i) => fetch(u, i)).then((r) => bootRest(r.gid), (e) => {
+      if (!e.status && UI.guruSrc()) { bootRest(UI.guruSrc()); return; } // luar talian
+      if (e.reason === 'lesen-tamat') fail('Lesen sekolah telah tamat', 'Minta pentadbir jadual memperbaharui langganan.');
+      else if (e.status === 404) fail('Sekolah tidak dijumpai', 'Semak pautan, atau minta pautan baharu daripada pentadbir jadual.');
+      else fail('Tidak dapat menghubungi pelayan', 'Semak sambungan internet dan cuba lagi.');
+    });
+  }
+
+  function bootRest(g) {
     if (g && UI.guruSrc() !== g) { UI.prefs.guru = { src: g }; if (UI.prefs.session && UI.prefs.session.role === 'guru') UI.prefs.me = null; }
     const ses = UI.prefs.session, live = TT.sessionValid(ses, Date.now());
     if (!live) UI.prefs.session = null;

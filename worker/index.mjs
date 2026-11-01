@@ -7,6 +7,8 @@
 //                  "trial:<email>"   percubaan sudah diberi (sekali sahaja setiap e-mel)
 //                  "bcl:<order>"     bayaran BCL sudah diproses (elak berganda)
 //                  "mandate:<order>" e-mel bagi mandat auto-debit bulanan
+//                  "slug:<nama>"     pautan guru cantik /s/<nama> -> {gid, owner, school, claimedAt, changedAt}
+//                  "slugof:<email>"  nama yang dituntut oleh e-mel itu (satu nama setiap e-mel)
 // Rahsia:          ADMIN_TOKEN, BCL_WEBHOOK_KEY (token rawak dalam URL webhook), BCL_API_TOKEN
 // Pemboleh ubah:   GOOGLE_CLIENT_ID, ALLOWED_ORIGINS (dipisah koma), GRACE_DAYS (lalai 7), TRIAL_DAYS (lalai 14),
 //                  BCL_API_URL (lalai https://api.bcl.my/v1), BCL_FORM_ID (pilihan: hanya terima borang ini), YEARLY_MIN_AMOUNT (lalai 150)
@@ -28,7 +30,7 @@ export function corsHeaders(req, env) {
   const origin = req.headers.get('origin');
   const allowed = String(env.ALLOWED_ORIGINS || '').split(',').map((x) => x.trim()).filter(Boolean);
   if (!origin || !allowed.includes(origin)) return null;
-  return { 'access-control-allow-origin': origin, 'access-control-allow-headers': 'authorization, content-type', 'access-control-allow-methods': 'POST, OPTIONS', vary: 'Origin' };
+  return { 'access-control-allow-origin': origin, 'access-control-allow-headers': 'authorization, content-type', 'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS', vary: 'Origin' };
 }
 
 // semak token Google: mesti dikeluarkan kepada Client ID kita dan e-mel mesti disahkan
@@ -131,6 +133,73 @@ export async function verifyOrder(env, order, fetchFn) {
 }
 
 const getJson = async (env, k) => { try { return JSON.parse((await env.LICENSES.get(k)) || 'null'); } catch (e) { return null; } };
+
+// ---------- pautan guru cantik: /s/<nama> ----------
+// Hanya pentadbir berlangganan (bukan percubaan) boleh menuntut nama; satu nama setiap e-mel. Nama boleh ditukar sekali
+// dengan bebas, kemudian sekali setiap 30 hari. Pautan hanya berfungsi selagi lesen pemilik sah (termasuk tempoh ihsan).
+export const SLUG_RESERVED = new Set(['www', 'app', 'api', 'admin', 'administrator', 'lesen', 'license', 'mail', 'email', 'ftp', 'static', 'assets',
+  'demo', 'privasi', 'privacy', 'terms', 'bantuan', 'help', 'support', 'login', 'logout', 'signin', 'test', 'testing', 'staging', 'dev', 'root', 'null',
+  'undefined', 'annurtimetable', 'annurpro', 'annurprosolutions', 'jadual', 'relief', 'guru', 'sekolah', 'school', 'kpm', 'moe', 'jpn', 'ppd', 'kementerian',
+  'pendidikan', 'jabatan', 'pejabat', 'kerajaan', 'gov', 'polis', 'tentera', 'bank', 'delima', 'google']);
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const RENAME_DAYS = 30;
+export function slugCheck(raw) {
+  const slug = String(raw == null ? '' : raw).trim().toLowerCase();
+  if (slug.length < 3 || slug.length > 30) return { problem: 'Nama mesti 3 hingga 30 aksara.' };
+  if (!SLUG_RE.test(slug)) return { problem: 'Hanya huruf kecil, nombor dan sempang, contoh smk-wakanda.' };
+  if (SLUG_RESERVED.has(slug) || slug.startsWith('xn--')) return { problem: 'Nama ini dikhaskan. Pilih nama lain.' };
+  return { slug };
+}
+
+async function slugRoute(req, env, url, cors, c) {
+  const rest = decodeURIComponent(url.pathname.slice('/slug'.length)).replace(/^\//, '');
+  const J = (b, st) => json(b, st, Object.assign({ 'cache-control': 'no-store' }, cors));
+  // awam: terjemah nama kepada ID Sheet Data Guru
+  if (req.method === 'GET') {
+    const k = slugCheck(rest);
+    if (!k.slug) return J({ ok: false, reason: 'tiada' }, 404);
+    const rec = await getJson(env, 'slug:' + k.slug);
+    if (!rec) return J({ ok: false, reason: 'tiada' }, 404);
+    if (!evaluate(await findLicense(env, rec.owner), c.now, c.grace).ok) return J({ ok: false, reason: 'lesen-tamat' }, 404);
+    return J({ ok: true, gid: rec.gid, school: rec.school || '' });
+  }
+  if (req.method !== 'POST' && req.method !== 'DELETE') return J({ error: 'kaedah tidak disokong' }, 405);
+  const token = bearer(req);
+  if (!token) return J({ ok: false, reason: 'tiada-token' }, 401);
+  let who;
+  try { who = await verifyGoogle(token, env, c.fetchFn); } catch (e) { return J({ ok: false, reason: 'google-gagal' }, 502); }
+  if (!who) return J({ ok: false, reason: 'token-tidak-sah' }, 401);
+  const email = who.email, ownerKey = 'slugof:' + email, mine = await getJson(env, ownerKey), t = today(c.now);
+
+  if (req.method === 'DELETE') {
+    if (mine && mine.slug) { await env.LICENSES.delete('slug:' + mine.slug); await env.LICENSES.delete(ownerKey); }
+    return J({ ok: true });
+  }
+
+  let b; try { b = await req.json(); } catch (e) { return J({ ok: false, reason: 'json-tidak-sah' }, 400); }
+  const lic = await findLicense(env, email), ev = evaluate(lic, c.now, c.grace);
+  if (!ev.ok || lic.plan === PLAN_TRIAL) return J({ ok: false, reason: 'perlu-langganan' }, 403);
+  const k = slugCheck(b && b.slug);
+  if (!k.slug) return J({ ok: false, reason: 'nama-tidak-sah', message: k.problem }, 400);
+  const gid = String((b && b.gid) || '');
+  if (!/^[a-zA-Z0-9_-]{20,}$/.test(gid)) return J({ ok: false, reason: 'gid-tidak-sah', message: 'ID Sheet Data Guru tidak sah.' }, 400);
+  const existing = await getJson(env, 'slug:' + k.slug);
+  if (existing && existing.owner !== email) return J({ ok: false, reason: 'telah-digunakan' }, 409);
+  let changedAt = existing ? existing.changedAt || '' : '';
+  if (mine && mine.slug && mine.slug !== k.slug) {
+    const old = await getJson(env, 'slug:' + mine.slug);
+    if (old && old.changedAt) {
+      const left = RENAME_DAYS - daysBetween(old.changedAt, t);
+      if (left > 0) return J({ ok: false, reason: 'terlalu-kerap', daysLeft: left }, 429);
+    }
+    await env.LICENSES.delete('slug:' + mine.slug);
+    changedAt = t;
+  }
+  const rec = { gid, owner: email, school: String((b && b.school) || '').slice(0, 120), claimedAt: existing ? existing.claimedAt : t, changedAt };
+  await env.LICENSES.put('slug:' + k.slug, JSON.stringify(rec));
+  await env.LICENSES.put(ownerKey, JSON.stringify({ slug: k.slug }));
+  return J({ ok: true, slug: k.slug });
+}
 
 export async function processBcl(body, env, o) {
   const ev = String((body && body.event) || ''), d = (body && body.data) || {}, md = d.main_data || {};
@@ -235,6 +304,10 @@ export async function handle(req, env, opts) {
     }, (e) => ({ ok: false, reason: 'ralat', message: String(e && e.message) }));
     if (opts.waitUntil) { opts.waitUntil(work); return json({ ok: true, received: true }); }
     return json(await work);
+  }
+  if (url.pathname === '/slug' || url.pathname.startsWith('/slug/')) {
+    if (!cors) return json({ error: 'asal tidak dibenarkan' }, 403);
+    return slugRoute(req, env, url, cors, { now, fetchFn, grace: numEnv(env.GRACE_DAYS, 7) });
   }
   if (url.pathname === '/check' && req.method === 'POST') {
     if (!cors) return json({ error: 'asal tidak dibenarkan' }, 403);

@@ -94,6 +94,8 @@
       const g = await sync.store.create(`Jadual Guru - ${S().school.name} (baca sahaja)`, ['Data']);
       sync.quiet = true; S().school.guruSheet = g.id; UI.save(); sync.quiet = false;
       UI.prefs.sheet.guruShared = false; UI.savePrefs();
+      // nama pautan sedia ada mesti menunjuk ke Sheet baharu (percubaan sekali; pentadbir boleh tekan "Kemas kini" jika gagal)
+      if (S().school.guruSlug && LURL && sync.signedIn()) { try { await TT.claimSlug(LURL, await sync.auth.token(), { slug: S().school.guruSlug, gid: g.id, school: S().school.name }, (u, i) => fetch(u, i)); } catch (e) { /* lihat kad pautan guru */ } }
     } catch (e) { UI.prefs.sheet.guruErr = 'Gagal mencipta Sheet Data Guru: ' + e.message; UI.savePrefs(); }
   }
   async function publishGuru(now) {
@@ -108,10 +110,40 @@
     } catch (e) { sh.guruErr = 'Data guru tidak dikemas kini: ' + e.message; }
     UI.savePrefs();
   }
-  sync.guruLink = () => {
+  // pautan panjang (?g=ID Sheet) sentiasa berfungsi; pautan cantik (/s/nama) digunakan bila nama sudah ditempah
+  sync.guruLongLink = () => {
     const gid = S().school.guruSheet;
     return gid ? `${location.origin}${location.pathname.replace(/index\.html$/, '')}?g=${gid}` : '';
   };
+  const slugBase = () => (CFG.canonicalUrl || location.origin).replace(/\/$/, '');
+  sync.guruLink = () => {
+    const slug = S().school.guruSlug;
+    return S().school.guruSheet && slug && LURL ? `${slugBase()}/s/${slug}` : sync.guruLongLink();
+  };
+  // ---- nama pautan guru (Worker lesen menyimpan peta nama -> ID Sheet) ----
+  const slugCall = async (fn) => {
+    if (!sync.signedIn()) { UI.toast('Sambung Google dahulu.', 'err'); return; }
+    try { await fn(await sync.auth.token()); } catch (e) { UI.toast(TT.slugErrorText(e), 'err'); }
+  };
+  actions.slugClaim = () => slugCall(async (token) => {
+    const c = TT.slugCheck((document.getElementById('slugIn') || {}).value);
+    if (!c.slug) { UI.toast(c.problem, 'err'); return; }
+    const r = await TT.claimSlug(LURL, token, { slug: c.slug, gid: S().school.guruSheet, school: S().school.name }, (u, i) => fetch(u, i));
+    sync.quiet = true; S().school.guruSlug = r.slug; UI.save(); sync.quiet = false;
+    if (sync.linked()) sync.schedule(); // simpan nama dalam Sheet
+    UI.render(); UI.toast(`Pautan ${slugBase().replace(/^https?:\/\//, '')}/s/${r.slug} aktif.`);
+  });
+  // ID Sheet Data Guru berubah (cipta semula): hantar semula supaya nama menunjuk ke Sheet yang betul
+  actions.slugResync = () => slugCall(async (token) => {
+    await TT.claimSlug(LURL, token, { slug: S().school.guruSlug, gid: S().school.guruSheet, school: S().school.name }, (u, i) => fetch(u, i));
+    UI.toast('Nama pautan dikemas kini.');
+  });
+  actions.slugRelease = () => UI.confirm('Lepaskan nama pautan ini? Pautan cantik berhenti berfungsi dan nama boleh dituntut oleh sekolah lain. Pautan panjang kekal berfungsi.', () => slugCall(async (token) => {
+    await TT.releaseSlug(LURL, token, (u, i) => fetch(u, i));
+    sync.quiet = true; S().school.guruSlug = ''; UI.save(); sync.quiet = false;
+    if (sync.linked()) sync.schedule();
+    UI.render(); UI.toast('Nama pautan dilepaskan.');
+  }), 'Lepaskan');
   // ditanda sudah dikongsi secara manual oleh pentadbir
   actions.guruShared = () => { UI.prefs.sheet.guruShared = true; UI.prefs.sheet.shareErr = ''; UI.savePrefs(); UI.render(); };
   actions.guruCopy = async () => {
@@ -292,8 +324,14 @@
       Buka <a href="https://docs.google.com/spreadsheets/d/${esc(gid)}/edit" target="_blank" rel="noopener">Sheet Data Guru ${UI.icon('external')}</a> → <b>Kongsi</b> → Akses umum: <b>Sesiapa yang mempunyai pautan</b>, peranan <b>Pemapar</b>.
       Jika akaun DELIMa tidak membenarkan, pilih domain sekolah (guru perlu log masuk akaun DELIMa dalam pelayar).
       <div class="row"><button class="btn" data-act="guruShared">Saya sudah kongsi</button></div></div>`;
+    const slug = S().school.guruSlug, host = slugBase().replace(/^https?:\/\//, '');
+    const slugBox = !LURL ? '' : `<div class="slugbox"><h3 class="sub">Nama pautan</h3>
+      ${slug ? `<p>Pautan cantik aktif: <b>${esc(host)}/s/${esc(slug)}</b>. Pautan panjang lama masih berfungsi.</p>`
+        : '<p class="hint">Tempah nama sekolah supaya pautan mudah diingat dan dikongsi. Memerlukan langganan berbayar (bukan percubaan percuma).</p>'}
+      <div class="row slugrow"><span class="pfx">${esc(host)}/s/</span><input id="slugIn" value="${esc(slug)}" maxlength="30" placeholder="smkwakanda" autocomplete="off" spellcheck="false" aria-label="Nama pautan"><button class="btn primary" data-act="slugClaim">${slug ? 'Tukar nama' : 'Tempah nama'}</button></div>
+      ${slug ? '<div class="row"><button class="btn" data-act="slugResync">Kemas kini sambungan</button><button class="btn danger" data-act="slugRelease">Lepaskan nama</button></div>' : ''}</div>`;
     return `<section class="card">${head}${shareNote}
       <div class="linkbox"><input readonly value="${esc(link)}" aria-label="Pautan guru"><button class="btn" data-act="guruCopy">Salin</button><a class="btn" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a></div>
-      <p class="hint">Dikemas kini setiap kali data disimpan${sh.guruAt ? ` (terakhir ${localDate(sh.guruAt)})` : ''}. Data guru tidak mengandungi sebab cuti atau kata laluan.${sh.guruErr ? ` <b class="warn">${esc(sh.guruErr)}</b>` : ''}</p></section>`;
+      <p class="hint">Dikemas kini setiap kali data disimpan${sh.guruAt ? ` (terakhir ${localDate(sh.guruAt)})` : ''}. Data guru tidak mengandungi sebab cuti atau kata laluan.${sh.guruErr ? ` <b class="warn">${esc(sh.guruErr)}</b>` : ''}</p>${slugBox}</section>`;
   };
 })();

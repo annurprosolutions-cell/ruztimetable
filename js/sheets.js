@@ -44,7 +44,7 @@
       Meta: [['kunci', 'nilai'], ['format', FORMAT], ['dikemaskini', meta.updatedAt || ''], ['oleh', meta.by || ''], ['aplikasi', meta.app || '']],
       Sekolah: [['kunci', 'nilai'], ['nama', s.school.name], ['minggu', s.school.weekMode], ['had_waktu_sehari', list(s.dayLimits)], ['tetapan_relief', JSON.stringify(s.settings.relief)],
         ['warna', TT.validHex(s.school.color) ? s.school.color : ''], ['logo', TT.validLogo(s.school.logo) ? s.school.logo : ''],
-        ['sheet_guru', s.school.guruSheet || ''], ['kata_laluan_pentadbir', (s.auth && s.auth.admin) || ''],
+        ['sheet_guru', s.school.guruSheet || ''], ['nama_pautan_guru', s.school.guruSlug || ''], ['kata_laluan_pentadbir', (s.auth && s.auth.admin) || ''],
         ['waktu_berbeza', yn(s.school.multiTime)], ['nama_set_utama', s.school.mainSetName || ''],
         ['set_waktu_lain', s.timeSets.length ? JSON.stringify(s.timeSets) : ''], ['sekatan_serentak', s.blocks.length ? JSON.stringify(s.blocks) : ''],
         ['arkib', s.archives.length ? JSON.stringify(s.archives) : '']],
@@ -91,6 +91,7 @@
     s.school.color = TT.validHex(str(sk.warna)) ? str(sk.warna) : '';
     s.school.logo = TT.validLogo(str(sk.logo)) ? str(sk.logo) : '';
     s.school.guruSheet = /^[a-zA-Z0-9_-]{20,}$/.test(str(sk.sheet_guru)) ? str(sk.sheet_guru) : '';
+    s.school.guruSlug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(str(sk.nama_pautan_guru)) ? str(sk.nama_pautan_guru) : '';
     const pw = str(sk.kata_laluan_pentadbir);
     s.auth = /^pbkdf2-sha256\$/.test(pw) ? { admin: pw } : null;
     const lim = split(sk.had_waktu_sehari).map(Number).filter(Number.isFinite);

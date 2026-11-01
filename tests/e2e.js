@@ -304,9 +304,11 @@ async function sheetsFlow(b) {
   console.log('Google Sheets (localhost, Google dimock)');
   const server = http.createServer((req, res) => {
     let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-    if (p === '/') p = '/index.html';
+    const pretty = /^\/s\/[^/]+\/?$/.test(p); // /s/<nama>: index.html dengan <base href="/"> disuntik, seperti edge/worker.js
+    if (p === '/' || pretty) p = '/index.html';
     const f = path.join(ROOT, p);
     if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); res.end(); return; }
+    if (pretty) { res.writeHead(200, { 'content-type': 'text/html' }); res.end(fs.readFileSync(f, 'utf8').replace('<head>', '<head>\n<base href="/">')); return; }
     res.writeHead(200, { 'content-type': { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' }[path.extname(f)] || 'application/octet-stream' });
     fs.createReadStream(f).pipe(res);
   });
@@ -359,7 +361,7 @@ async function sheetsFlow(b) {
       });
       await page.route('https://lesen.test/**', async (route) => {
         const r = route.request();
-        const res = await handle(new Request(r.url(), { method: r.method(), headers: r.headers() }), licEnv, { fetch: tokeninfo });
+        const res = await handle(new Request(r.url(), { method: r.method(), headers: r.headers(), body: ['GET', 'HEAD', 'OPTIONS'].includes(r.method()) ? undefined : r.postData() }), licEnv, { fetch: tokeninfo });
         const h = {}; res.headers.forEach((v, k) => { h[k] = v; });
         return route.fulfill({ status: res.status, headers: h, body: await res.text() });
       });
@@ -547,6 +549,44 @@ async function sheetsFlow(b) {
     await g.pg.waitForFunction(() => UI.prefs.notify === true);
     assert.ok(notes.some(([t]) => t === 'Notifikasi dihidupkan'));
     step('guru (telefon): buka pautan tanpa log masuk, pilih nama, baca sahaja, hidupkan notifikasi');
+
+    // ---- pautan guru cantik /s/<nama> ----
+    await pg.evaluate(() => { UI.page = 'tetapan'; UI.setTab = 'storan'; UI.render(); });
+    await pg.fill('#slugIn', 'Sekolah'); await pg.click('button[data-act="slugClaim"]'); // nama dikhaskan ditolak sebelum ke pelayan
+    assert.strictEqual(await pg.evaluate(() => UI.state.school.guruSlug), '');
+    await pg.fill('#slugIn', 'smk-selari'); await pg.click('button[data-act="slugClaim"]');
+    await pg.waitForFunction(() => UI.state.school.guruSlug === 'smk-selari');
+    assert.ok(JSON.parse(lic.get('slug:smk-selari')).gid === gid, 'Worker simpan peta nama -> ID Sheet Data Guru');
+    const pretty = await pg.evaluate(() => UI.sync.guruLink());
+    assert.ok(pretty.endsWith('/s/smk-selari'), pretty);
+    assert.strictEqual(await pg.locator('.linkbox input').inputValue(), pretty, 'pautan guru dalam kad ialah pautan cantik');
+    await pg.waitForFunction(() => UI.sync.status === 'saved');
+    assert.strictEqual([...fake.db.values()][0].tabs.get('Sekolah').find((r) => r[0] === 'nama_pautan_guru')[1], 'smk-selari', 'nama disimpan dalam Sheet utama');
+    const g2 = await open(b, base + 's/smk-selari', mocks, Object.assign({ viewport: { width: 412, height: 900 }, isMobile: true, hasTouch: true }, NOSW));
+    await g2.pg.waitForSelector('.gate .pickbtn');
+    assert.ok((await g2.pg.textContent('.gbrand')).includes('SMK Selari'), 'paparan guru dibuka melalui nama');
+    assert.ok((await g2.pg.evaluate(() => location.pathname)) === '/s/smk-selari', 'alamat kekal');
+    assert.ok((await g2.pg.evaluate(() => document.querySelector('link[rel=stylesheet][href*="app.css"]').sheet !== null)), 'css dimuat dari akar, bukan /s/css');
+    await g2.pg.click(`.gate .pickbtn[data-id="${T}"]`);
+    await g2.pg.waitForSelector('header.topbar');
+    assert.strictEqual(await g2.pg.evaluate(() => UI.readOnly), true);
+    assert.deepStrictEqual(g2.errors, []);
+    const g3 = await open(b, base + 's/tiada-sekolah', mocks, NOSW);
+    await g3.pg.waitForSelector('.gate h1');
+    assert.match(await g3.pg.textContent('.gate h1'), /Sekolah tidak dijumpai/);
+    // lesen pemilik tamat: pautan berhenti, pautan panjang kekal
+    lic.set('domain:moe-dl.edu.my', JSON.stringify({ school: 'SMK Pilot', plan: 'pilot', expires: '2026-01-01' }));
+    const g4 = await open(b, base + 's/smk-selari', mocks, NOSW);
+    await g4.pg.waitForSelector('.gate h1');
+    assert.match(await g4.pg.textContent('.gate h1'), /Lesen sekolah telah tamat/);
+    lic.set('domain:moe-dl.edu.my', JSON.stringify({ school: 'SMK Pilot', plan: 'pilot', expires: '2027-12-31' }));
+    // lepaskan nama
+    await pg.evaluate(() => { UI.page = 'tetapan'; UI.setTab = 'storan'; UI.render(); });
+    await pg.click('button[data-act="slugRelease"]'); await pg.click('button[data-act="confirmYes"]');
+    await pg.waitForFunction(() => UI.state.school.guruSlug === '');
+    assert.strictEqual(lic.get('slug:smk-selari') || null, null);
+    assert.ok((await pg.evaluate(() => UI.sync.guruLink())).endsWith('?g=' + gid), 'kembali kepada pautan panjang');
+    step('pautan guru cantik: tempah (nama dikhaskan ditolak), pautan dalam kad, dibuka sebagai guru di /s/nama, 404, lesen tamat, lepaskan');
 
     await pg.evaluate((tid) => {
       const s = UI.state, l = s.lessons.find((x) => !x.teacherIds.includes(tid));

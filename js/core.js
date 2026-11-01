@@ -51,7 +51,7 @@
   TT.newState = () => ({
     version: 1,
     // multiTime: kelas boleh guna set waktu berlainan (cth Tahap 1 dan Tahap 2 sekolah rendah)
-    school: { name: 'Sekolah Saya', weekMode: 'mon-fri', logo: '', color: '', guruSheet: '', multiTime: false, mainSetName: 'Set utama' },
+    school: { name: 'Sekolah Saya', weekMode: 'mon-fri', logo: '', color: '', guruSheet: '', guruSlug: '', multiTime: false, mainSetName: 'Set utama' },
     auth: null, // { admin: 'pbkdf2-sha256$...' } hash kata laluan pentadbir
     periods: TT.defaultPeriods(),
     dayLimits: [8, 8, 8, 8, 6],
