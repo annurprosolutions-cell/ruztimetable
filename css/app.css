@@ -516,3 +516,7 @@ label.impk small { color: var(--mute); } label.impk em { font-style: normal; fon
 .slugrow { align-items: center; flex-wrap: wrap; }
 .slugrow .pfx { color: var(--mute); font-size: .9rem; }
 .slugrow input { flex: 1; min-width: 140px; max-width: 260px; }
+.licbox { margin: 10px 0 6px; padding: 10px 12px; border: 1px solid var(--line, #e2e8f0); border-radius: 12px; background: var(--soft, #f8fafc); }
+.licbox .tag { font-weight: 700; }
+.licbox .licexp { margin-top: 4px; font-size: .88rem; color: var(--mute); }
+.licbox .licexp b { color: var(--ink, inherit); }

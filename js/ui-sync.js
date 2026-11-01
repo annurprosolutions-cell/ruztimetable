@@ -289,11 +289,14 @@
     }
     if (!sync.hosted()) return `<section class="card">${head}<p>Log masuk Google hanya berfungsi bila app dibuka melalui https (contoh GitHub Pages) atau localhost. Fail yang dibuka terus dari komputer tidak disokong oleh Google.</p></section>`;
     const L = sync.license, buy = L.buyUrl || CFG.buyUrl || '';
-    const PLAN = { percubaan: 'Percubaan percuma', bulanan: 'Langganan bulanan', tahunan: 'Langganan tahunan' };
+    const PLAN = { percubaan: 'Percubaan percuma', bulanan: 'Langganan bulanan', tahunan: 'Langganan tahunan', pilot: 'Lesen perintis' };
     // e-mel log masuk mesti diisi dalam borang bayaran supaya lesen diaktifkan secara automatik
     const buyBtn = buy ? `<a class="btn primary" href="${esc(buy)}" target="_blank" rel="noopener">${UI.icon('external')} ${L.plan === 'bulanan' || L.plan === 'tahunan' ? 'Perbaharui' : 'Langgan'}</a>` : '';
     const buyNote = buy ? `<p class="hint">${esc(CFG.priceText || 'RM20 sebulan, atau RM200 setahun.')} Semasa bayar, isi <b>e-mel log masuk Google</b> ini: <b>${esc(sync.email || '')}</b>. Lesen aktif automatik dalam beberapa minit.</p>` : '';
-    const licLine = !LURL ? '' : L.allowed ? `<p class="hint">${esc(PLAN[L.plan] || 'Lesen')}: ${esc(L.school || 'aktif')}${L.expires ? ', sah hingga ' + esc(TT.fmtDate(L.expires)) : ''}.${L.message ? ` <b class="warn">${esc(L.message)}</b>` : ''}</p>${L.plan === 'percubaan' || L.state === 'warn' ? `<div class="row">${buyBtn}</div>${buyNote}` : ''}`
+    // pelan, sekolah, tarikh tamat dan baki hari dipapar sama rupa untuk semua jenis lesen
+    const left = L.expires ? Math.round((Date.parse(L.expires) - Date.parse(TT.todayISO())) / 864e5) : null;
+    const expLine = !L.expires ? 'Tiada tarikh tamat' : `Sah hingga <b>${esc(TT.fmtDate(L.expires))}</b> · ${left >= 0 ? `baki ${left} hari` : `tamat ${-left} hari lalu (tempoh ihsan)`}`;
+    const licLine = !LURL ? '' : L.allowed ? `<div class="licbox"><span class="tag">${esc(PLAN[L.plan] || 'Lesen aktif')}</span>${L.school ? ` <b>${esc(L.school)}</b>` : ''}<div class="licexp">${expLine}</div>${L.message ? `<div class="licexp"><b class="warn">${esc(L.message)}</b></div>` : ''}</div>${L.plan === 'percubaan' || L.state === 'warn' ? `<div class="row">${buyBtn}</div>${buyNote}` : ''}`
       : `<div class="banner bad"><b>${esc(L.message)}</b>${CFG.support && (CFG.support.whatsapp || CFG.support.email) ? `<br>Hubungi: ${esc(CFG.support.whatsapp || CFG.support.email)}` : ''}</div>${buyBtn ? `<div class="row">${buyBtn}</div>${buyNote}` : ''}`;
     const status = `<div class="sync-line">Status: <span id="syncStatus">${UI.syncStatusHtml()}</span></div>${licLine}`;
     if (!sync.signedIn()) {
