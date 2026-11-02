@@ -15,6 +15,8 @@
 //                  STATS_MIN (lalai 5: bilangan langganan hanya dipapar awam bila sampai had ini), STATS_TTL (saat cache, lalai 3600),
 //                  STATS_EXCLUDE (e-mel atau domain dipisah koma yang tidak dikira, contoh akaun pemilik sendiri)
 //                  GET /stats (awam): {paid|null, trial, min}; kunci cache "stats:cache"
+//                  OWNER_EMAILS (e-mel pemilik dipisah koma: boleh guna dashboard /admin/ dengan log masuk Google), PRICE_MONTH (20), PRICE_YEAR (200)
+//                  GET /admin/overview: semua rekod + ringkasan prestasi; POST /admin/licenses {merge:true,...}: ubah sekolah, pelan atau tarikh sahaja
 
 const json = (body, status, extra) => new Response(JSON.stringify(body), { status: status || 200, headers: Object.assign({ 'content-type': 'application/json' }, extra || {}) });
 
@@ -240,7 +242,7 @@ export async function processBcl(body, env, o) {
     const email = (m && m.email) || pickEmail(d.custom_fields_data, md.payer_email);
     if (!email) return { ok: false, reason: 'tiada-emel' };
     const lic = await extendLicense(env, email, 1, school || (m && m.school), o.now);
-    await env.LICENSES.put('bcl:dd:' + ref, JSON.stringify({ email, mandate: rid, cycle: md.cycle || null, at: today(o.now), expires: lic.expires }));
+    await env.LICENSES.put('bcl:dd:' + ref, JSON.stringify({ email, mandate: rid, cycle: md.cycle || null, amount: parseFloat(md.amount) || null, at: today(o.now), expires: lic.expires }));
     return { ok: true, email, months: 1, expires: lic.expires };
   }
   if (ev !== 'payment-success') return { ok: true, ignored: ev || 'tiada-event' };
@@ -255,7 +257,7 @@ export async function processBcl(body, env, o) {
   if (!email) return { ok: false, reason: 'tiada-emel' };
   const months = planMonths(v.items, md.subtotal_amount != null ? md.subtotal_amount : md.amount, env, md.items);
   const lic = await extendLicense(env, email, months, school, o.now);
-  await env.LICENSES.put('bcl:' + rid, JSON.stringify({ email, months, at: today(o.now), expires: lic.expires }));
+  await env.LICENSES.put('bcl:' + rid, JSON.stringify({ email, months, amount: parseFloat(v.amount != null ? v.amount : md.amount) || null, at: today(o.now), expires: lic.expires }));
   return { ok: true, email, months, expires: lic.expires };
 }
 
@@ -292,8 +294,77 @@ export async function publicStats(env, now) {
   return { paid: c.paid >= min ? c.paid : null, trial: c.trial, min };
 }
 
-async function admin(req, env, url, now) {
-  if (!env.ADMIN_TOKEN || !safeEqual(bearer(req), env.ADMIN_TOKEN)) return json({ error: 'tidak dibenarkan' }, 401);
+// admin dibenarkan dengan ADMIN_TOKEN, atau token Google bagi e-mel dalam OWNER_EMAILS (dashboard /admin/ di laman app)
+export async function adminAuth(req, env, fetchFn) {
+  const tok = bearer(req);
+  if (!tok) return null;
+  if (env.ADMIN_TOKEN && safeEqual(tok, env.ADMIN_TOKEN)) return { by: 'token' };
+  const owners = String(env.OWNER_EMAILS || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+  if (!owners.length) return null;
+  const g = await verifyGoogle(tok, env, fetchFn).catch(() => null);
+  return g && owners.includes(g.email) ? { by: g.email } : null;
+}
+
+// semua rekod untuk dashboard pemilik, dengan status dikira dan ringkasan prestasi
+export async function overview(env, now) {
+  const t = today(now), grace = numEnv(env.GRACE_DAYS, 7);
+  const skip = new Set(String(env.STATS_EXCLUDE || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean));
+  const priceM = numEnv(env.PRICE_MONTH, 20), priceY = numEnv(env.PRICE_YEAR, 200);
+  const licences = [], trials = [], payments = [], debits = [], mandates = [], logs = [], slugs = [];
+  let cursor;
+  do {
+    const page = await env.LICENSES.list({ cursor });
+    for (const k of page.keys) {
+      const n = k.name;
+      if (n === 'stats:cache' || n.startsWith('slugof:')) continue;
+      const raw = (await env.LICENSES.get(n)) || '';
+      let v; try { v = JSON.parse(raw); } catch (e) { v = raw; }
+      let m;
+      if ((m = /^(email|domain):(.+)$/.exec(n))) {
+        const ev = evaluate(Object.assign({ key: n }, v), now, grace), id = m[2].toLowerCase();
+        licences.push({ key: n, kind: m[1], id, school: v.school || '', plan: v.plan || '', expires: v.expires || '', status: ev.reason, ok: !!ev.ok, daysLeft: ev.daysLeft == null ? null : ev.daysLeft,
+          excluded: skip.has(id) || (m[1] === 'email' && skip.has(id.split('@')[1] || '')) });
+      } else if (n.startsWith('trial:')) trials.push({ email: n.slice(6), date: typeof v === 'string' ? v : String(v) });
+      else if (n.startsWith('bcl:dd:')) debits.push(Object.assign({ ref: n.slice(7) }, v));
+      else if (n.startsWith('bcl:')) payments.push(Object.assign({ order: n.slice(4) }, v));
+      else if (n.startsWith('mandate:')) mandates.push(Object.assign({ order: n.slice(8) }, v));
+      else if (n.startsWith('log:')) logs.push(Object.assign({ key: n, at: n.slice(4, 28) }, typeof v === 'object' ? v : { raw: v }));
+      else if (n.startsWith('slug:')) slugs.push(Object.assign({ slug: n.slice(5) }, v));
+    }
+    cursor = page.list_complete ? null : page.cursor;
+  } while (cursor);
+  const live = licences.filter((l) => !l.excluded);
+  const paid = (l) => l.plan && l.plan !== PLAN_TRIAL && l.plan !== 'pilot';
+  const since = (n) => addDays(t, -n + 1);
+  const paidEmails = new Set(licences.filter(paid).map((l) => l.id));
+  const money = payments.concat(debits);
+  const sum = (arr) => Math.round(arr.reduce((a, p) => a + (Number(p.amount) || 0), 0) * 100) / 100;
+  const stats = {
+    paidActive: live.filter((l) => paid(l) && l.status === 'ok').length,
+    grace: live.filter((l) => l.status === 'tamat-tempoh-ihsan').length,
+    trialActive: live.filter((l) => l.plan === PLAN_TRIAL && l.ok).length,
+    expired: live.filter((l) => !l.ok).length,
+    trialsTotal: trials.length,
+    trials7: trials.filter((x) => x.date >= since(7)).length,
+    trials30: trials.filter((x) => x.date >= since(30)).length,
+    converted: trials.filter((x) => paidEmails.has(x.email)).length,
+    mrr: Math.round(live.filter((l) => paid(l) && l.ok).reduce((a, l) => a + (l.plan === 'tahunan' ? priceY / 12 : l.plan === 'bulanan' ? priceM : 0), 0) * 100) / 100,
+    payments30: money.filter((p) => p.at >= since(30)).length,
+    revenue30: sum(money.filter((p) => p.at >= since(30))),
+    revenueAll: sum(money),
+    webhookFailed30: logs.filter((x) => x.at.slice(0, 10) >= since(30) && x.result && x.result.ok === false && !x.result.ignored).length
+  };
+  licences.sort((a, b) => (a.expires || '9999').localeCompare(b.expires || '9999'));
+  logs.sort((a, b) => b.at.localeCompare(a.at));
+  payments.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  return { today: t, stats, licences, trials, payments, debits, mandates, logs: logs.slice(0, 200), slugs };
+}
+
+async function admin(req, env, url, now, fetchFn) {
+  const who = await adminAuth(req, env, fetchFn);
+  if (!who) return json({ error: 'tidak dibenarkan' }, 401);
+  if (url.pathname === '/admin/overview') return req.method === 'GET' ? json(Object.assign({ by: who.by }, await overview(env, now))) : json({ error: 'kaedah tidak disokong' }, 405);
+  if (url.pathname !== '/admin/licenses') return json({ error: 'tidak dijumpai' }, 404);
   if (req.method === 'GET') {
     const out = [];
     let cursor;
@@ -318,6 +389,16 @@ async function admin(req, env, url, now) {
     if (!id || (kind === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(id)) || (kind === 'domain' && !/^[^@\s]+\.[^@\s]+$/.test(id))) return json({ error: 'email atau domain tidak sah' }, 400);
     if (b.expires && !/^\d{4}-\d{2}-\d{2}$/.test(b.expires)) return json({ error: 'expires mesti YYYY-MM-DD' }, 400);
     const key = kind + ':' + id;
+    if (b.merge) {
+      let cur = null; try { cur = JSON.parse((await env.LICENSES.get(key)) || 'null'); } catch (e) { cur = null; }
+      if (!cur || typeof cur !== 'object') return json({ error: 'tiada rekod untuk dikemas kini' }, 404);
+      const rec = Object.assign({}, cur);
+      if (b.school != null) rec.school = String(b.school);
+      if (b.plan) rec.plan = String(b.plan);
+      if (b.expires) { rec.expires = b.expires; rec.day = +b.expires.slice(8); }
+      await env.LICENSES.put(key, JSON.stringify(rec));
+      return json({ ok: true, key, record: rec });
+    }
     // addMonths: tambah bulan pada lesen sedia ada (dari tarikh tamat jika masih aktif, jika tidak dari hari ini), tanpa kira tarikh sendiri
     if (b.addMonths != null) {
       const n = Number(b.addMonths);
@@ -347,7 +428,14 @@ export async function handle(req, env, opts) {
   const now = opts.now != null ? opts.now : Date.now();
   const fetchFn = opts.fetch || fetch;
   const url = new URL(req.url);
-  if (url.pathname.startsWith('/admin/licenses')) return admin(req, env, url, now);
+  if (url.pathname.startsWith('/admin/')) {
+    // dashboard di laman app memanggil dari asal lain: CORS hanya untuk ALLOWED_ORIGINS
+    const ac = corsHeaders(req, env);
+    if (req.method === 'OPTIONS') return new Response(null, { status: ac ? 204 : 403, headers: ac || {} });
+    const res = await admin(req, env, url, now, fetchFn);
+    if (ac) for (const [k, v] of Object.entries(ac)) res.headers.set(k, v);
+    return res;
+  }
   const cors = corsHeaders(req, env);
   if (req.method === 'OPTIONS') return new Response(null, { status: cors ? 204 : 403, headers: cors || {} });
   if (url.pathname === '/health') return json({ ok: true });

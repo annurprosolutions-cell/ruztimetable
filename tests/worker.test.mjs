@@ -409,3 +409,50 @@ test('/stats: bilangan awam, had minimum, pengecualian, cache', async () => {
   [, s] = await stats(NOW + 3700e3 + 61e3);
   assert.deepStrictEqual(s, { paid: null, trial: 2, min: 10 });
 });
+
+test('admin: token Google pemilik (OWNER_EMAILS), CORS dashboard, overview dan kemas kini separa', async () => {
+  const env = mkEnv({ OWNER_EMAILS: 'admin@smkcontoh.edu.my', STATS_EXCLUDE: 'pemilik@gmail.com' });
+  const put = (k, v) => env.LICENSES.put(k, typeof v === 'string' ? v : JSON.stringify(v));
+  const req = (method, path, token, body, origin = ORIGIN) => handle(new Request('https://w.test' + path, { method, headers: Object.assign({ origin, authorization: 'Bearer ' + token }, body ? { 'content-type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined }), env, { now: NOW, fetch: google(TOKENS) });
+  // hanya e-mel pemilik; token Google lain ditolak; ADMIN_TOKEN masih berfungsi
+  assert.strictEqual((await req('GET', '/admin/overview', 'good')).status, 200, 'pemilik (huruf besar kecil tak dikira)');
+  assert.strictEqual((await req('GET', '/admin/overview', 'other')).status, 401);
+  assert.strictEqual((await req('GET', '/admin/overview', 'foreign')).status, 401, 'Client ID lain');
+  assert.strictEqual((await req('GET', '/admin/overview', 'rahsia-admin')).status, 200);
+  assert.strictEqual((await req('GET', '/admin/tiada', 'rahsia-admin')).status, 404);
+  // CORS: preflight dan jawapan untuk asal dibenarkan sahaja
+  const pre = await handle(new Request('https://w.test/admin/overview', { method: 'OPTIONS', headers: { origin: ORIGIN } }), env, { now: NOW });
+  assert.strictEqual(pre.status, 204);
+  assert.strictEqual((await req('GET', '/admin/overview', 'good')).headers.get('access-control-allow-origin'), ORIGIN);
+  assert.strictEqual((await handle(new Request('https://w.test/admin/overview', { method: 'OPTIONS', headers: { origin: 'https://jahat.test' } }), env, { now: NOW })).status, 403);
+
+  await put('email:a@gmail.com', { plan: 'bulanan', school: 'SK A', expires: '2026-11-20', day: 20 });
+  await put('email:b@gmail.com', { plan: 'tahunan', school: 'SK B', expires: '2027-06-01' });
+  await put('email:c@gmail.com', { plan: 'bulanan', expires: '2026-10-22' }); // tempoh ihsan
+  await put('email:t1@gmail.com', { plan: 'percubaan', expires: '2026-10-28' });
+  await put('email:t2@gmail.com', { plan: 'percubaan', expires: '2026-10-10' }); // percubaan tamat
+  await put('email:pemilik@gmail.com', { plan: 'bulanan', expires: '2026-12-30' });
+  await put('trial:t1@gmail.com', '2026-10-15'); await put('trial:t2@gmail.com', '2026-09-20'); await put('trial:a@gmail.com', '2026-10-01');
+  await put('bcl:ORD1', { email: 'a@gmail.com', months: 1, amount: 20, at: '2026-10-20' });
+  await put('bcl:ORD0', { email: 'b@gmail.com', months: 12, amount: 200, at: '2026-06-01' });
+  await put('log:2026-10-25T01:00:00.000Z:9', { event: 'x', result: { ok: false, reason: 'tiada-emel' } });
+  await put('log:2026-10-25T02:00:00.000Z:8', { event: 'x', result: { ok: true, ignored: 'transaksi-ujian' } });
+  await put('slug:sekolaha', { gid: 'g1', owner: 'a@gmail.com' }); await put('slugof:a@gmail.com', 'sekolaha'); await put('stats:cache', '{}');
+  const o = await (await req('GET', '/admin/overview', 'good')).json();
+  assert.strictEqual(o.by, 'admin@smkcontoh.edu.my');
+  assert.deepStrictEqual(o.stats, { paidActive: 2, grace: 1, trialActive: 1, expired: 1, trialsTotal: 3, trials7: 0, trials30: 2, converted: 1,
+    mrr: 56.67, payments30: 1, revenue30: 20, revenueAll: 220, webhookFailed30: 1 });
+  assert.deepStrictEqual(o.licences.map((l) => l.id), ['t2@gmail.com', 'c@gmail.com', 't1@gmail.com', 'a@gmail.com', 'pemilik@gmail.com', 'b@gmail.com'], 'ikut tarikh tamat');
+  assert.strictEqual(o.licences.find((l) => l.id === 'pemilik@gmail.com').excluded, true);
+  assert.strictEqual(o.licences.find((l) => l.id === 'c@gmail.com').status, 'tamat-tempoh-ihsan');
+  assert.deepStrictEqual([o.payments.length, o.logs.length, o.slugs.length, o.trials.length], [2, 2, 1, 3]);
+
+  // kemas kini separa: medan lain kekal, hari dalam bulan ikut tarikh baharu
+  let r = await req('POST', '/admin/licenses', 'good', { email: 'a@gmail.com', merge: true, expires: '2027-01-31' });
+  assert.strictEqual(r.status, 200);
+  assert.deepStrictEqual(JSON.parse(await env.LICENSES.get('email:a@gmail.com')), { plan: 'bulanan', school: 'SK A', expires: '2027-01-31', day: 31 });
+  await req('POST', '/admin/licenses', 'good', { email: 'a@gmail.com', merge: true, plan: 'tahunan', school: 'SK A Baharu' });
+  assert.deepStrictEqual(JSON.parse(await env.LICENSES.get('email:a@gmail.com')), { plan: 'tahunan', school: 'SK A Baharu', expires: '2027-01-31', day: 31 });
+  assert.strictEqual((await req('POST', '/admin/licenses', 'good', { email: 'tiada@gmail.com', merge: true, plan: 'bulanan' })).status, 404);
+  assert.strictEqual((await req('POST', '/admin/licenses', 'other', { email: 'a@gmail.com', merge: true, plan: 'pilot' })).status, 401);
+});

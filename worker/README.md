@@ -101,3 +101,10 @@ Bilangan sahaja, tanpa nama atau e-mel: `{ "paid": 8 | null, "trial": 21, "min":
 - `trial` = percubaan aktif sentiasa dipaparkan.
 - `STATS_EXCLUDE` (e-mel atau domain, dipisah koma): akaun yang tidak dikira. **Isi dengan e-mel pemilik dan akaun ujian sendiri**, contoh `annurprosolutions@gmail.com`.
 - `STATS_TTL` (saat, lalai 3600): keputusan dicache dalam KV (`stats:cache`). Padam kunci itu untuk kira semula serta-merta.
+
+## Dashboard pemilik (`/admin/` di laman app)
+Halaman `https://annurtimetable.com/admin/`: senarai pelanggan (cari, tapis, edit sekolah/pelan/tarikh, tambah bulan, pindah e-mel, padam, export CSV), perlu tindakan (percubaan hampir tamat, pembaharuan, webhook gagal), bayaran, log webhook, nama pautan, dan ringkasan prestasi (langganan aktif, percubaan, MRR, bayaran 30 hari, kadar tukar).
+- Log masuk dengan Google: e-mel mesti ada dalam pemboleh ubah `OWNER_EMAILS` (dipisah koma). ADMIN_TOKEN masih boleh digunakan sebagai sandaran.
+- Laman app mesti ada dalam `ALLOWED_ORIGINS` (CORS untuk `/admin/*`).
+- `GET /admin/overview`: semua rekod dengan status dikira + `stats`. `POST /admin/licenses` dengan `merge: true`: ubah `school`, `plan` atau `expires` tanpa memadam medan lain.
+- Bayaran baharu kini menyimpan `amount`; bayaran lama tiada jumlah.
