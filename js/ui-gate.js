@@ -341,9 +341,9 @@
     const body = { role: stepRole, google: stepGoogle, pw: stepPw, wizard: stepWizard, guru: stepGuru }[G.step] || stepRole;
     const install = UI.canInstall && UI.canInstall() ? `<button class="lnk" data-act="install">${UI.icon('download')} Pasang app</button> · ` : '';
     return `<div class="gate"><div class="gate-card">
-        <div class="gbrand"><span class="mark${TT.validLogo(sc.logo) ? ' logo' : ''}">${TT.validLogo(sc.logo) ? `<img src="${sc.logo}" alt="">` : UI.icon('calendar')}</span>
+        <div class="gbrand"><span class="mark${TT.validLogo(sc.logo) ? ' logo' : ' vendor'}">${TT.validLogo(sc.logo) ? `<img src="${sc.logo}" alt="">` : '<img src="brand/annurpro-icon-128.png" alt="AnnurPro">'}</span>
           <span><b>${esc(named ? sc.name : CFG.appName || 'Jadual Sekolah')}</b><small>${esc(named ? CFG.appName || 'Jadual Sekolah' : 'Jadual waktu dan relief guru')}</small></span></div>
         ${body()}${G.note && G.step !== 'role' ? `<p class="hint">${esc(G.note)}</p>` : ''}</div>
-      <p class="gate-foot">${install}<a href="privasi.html" target="_blank" rel="noopener">Privasi</a> · ${esc(CFG.appName || 'Jadual Sekolah')} ${esc(CFG.version || '')}${CFG.vendor ? ' · ' + esc(CFG.vendor) : ''}</p></div>`;
+      <p class="gate-foot">${install}<a href="privasi.html" target="_blank" rel="noopener">Privasi</a> · ${esc(CFG.appName || 'Jadual Sekolah')} ${esc(CFG.version || '')}${CFG.vendor ? ` · <img class="vlogo" src="brand/annurpro-icon-32.png" alt="" width="16" height="16"> ${esc(CFG.vendor)}` : ''}</p></div>`;
   };
 })();

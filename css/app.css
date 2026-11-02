@@ -528,3 +528,6 @@ label.impk small { color: var(--mute); } label.impk em { font-style: normal; fon
 .tbl.daytimes .chk.sm { font-size: .72rem; margin-top: 3px; display: flex; gap: 4px; align-items: center; }
 .tbl.daytimes tr.brkrow { background: #f6f7fa; }
 .tbl.daytimes td.shut { background: repeating-linear-gradient(45deg, #f1f3f7, #f1f3f7 6px, #e7eaf1 6px, #e7eaf1 12px); }
+.gbrand .mark.vendor { background: transparent; box-shadow: none; border-radius: 0; overflow: visible; width: 50px; height: 50px; }
+.gbrand .mark.vendor img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(15, 23, 42, .18)); }
+.gate-foot .vlogo { width: 16px; height: 16px; vertical-align: -3px; }
