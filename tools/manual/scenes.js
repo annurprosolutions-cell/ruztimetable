@@ -75,7 +75,7 @@ module.exports = [
       await h.say('Waktu Tahap 1 dan Tahap 2 berbeza? Pilih "Waktu berbeza ikut kumpulan kelas".');
       await h.hl('input[name="tmode"][value="1"]', 1300);
       await h.say('Guru tidak akan bertembung walaupun waktu kedua-dua tahap berbeza.');
-      await h.say('Semua perubahan disimpan automatik.');
+      await h.say('Jam berbeza setiap hari? Lihat video 14. Semua perubahan disimpan automatik.');
       await h.end('Seterusnya: Data guru, subjek, kelas dan bilik');
     }
   },
@@ -342,6 +342,41 @@ module.exports = [
       await h.W(500);
       await h.shot('lesen-tamat');
       await h.say('Bila tamat, data TIDAK dipadam. Ia kekal dalam pelayar dan Google Sheet sekolah.');
+      await h.end('Terima kasih. WhatsApp 011-2087 9149');
+    }
+  },
+  {
+    id: 'V14', file: '14-masa-berbeza-setiap-hari', title: 'Masa berbeza setiap hari', sub: 'Sesi petang atau sekolah yang jam waktunya tidak sama setiap hari',
+    async run(h) {
+      const { pg } = h;
+      await h.title('Masa berbeza setiap hari', 'Untuk sekolah yang jam waktunya tidak sama setiap hari, contoh sesi petang');
+      await h.nav('tetapan', { after: 500 }); await h.tab('setTab', 'waktu');
+      await h.say('Sesetengah sekolah, terutama sesi petang, mula pada jam berbeza setiap hari.');
+      await h.scrollTo('input[data-chg="perDayTime"]', 900);
+      await h.shot('masa-hari-suis');
+      await h.say('Tetapan, tab Waktu & rehat. Tandakan "Masa berbeza setiap hari".');
+      await h.click('input[data-chg="perDayTime"]', { after: 900 });
+      await h.scrollTo('table.daytimes', 1000);
+      await h.shot('masa-hari-editor');
+      await h.say('Jadual hari dan waktu muncul. Isi jam mula dan tamat bagi setiap hari.');
+      await h.click('button[data-act="dayTimeCopy"]', { after: 500 });
+      await h.say('Tekan "Salin Isnin ke semua hari", kemudian ubah hari yang berbeza sahaja.');
+      await h.hover('input[data-chg="dayTime"][data-d="2"][data-i="0"][data-f="start"]', 500);
+      await pg.fill('input[data-chg="dayTime"][data-d="2"][data-i="0"][data-f="start"]', '06:50');
+      await pg.dispatchEvent('input[data-chg="dayTime"][data-d="2"][data-i="0"][data-f="start"]', 'change');
+      await h.say('Contoh: Rabu waktu 1 mula 6:50 pagi.');
+      await h.click('input[data-chg="dayOff"][data-d="3"][data-p="0"]', { after: 600 });
+      await h.shot('masa-hari-tiada-kelas');
+      await h.say('Tanda "tiada kelas" untuk waktu yang tidak digunakan, contoh Khamis waktu 1.');
+      await h.nav('jadual', { after: 600 });
+      await h.click('button[data-act="generate"]', { after: 600 });
+      await pg.selectOption('#gMode', 'fresh'); await pg.selectOption('#gEffort', '2000');
+      await h.click('button[data-act="genStart"]', { after: 600 });
+      await pg.waitForFunction(() => !document.querySelector('.overlay') && UI.lastGen, null, { timeout: 20000 }).catch(() => {});
+      await h.W(700);
+      await h.shot('masa-hari-jadual');
+      await h.say('Jana jadual semula. Penjana tidak akan meletak pelajaran pada waktu tiada kelas.');
+      await h.say('Setiap petak kini tunjuk jam hari itu. Cetakan, Excel, slip dan relief WhatsApp pun guna jam yang sama.');
       await h.end('Terima kasih. WhatsApp 011-2087 9149');
     }
   }
