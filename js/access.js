@@ -116,7 +116,7 @@
   TT.reliefNotice = (s, list) => {
     const m = TT.maps(s);
     const one = (r) => {
-      const sub = (m.subject.get(r.subjectId) || {}).short || '', slots = TT.slots(s, TT.setOfClasses(s, r.classIds));
+      const sub = (m.subject.get(r.subjectId) || {}).short || '', slots = TT.slots(s, TT.setOfClasses(s, r.classIds), TT.dateToDay(s, r.date));
       const a = slots[r.periods[0]], b = slots[r.periods[r.periods.length - 1]] || a;
       return `${TT.weekdayOf(r.date)} ${TT.shortDate(r.date)}${a ? ' ' + a.start + '-' + b.end : ''} · ${TT.classNames(s, r.classIds)}${sub ? ' ' + sub : ''}`;
     };

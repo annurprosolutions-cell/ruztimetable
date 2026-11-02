@@ -46,9 +46,9 @@ test('model masa: atom 30 minit, waktu sama indeks tetapi masa berbeza tidak ber
   assert.deepStrictEqual(tm.bad, []);
   assert.strictEqual(tm.A, 12); // 07:40 hingga 13:40 dalam blok 30 minit
   // Tahap 1 waktu ke-5 (10:10-10:40) dan Tahap 2 waktu ke-5 (09:40-10:10): indeks sama, masa berlainan
-  assert.notDeepStrictEqual(tm.span[1][4], tm.span[0][4]);
-  assert.strictEqual(tm.atoms[tm.span[1][4][0]].start, '10:10');
-  assert.strictEqual(tm.atoms[tm.span[0][4][0]].start, '09:40');
+  assert.notDeepStrictEqual(tm.span[1][0][4], tm.span[0][0][4]);
+  assert.strictEqual(tm.atoms[tm.span[1][0][4][0]].start, '10:10');
+  assert.strictEqual(tm.atoms[tm.span[0][0][4][0]].start, '09:40');
 });
 
 test('satu set: model masa sama dengan waktu (tingkah laku asal)', () => {
@@ -56,7 +56,7 @@ test('satu set: model masa sama dengan waktu (tingkah laku asal)', () => {
   const tm = TT.timeModel(s);
   assert.strictEqual(tm.multi, false);
   assert.strictEqual(tm.A, TT.slots(s).length);
-  assert.ok(tm.span[0].every((x, p) => x[0] === p && x[1] === p + 1));
+  assert.ok(tm.span[0].every((day) => day.every((x, p) => x[0] === p && x[1] === p + 1)));
   assert.strictEqual(TT.classSetIdx(s, s.classes[0]), 0, 'set tambahan diabaikan bila pilihan dimatikan');
 });
 
@@ -121,10 +121,10 @@ test('sekatan serentak: mesyuarat Rabu waktu 8-11 untuk semua guru, jana tidak m
   const r = TT.generate(s, { seed: 5, improveMs: 200 });
   s.placements = r.placements;
   const tm = TT.timeModel(s), m = TT.maps(s);
-  const [b0] = tm.span[0][7]; // 11:40 masa set utama
+  const [b0] = tm.span[0][2][7]; // 11:40 masa set utama (Rabu)
   for (const p of s.placements) {
     if (p.day !== 2) continue;
-    const [a0, a1] = TT.atomRange(tm, TT.lessonSetIdx(s, m.lesson.get(p.lessonId)), p.start, p.len);
+    const [a0, a1] = TT.atomRange(tm, TT.lessonSetIdx(s, m.lesson.get(p.lessonId)), p.start, p.len, p.day);
     assert.ok(a1 <= b0, `${p.unit} jatuh dalam waktu mesyuarat`);
   }
   assert.deepStrictEqual(TT.validate(s).issues.filter((x) => x.sev === 'error'), []);

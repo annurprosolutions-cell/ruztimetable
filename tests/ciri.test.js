@@ -188,7 +188,7 @@ test('arkib: pilih rekod sebelum tarikh, tab ringkasan, buang hanya rekod lama',
 test('Sheets: set waktu, sekatan, jawatan, peraturan relief, gabung kelas dan arkib kekal selepas simpan dan muat', () => {
   const s = reliefSchool();
   s.school.multiTime = true; s.school.mainSetName = 'Tahap 2';
-  s.timeSets = [{ id: 'ts1', name: 'Tahap 1', periods: TT.defaultPeriods().slice(0, 6), dayLimits: [5, 5, 5, 5, 4] }];
+  s.timeSets = [{ id: 'ts1', name: 'Tahap 1', periods: TT.defaultPeriods().slice(0, 6), dayLimits: [5, 5, 5, 5, 4], dayTimes: {}, dayOff: {} }];
   s.classes[0].timeSet = 'ts1';
   s.blocks = [{ id: 'b1', name: 'Kokurikulum', days: [2], from: 6, to: 7, teacherIds: [], dept: '' }];
   s.teachers[0].role = 'PK';

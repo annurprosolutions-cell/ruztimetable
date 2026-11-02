@@ -38,7 +38,7 @@
       // dikesan bertindih ikut masa sebenar. Satu set: atom = waktu, jadi tingkah laku sama seperti asal.
       const tm = this.tm = TT.timeModel(state);
       this.D = tm.D; this.A = tm.A;
-      this.sets = tm.sets.map((st) => ({ P: st.slots.length, limit: st.limit, brk: st.slots.map((x) => x.breakBefore), half: Math.ceil(st.slots.length / 2) }));
+      this.sets = tm.sets.map((st) => ({ P: st.slots.length, limit: st.limit, open: st.open, brk: st.slots.map((x) => x.breakBefore), half: Math.ceil(st.slots.length / 2) }));
       this.P = Math.max(1, ...this.sets.map((x) => x.P));
       this.span = tm.span; this.aLim = tm.aLim; this.aw = tm.aw; this.abrk = tm.abrk;
       this.awPre = [0]; for (let a = 0; a < this.A; a++) this.awPre.push(this.awPre[a] + (this.aw[a] || 0));
@@ -114,8 +114,8 @@
     }
 
     // atom [a0, a1) yang diliputi unit jika bermula pada waktu s
-    _atoms(u, s) {
-      const sp = this.span[u.k], f = sp[s], l = sp[s + u.len - 1];
+    _atoms(u, s, d) {
+      const sp = this.span[u.k][d], f = sp[s], l = sp[s + u.len - 1];
       return [f[0], l[1]];
     }
 
@@ -129,7 +129,7 @@
     _mark(u, d, s, v) {
       const D = this.D, P = this.P, A = this.A;
       for (let k = 0; k < u.len; k++) for (const c of u.cs) this.cOcc[(c * D + d) * P + s + k] = v;
-      const [a0, a1] = this._atoms(u, s);
+      const [a0, a1] = this._atoms(u, s, d);
       for (let a = a0; a < a1; a++) {
         for (const t of u.ts) this.tOcc[(t * D + d) * A + a] = v;
         if (u.r >= 0) this.rOcc[(u.r * D + d) * A + a] = v;
@@ -155,9 +155,10 @@
     legal(u, d, s, noCap) {
       const D = this.D, A = this.A, st = this.sets[u.k];
       if (s < 0 || d < 0 || d >= D || s + u.len > st.limit[d]) return false;
+      for (let k = 0; k < u.len; k++) if (!st.open[d][s + k]) return false; // waktu tiada kelas hari itu
       for (let k = 1; k < u.len; k++) if (st.brk[s + k]) return false;
       const own = u.day === d ? u.len : 0;
-      const [a0, a1] = this._atoms(u, s);
+      const [a0, a1] = this._atoms(u, s, d);
       for (const t of u.ts) {
         for (let a = a0; a < a1; a++) if (this.tBlock[(t * D + d) * A + a]) return false;
         if (!noCap && this.tDay[t * D + d] - own + u.len > this.tMax[t]) return false;
@@ -176,7 +177,7 @@
         out.push(v); return true;
       };
       for (let k = 0; k < u.len; k++) for (const c of u.cs) if (!hit(this.cOcc[(c * D + d) * P + s + k])) return null;
-      const [a0, a1] = this._atoms(u, s);
+      const [a0, a1] = this._atoms(u, s, d);
       for (let a = a0; a < a1; a++) {
         for (const t of u.ts) if (!hit(this.tOcc[(t * D + d) * A + a])) return null;
         if (u.r >= 0 && !hit(this.rOcc[(u.r * D + d) * A + a])) return null;
@@ -405,8 +406,9 @@
       const D = this.D, P = this.P, A = this.A, st = this.sets[u.k];
       for (let d = 0; d < D; d++) for (let s = 0; s + u.len <= st.limit[d]; s++) {
         let ok = true;
+        for (let k = 0; k < u.len; k++) if (!st.open[d][s + k]) ok = false;
         for (let k = 1; k < u.len; k++) if (st.brk[s + k]) ok = false;
-        const [a0, a1] = this._atoms(u, s);
+        const [a0, a1] = this._atoms(u, s, d);
         for (const t of u.ts) for (let a = a0; a < a1; a++) if (this.tBlock[(t * D + d) * A + a]) ok = false;
         if (!ok) continue;
         legalSlots++;

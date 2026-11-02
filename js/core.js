@@ -51,7 +51,7 @@
   TT.newState = () => ({
     version: 1,
     // multiTime: kelas boleh guna set waktu berlainan (cth Tahap 1 dan Tahap 2 sekolah rendah)
-    school: { name: 'Sekolah Saya', weekMode: 'mon-fri', logo: '', color: '', guruSheet: '', guruSlug: '', multiTime: false, mainSetName: 'Set utama' },
+    school: { name: 'Sekolah Saya', weekMode: 'mon-fri', logo: '', color: '', guruSheet: '', guruSlug: '', multiTime: false, mainSetName: 'Set utama', perDayTime: false },
     auth: null, // { admin: 'pbkdf2-sha256$...' } hash kata laluan pentadbir
     periods: TT.defaultPeriods(),
     dayLimits: [8, 8, 8, 8, 6],
@@ -77,7 +77,11 @@
       t.role = t.role || '';
     });
     s.lessons.forEach((l) => { l.classIds = l.classIds || []; l.teacherIds = l.teacherIds || []; l.doubles = l.doubles || 0; });
-    s.timeSets = (s.timeSets || []).filter((x) => x && x.id).map((x) => ({ id: x.id, name: x.name || 'Set', periods: Array.isArray(x.periods) ? x.periods : TT.defaultPeriods(), dayLimits: Array.isArray(x.dayLimits) ? x.dayLimits : [] }));
+    const objOr = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+    s.timeSets = (s.timeSets || []).filter((x) => x && x.id).map((x) => ({ id: x.id, name: x.name || 'Set', periods: Array.isArray(x.periods) ? x.periods : TT.defaultPeriods(), dayLimits: Array.isArray(x.dayLimits) ? x.dayLimits : [], dayTimes: objOr(x.dayTimes), dayOff: objOr(x.dayOff) }));
+    // masa ikut hari (set utama): dayTimes[hari] = [{start,end}] selari dengan s.periods; dayOff[hari] = indeks waktu belajar tanpa kelas
+    s.dayTimes = objOr(s.dayTimes); s.dayOff = objOr(s.dayOff);
+    s.school.perDayTime = !!s.school.perDayTime;
     const sets = new Set(s.timeSets.map((x) => x.id));
     s.classes.forEach((c) => { c.timeSet = c.timeSet && sets.has(c.timeSet) ? c.timeSet : ''; });
     s.reliefs.forEach((r) => { if (r.mergeClassId === undefined) r.mergeClassId = null; });
@@ -105,11 +109,22 @@
   TT.setOfClasses = (s, classIds) => TT.lessonSetIdx(s, { classIds: classIds || [] });
 
   const periodsOf = (s, k) => (k ? ((s.timeSets[k - 1] || {}).periods || []) : s.periods);
-  TT.slots = (s, k) => {
+  const cfgOf = (s, k) => (k ? (s.timeSets[k - 1] || {}) : s);
+  TT.perDay = (s) => !!(s.school && s.school.perDayTime);
+  // masa bagi setiap entri waktu (termasuk rehat) pada hari d, ikut tetapan "masa ikut hari"; tanpa d = masa asas
+  TT.periodsOn = (s, k, d) => {
+    const ps = periodsOf(s, k | 0);
+    if (d == null || !TT.perDay(s)) return ps;
+    const t = (cfgOf(s, k | 0).dayTimes || {})[d];
+    if (!Array.isArray(t)) return ps;
+    return ps.map((p, i) => { const o = t[i]; return o && (o.start || o.end) ? Object.assign({}, p, { start: o.start || p.start, end: o.end || p.end }) : p; });
+  };
+  TT.slots = (s, k, d) => {
     const out = []; let brk = false;
-    for (const p of periodsOf(s, k | 0)) {
+    const off = d != null && TT.perDay(s) ? ((cfgOf(s, k | 0).dayOff || {})[d] || []) : [];
+    for (const p of TT.periodsOn(s, k, d)) {
       if (p.type === 'break') { brk = true; continue; }
-      out.push({ index: out.length, label: p.label, start: p.start, end: p.end, breakBefore: brk && out.length > 0 });
+      out.push({ index: out.length, label: p.label, start: p.start, end: p.end, breakBefore: brk && out.length > 0, off: off.includes(out.length) });
       brk = false;
     }
     return out;
@@ -135,49 +150,63 @@
    */
   TT.timeModel = (s) => {
     const D = TT.days(s).length;
-    const sets = TT.timeSetList(s).map((x, k) => ({ id: x.id, name: x.name, slots: TT.slots(s, k), limit: TT.dayLimits(s, k) }));
+    const days = [...Array(D).keys()];
+    const sets = TT.timeSetList(s).map((x, k) => {
+      const slots = TT.slots(s, k), limit = TT.dayLimits(s, k), daySlots = days.map((d) => TT.slots(s, k, d));
+      // open[d][p]: waktu p wujud pada hari d (dalam had hari itu dan tidak ditanda tiada kelas)
+      return { id: x.id, name: x.name, slots, limit, daySlots, open: days.map((d) => daySlots[d].map((sl, p) => p < limit[d] && !sl.off)) };
+    });
     const classSet = new Map(s.classes.map((c) => [c.id, TT.classSetIdx(s, c)]));
     if (sets.length === 1) {
+      // satu set: atom = nombor waktu (masa ikut hari hanya mengubah paparan, bukan semakan bertindih)
       const sl = sets[0].slots, P = sl.length;
       return {
         multi: false, D, sets, classSet, A: P, bad: [],
-        span: [sl.map((_, p) => [p, p + 1])], aw: new Array(P).fill(1), abrk: sl.map((x) => x.breakBefore),
+        span: [days.map(() => sl.map((_, p) => [p, p + 1]))], aw: new Array(P).fill(1), abrk: sl.map((x) => x.breakBefore),
         aLim: sets[0].limit.slice(), atoms: sl.map((x) => ({ start: x.start, end: x.end }))
       };
     }
-    const bad = [], pts = new Set();
-    sets.forEach((st) => st.slots.forEach((sl) => {
+    // beberapa set: atom dibina daripada sempadan masa semua set pada semua hari, span[k][d][p] ikut masa hari itu
+    const bad = [], pts = new Set(), seenBad = new Set();
+    sets.forEach((st) => st.daySlots.forEach((list) => list.forEach((sl) => {
       const a = toMin(sl.start), b = toMin(sl.end);
-      if (!(a < b)) bad.push(`${st.name}: waktu ${sl.label} masa tidak sah (${sl.start || '?'}-${sl.end || '?'})`);
+      if (!(a < b)) { const msg = `${st.name}: waktu ${sl.label} masa tidak sah (${sl.start || '?'}-${sl.end || '?'})`; if (!seenBad.has(msg)) { seenBad.add(msg); bad.push(msg); } }
       else { pts.add(a); pts.add(b); }
-    }));
+    })));
     const b = [...pts].sort((x, y) => x - y), atoms = [];
     for (let i = 0; i + 1 < b.length; i++) {
       const a0 = b[i], a1 = b[i + 1];
-      if (sets.some((st) => st.slots.some((sl) => toMin(sl.start) <= a0 && toMin(sl.end) >= a1))) atoms.push({ s: a0, e: a1 });
+      if (sets.some((st) => st.daySlots.some((list) => list.some((sl) => toMin(sl.start) <= a0 && toMin(sl.end) >= a1)))) atoms.push({ s: a0, e: a1 });
     }
     const A = Math.max(1, atoms.length);
-    const span = sets.map((st) => st.slots.map((sl) => {
+    const span = sets.map((st) => st.daySlots.map((list) => list.map((sl) => {
       const a = toMin(sl.start), e = toMin(sl.end);
       if (!(a < e)) return [0, A]; // masa rosak: anggap bertindih dengan semua, lebih selamat daripada terlepas konflik
       let a0 = atoms.findIndex((x) => x.s >= a), a1 = a0;
       while (a1 < atoms.length && atoms[a1].e <= e) a1++;
       return a0 < 0 ? [0, A] : [a0, Math.max(a0 + 1, a1)];
-    }));
-    const durs = sets.flatMap((st) => st.slots.map((sl) => toMin(sl.end) - toMin(sl.start)).filter((x) => x > 0)).sort((x, y) => x - y);
+    })));
+    const durs = sets.flatMap((st) => st.daySlots.flatMap((list) => list.map((sl) => toMin(sl.end) - toMin(sl.start)).filter((x) => x > 0))).sort((x, y) => x - y);
     const unit = durs.length ? durs[durs.length >> 1] : 30;
     const fmt = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
     const aLim = new Array(D).fill(0);
-    sets.forEach((st, k) => st.limit.forEach((n, d) => { if (n > 0) aLim[d] = Math.max(aLim[d], span[k][n - 1][1]); }));
+    sets.forEach((st, k) => st.limit.forEach((n, d) => { if (n > 0) aLim[d] = Math.max(aLim[d], span[k][d][n - 1][1]); }));
     return {
       multi: true, D, sets, classSet, A, bad, span, aLim,
       aw: atoms.map((x) => (x.e - x.s) / unit), abrk: atoms.map((x, i) => i > 0 && x.s > atoms[i - 1].e),
       atoms: atoms.map((x) => ({ start: fmt(x.s), end: fmt(x.e) }))
     };
   };
-  // atom [a0, a1) bagi `len` waktu bermula `start` dalam set k
-  TT.atomRange = (tm, k, start, len) => {
-    const sp = tm.span[k] || tm.span[0], f = sp[start], l = sp[start + len - 1] || f;
+  // semua waktu [start, start+len) wujud pada hari d dalam set k
+  TT.slotsOpen = (tm, k, d, start, len) => {
+    const o = ((tm.sets[k] || tm.sets[0]).open || [])[d];
+    if (!o) return false;
+    for (let p = start; p < start + len; p++) if (!o[p]) return false;
+    return true;
+  };
+  // atom [a0, a1) bagi `len` waktu bermula `start` dalam set k pada hari d
+  TT.atomRange = (tm, k, start, len, d) => {
+    const sk = tm.span[k] || tm.span[0], sp = sk[d | 0] || sk[0], f = sp[start], l = sp[start + len - 1] || f;
     return f ? [f[0], l[1]] : [0, 0];
   };
 
@@ -199,7 +228,7 @@
     for (const key of Object.keys(un)) {
       const [d, p] = key.split('-').map(Number);
       if (!(d >= 0 && d < tm.D && p >= 0 && p < P)) continue;
-      const [a0, a1] = tm.span[0][p];
+      const [a0, a1] = tm.span[0][d][p];
       for (let a = a0; a < a1; a++) out.add(d * tm.A + a);
     }
     return out;
@@ -266,8 +295,8 @@
     return load;
   };
 
-  TT.slotText = (s, p, k) => {
-    const sl = TT.slots(s, k)[p];
+  TT.slotText = (s, p, k, d) => {
+    const sl = TT.slots(s, k, d)[p];
     return sl ? `Waktu ${sl.label} (${sl.start}-${sl.end})` : `Waktu ${p + 1}`;
   };
 
@@ -302,12 +331,13 @@
       if (pl.day < 0 || pl.day >= days.length || pl.start < 0 || pl.start + u.len > st.limit[pl.day]) {
         add('error', `${label} berada di luar waktu sekolah`, [pl.unit]); continue;
       }
+      if (!TT.slotsOpen(tm, k, pl.day, pl.start, u.len)) { add('error', `${label} diletak pada waktu tiada kelas (${days[pl.day].name})`, [pl.unit]); continue; }
       for (let j = 1; j < u.len; j++) {
         if (st.slots[pl.start + j].breakBefore) { add('error', `${label} (waktu berganda) melintasi waktu rehat`, [pl.unit]); break; }
       }
       const push = (key) => { if (!occ.has(key)) occ.set(key, new Set()); occ.get(key).add(pl.unit); };
       for (let j = 0; j < u.len; j++) l.classIds.forEach((c) => push(`c|${c}|${pl.day}|${pl.start + j}`));
-      const [a0, a1] = TT.atomRange(tm, k, pl.start, u.len);
+      const [a0, a1] = TT.atomRange(tm, k, pl.start, u.len, pl.day);
       for (let a = a0; a < a1; a++) {
         l.teacherIds.forEach((t) => push(`t|${t}|${pl.day}|${a}`));
         if (l.roomId) push(`r|${l.roomId}|${pl.day}|${a}`);
@@ -345,7 +375,7 @@
   // semakan awal sebelum jana: cari masalah data yang pasti menyebabkan jadual gagal
   TT.precheck = (s) => {
     const out = [], m = TT.maps(s), tm = TT.timeModel(s), days = TT.days(s);
-    const totals = tm.sets.map((st) => st.limit.reduce((a, b) => a + b, 0));
+    const totals = tm.sets.map((st) => st.open.reduce((a, o) => a + o.filter(Boolean).length, 0));
     const tLoad = TT.teacherLoad(s), cLoad = new Map(), rLoad = new Map();
     tm.bad.forEach((msg) => out.push({ sev: 'error', msg: `Set waktu ${msg}` }));
     for (const l of s.lessons) {
@@ -368,7 +398,8 @@
         tm.sets.forEach((st, k) => {
           let n = 0;
           for (let p = 0; p < st.limit[d]; p++) {
-            const [a0, a1] = tm.span[k][p]; let ok = true;
+            if (!st.open[d][p]) continue;
+            const [a0, a1] = tm.span[k][d][p]; let ok = true;
             for (let a = a0; a < a1; a++) if (bl.has(d * tm.A + a)) { ok = false; break; }
             if (ok) n++;
           }
@@ -403,16 +434,17 @@
     if (!unit) return { ok: false, reason: 'Unit tidak wujud', blockers: [] };
     const l = m.lesson.get(unit.lessonId), k = TT.lessonSetIdx(s, l, m.cls), st = tm.sets[k];
     if (day < 0 || day >= days.length || start < 0 || start + unit.len > st.limit[day]) return { ok: false, reason: 'Di luar waktu sekolah hari itu', blockers: [] };
+    if (!TT.slotsOpen(tm, k, day, start, unit.len)) return { ok: false, reason: 'Tiada kelas pada waktu ini hari itu', blockers: [] };
     for (let j = 1; j < unit.len; j++) {
       if (st.slots[start + j].breakBefore) return { ok: false, reason: 'Waktu berganda tidak boleh melintasi rehat', blockers: [] };
     }
-    const [a0, a1] = TT.atomRange(tm, k, start, unit.len);
+    const [a0, a1] = TT.atomRange(tm, k, start, unit.len, day);
     for (const tid of l.teacherIds) {
       const t = m.teacher.get(tid); if (!t) continue;
       const un = TT.teacherUnavail(s, t), bl = TT.blockedAtoms(s, tm, t, un);
       for (let a = a0; a < a1; a++) {
         if (bl.has(day * tm.A + a)) {
-          const why = Object.keys(un).map((x) => x.split('-').map(Number)).find(([d, p]) => d === day && tm.span[0][p] && tm.span[0][p][0] <= a && a < tm.span[0][p][1]);
+          const why = Object.keys(un).map((x) => x.split('-').map(Number)).find(([d, p]) => d === day && tm.span[0][d][p] && tm.span[0][d][p][0] <= a && a < tm.span[0][d][p][1]);
           const name = why && un[why.join('-')];
           return { ok: false, reason: typeof name === 'string' ? `${t.name} ada ${name} pada waktu ini` : `${t.name} tidak boleh mengajar pada waktu ini`, blockers: [] };
         }
@@ -426,7 +458,7 @@
       const sharedC = ol.classIds.find((c) => l.classIds.includes(c));
       let hit = false;
       if (sharedC) hit = !(pl.start >= start + unit.len || start >= pl.start + o.len);
-      const [b0, b1] = TT.atomRange(tm, ok, pl.start, o.len);
+      const [b0, b1] = TT.atomRange(tm, ok, pl.start, o.len, day);
       const overlap = b0 < a1 && a0 < b1;
       const sharedT = overlap && ol.teacherIds.find((t) => l.teacherIds.includes(t));
       const sharedR = overlap && ol.roomId && ol.roomId === l.roomId;

@@ -520,3 +520,11 @@ label.impk small { color: var(--mute); } label.impk em { font-style: normal; fon
 .licbox .tag { font-weight: 700; }
 .licbox .licexp { margin-top: 4px; font-size: .88rem; color: var(--mute); }
 .licbox .licexp b { color: var(--ink, inherit); }
+.cell .ctime { display: block; font-size: .64rem; opacity: .7; font-weight: 600; margin-bottom: 1px; }
+.cell.off .ctime { opacity: .55; text-align: center; padding-top: 6px; }
+.tbl.daytimes th, .tbl.daytimes td { vertical-align: top; }
+.tbl.daytimes .dtm { display: flex; flex-direction: column; gap: 3px; }
+.tbl.daytimes input[type="time"] { width: 100%; min-width: 92px; padding: 3px 4px; font-size: .8rem; }
+.tbl.daytimes .chk.sm { font-size: .72rem; margin-top: 3px; display: flex; gap: 4px; align-items: center; }
+.tbl.daytimes tr.brkrow { background: #f6f7fa; }
+.tbl.daytimes td.shut { background: repeating-linear-gradient(45deg, #f1f3f7, #f1f3f7 6px, #e7eaf1 6px, #e7eaf1 12px); }

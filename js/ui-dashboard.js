@@ -58,7 +58,7 @@
       if (!rec) right = `<button class="pill w" ${UI.goAttr({ page: 'relief', date: day })}>Agih</button>`;
       else if (rec.status === 'assigned') right = `<span class="chip-s green">Siap</span><span class="pill o" title="${esc((m.teacher.get(rec.reliefTeacherId) || {}).name || '')}">${esc((m.teacher.get(rec.reliefTeacherId) || {}).short || '?')}</span>`;
       else right = `<span class="chip-s amber">${rec.status === 'kendiri' ? 'Kendiri' : 'Gabung'}</span>`;
-      return `<div class="drow"><span class="t">${esc(TT.slots(s, n.k)[n.periods[0]].start)}</span><div><b>${esc(sub.short || '?')} · ${esc(TT.classNames(s, n.classIds))}</b><small>Ganti ${esc(at.name || '?')}${n.periods.length > 1 ? ` · ${n.periods.length} waktu` : ''}</small></div><div class="r">${right}</div></div>`;
+      return `<div class="drow"><span class="t">${esc(TT.slots(s, n.k, n.day)[n.periods[0]].start)}</span><div><b>${esc(sub.short || '?')} · ${esc(TT.classNames(s, n.classIds))}</b><small>Ganti ${esc(at.name || '?')}${n.periods.length > 1 ? ` · ${n.periods.length} waktu` : ''}</small></div><div class="r">${right}</div></div>`;
     });
     const [from, to] = UI.monthRange(today);
     const st = TT.reliefStats(s, from, to).summary, need = st.total + st.uncovered + st.kendiri;

@@ -83,8 +83,8 @@
         classes: TT.classNames(s, r.classIds), room: (l && (m.room.get(l.roomId) || {}).name) || '', forTeacher: m.teacher.get(r.absentTeacherId) || null
       });
     }
-    out.forEach((x) => { const sl = tm.sets[x.k].slots; x.start = sl[x.p0] ? sl[x.p0].start : ''; x.end = sl[x.p1] ? sl[x.p1].end : ''; });
-    out.sort((a, b) => (tm.multi ? a.start.localeCompare(b.start) : 0) || a.p0 - b.p0);
+    out.forEach((x) => { const sl = tm.sets[x.k].daySlots[day] || tm.sets[x.k].slots; x.start = sl[x.p0] ? sl[x.p0].start : ''; x.end = sl[x.p1] ? sl[x.p1].end : ''; });
+    out.sort((a, b) => (tm.multi || TT.perDay(s) ? a.start.localeCompare(b.start) : 0) || a.p0 - b.p0);
     return out;
   };
 

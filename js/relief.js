@@ -35,7 +35,7 @@
     const grid = new Map(s.teachers.map((t) => [t.id, Array.from({ length: D }, () => new Array(A).fill(null))]));
     for (const pl of s.placements) {
       const l = m.lesson.get(pl.lessonId); if (!l) continue;
-      const [a0, a1] = TT.atomRange(tm, TT.lessonSetIdx(s, l, m.cls), pl.start, pl.len);
+      const [a0, a1] = TT.atomRange(tm, TT.lessonSetIdx(s, l, m.cls), pl.start, pl.len, pl.day);
       for (const tid of l.teacherIds) {
         const g = grid.get(tid); if (!g || !g[pl.day]) continue;
         for (let a = a0; a < a1; a++) g[pl.day][a] = pl;
@@ -46,17 +46,18 @@
 
   const covers = (a, p) => (a.from == null || p >= a.from) && (a.to == null || p <= a.to);
   // tidak hadir disimpan dalam waktu set utama; untuk set lain, bandingkan ikut masa sebenar
-  TT.absCovers = (tm, a, k, p) => {
+  TT.absCovers = (tm, a, k, p, d) => {
     if (a.from == null && a.to == null) return true;
     if (!tm.multi || !k) return covers(a, p);
-    const sp = tm.span[k][p], P0 = tm.sets[0].slots.length; if (!sp || !P0) return false;
+    d = d | 0;
+    const sp = tm.span[k][d][p], P0 = tm.sets[0].slots.length; if (!sp || !P0) return false;
     const f = Math.min(P0 - 1, a.from == null ? 0 : a.from), t = Math.min(P0 - 1, a.to == null ? P0 - 1 : a.to);
-    return sp[0] < tm.span[0][t][1] && tm.span[0][f][0] < sp[1];
+    return sp[0] < tm.span[0][d][t][1] && tm.span[0][d][f][0] < sp[1];
   };
 
   TT.absentAt = (s, iso, teacherId, p, k, tm) => {
     tm = tm || TT.timeModel(s);
-    return s.absences.find((a) => a.date === iso && a.teacherId === teacherId && TT.absCovers(tm, a, k || 0, p));
+    return s.absences.find((a) => a.date === iso && a.teacherId === teacherId && TT.absCovers(tm, a, k || 0, p, TT.dateToDay(s, iso)));
   };
 
   // blok relief = satu pelajaran yang terlibat dengan ketidakhadiran, mungkin 1-2 waktu bersambung.
@@ -73,7 +74,7 @@
         if (!l || !l.teacherIds.includes(a.teacherId)) continue;
         const k = TT.lessonSetIdx(s, l, m.cls), lim = tm.sets[k].limit[day];
         const periods = [];
-        for (let j = 0; j < pl.len; j++) { const p = pl.start + j; if (p < lim && TT.absCovers(tm, a, k, p)) periods.push(p); }
+        for (let j = 0; j < pl.len; j++) { const p = pl.start + j; if (p < lim && TT.absCovers(tm, a, k, p, day)) periods.push(p); }
         if (!periods.length) continue;
         out.push({
           key: `${iso}|${a.teacherId}|${pl.unit}`, date: iso, day, k, absenceId: a.id, absentTeacherId: a.teacherId,
@@ -81,7 +82,7 @@
         });
       }
     }
-    const t0 = (n) => (tm.multi ? TT.atomRange(tm, n.k, n.periods[0], 1)[0] : n.periods[0]);
+    const t0 = (n) => (tm.multi ? TT.atomRange(tm, n.k, n.periods[0], 1, n.day)[0] : n.periods[0]);
     out.sort((x, y) => t0(x) - t0(y) || x.absentTeacherId.localeCompare(y.absentTeacherId));
     return out;
   };
@@ -157,9 +158,9 @@
     for (const r of others) {
       const rk = TT.setOfClasses(s, r.classIds);
       if (!relBusy.has(r.reliefTeacherId)) relBusy.set(r.reliefTeacherId, new Set());
-      for (const p of r.periods) { const [a0, a1] = TT.atomRange(tm, rk, p, 1); for (let a = a0; a < a1; a++) relBusy.get(r.reliefTeacherId).add(a); }
+      for (const p of r.periods) { const [a0, a1] = TT.atomRange(tm, rk, p, 1, day); for (let a = a0; a < a1; a++) relBusy.get(r.reliefTeacherId).add(a); }
     }
-    const atomsOf = (p) => { const [a0, a1] = TT.atomRange(tm, k, p, 1); const out = []; for (let a = a0; a < a1; a++) out.push(a); return out; };
+    const atomsOf = (p) => { const [a0, a1] = TT.atomRange(tm, k, p, 1, day); const out = []; for (let a = a0; a < a1; a++) out.push(a); return out; };
     const busyAt = (t, p) => atomsOf(p).some((a) => grid.get(t.id)[day][a] || (relBusy.get(t.id) && relBusy.get(t.id).has(a)));
     const p0 = need.periods[0], p1 = need.periods[need.periods.length - 1];
     const cands = [];
@@ -292,7 +293,7 @@
     const ass = [], rest = [];
     for (const n of needs) {
       const rec = recordOf(s, n);
-      const p0 = n.periods[0], p1 = n.periods[n.periods.length - 1], sl = TT.slots(s, n.k);
+      const p0 = n.periods[0], p1 = n.periods[n.periods.length - 1], sl = TT.slots(s, n.k, n.day);
       const when = p0 === p1 ? `W${p0 + 1}` : `W${p0 + 1}-${p1 + 1}`;
       const time = `${sl[p0].start}-${sl[p1].end}`;
       const sub = (m.subject.get(n.subjectId) || {}).short || '';

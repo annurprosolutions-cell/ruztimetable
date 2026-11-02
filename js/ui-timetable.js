@@ -56,7 +56,7 @@
     placementsFor(kind, id, m).forEach((pl) => {
       if (!at[pl.day]) return;
       const l = m.lesson.get(pl.lessonId), lk = TT.lessonSetIdx(s, l, m.cls);
-      const [r0, r1] = atomMode ? TT.atomRange(tm, lk, pl.start, pl.len) : [pl.start, pl.start + pl.len];
+      const [r0, r1] = atomMode ? TT.atomRange(tm, lk, pl.start, pl.len, pl.day) : [pl.start, pl.start + pl.len];
       at[pl.day][r0] = { pl, start: true, span: r1 - r0 };
       for (let r = r0 + 1; r < r1; r++) at[pl.day][r] = { pl, start: false };
     });
@@ -67,12 +67,17 @@
         const un = TT.teacherUnavail(s, t);
         blocked = (d, r) => {
           if (!atomMode) { const v = un[`${d}-${r}`]; return v ? (typeof v === 'string' ? v : 'tidak boleh') : ''; }
-          const hit = Object.keys(un).find((key) => { const [dd, p] = key.split('-').map(Number); const sp = tm.span[0][p]; return dd === d && sp && sp[0] <= r && r < sp[1]; });
+          const hit = Object.keys(un).find((key) => { const [dd, p] = key.split('-').map(Number); const sp = tm.span[0][d] && tm.span[0][d][p]; return dd === d && sp && sp[0] <= r && r < sp[1]; });
           return hit ? (typeof un[hit] === 'string' ? un[hit] : 'tidak boleh') : '';
         };
       }
     }
-    return { s, m, tm, days, rows, lim, at, atomMode, blocked, k };
+    // masa ikut hari: jam dipapar dalam setiap petak, waktu tiada kelas dikelabukan
+    const perDay = TT.perDay(s) && !atomMode, st = tm.sets[k];
+    const dayTime = (d, r, n) => { const a = st.daySlots[d] && st.daySlots[d][r], b = st.daySlots[d] && st.daySlots[d][r + (n || 1) - 1]; return a ? `${a.start}-${(b || a).end}` : ''; };
+    const open = (d, r) => atomMode || !st.open[d] || !!st.open[d][r];
+    if (perDay) rows.forEach((x) => { x.time = ''; });
+    return { s, m, tm, days, rows, lim, at, atomMode, blocked, k, perDay, dayTime, open };
   };
 
   UI.gridHtml = (kind, id, editable, bad, axis) => {
@@ -83,15 +88,17 @@
       const c = at[d][r];
       if (c && !c.start) return '';
       if (r >= lim[d]) return '<td class="cell off"></td>';
+      const tt = g.perDay ? `<small class="ctime">${esc(g.dayTime(d, r, c && c.start ? c.span : 1))}</small>` : '';
+      if (!c && !g.open(d, r)) return `<td class="cell off">${g.perDay ? `<small class="ctime">tiada kelas</small>` : ''}</td>`;
       if (c) {
         const l = m.lesson.get(c.pl.lessonId), sub = m.subject.get(l.subjectId) || {};
         const btns = editable ? `<span class="cbtn"><button class="lock" data-act="lock" data-unit="${c.pl.unit}" title="${c.pl.locked ? 'Buka kunci' : 'Kunci waktu ini'}">${UI.icon(c.pl.locked ? 'lock' : 'unlock')}</button><button class="lock" data-act="unplaceUnit" data-unit="${c.pl.unit}" title="Keluarkan dari jadual">${UI.icon('x')}</button></span>`
           : (c.pl.locked ? `<span class="lockd">${UI.icon('lock')}</span>` : '');
         const span = vertical ? `colspan="${c.span}"` : `rowspan="${c.span}"`;
-        return `<td class="cell filled${bad.has(c.pl.unit) ? ' bad' : ''}${c.pl.locked ? ' locked' : ''}" ${span}${editable ? ' draggable="true"' : ''} data-unit="${c.pl.unit}" data-day="${d}" data-p="${r}" style="${tint(sub.color)}">${cellInner(kind, l, m)}${btns}</td>`;
+        return `<td class="cell filled${bad.has(c.pl.unit) ? ' bad' : ''}${c.pl.locked ? ' locked' : ''}" ${span}${editable ? ' draggable="true"' : ''} data-unit="${c.pl.unit}" data-day="${d}" data-p="${r}" style="${tint(sub.color)}">${tt}${cellInner(kind, l, m)}${btns}</td>`;
       }
       const un = g.blocked && g.blocked(d, r);
-      return `<td class="cell empty${un ? ' unav' : ''}"${editable ? ` data-day="${d}" data-p="${r}"` : ''}>${un ? `<span>${esc(un)}</span>` : ''}</td>`;
+      return `<td class="cell empty${un ? ' unav' : ''}"${editable ? ` data-day="${d}" data-p="${r}"` : ''}>${tt}${un ? `<span>${esc(un)}</span>` : ''}</td>`;
     };
     if (axis === 'left') {
       let h = `<table class="grid left${g.atomMode ? ' atoms' : ''}"><thead><tr><th class="tcol">Hari</th>${rows.map((x) => (x.brk ? `<th class="brkh">${esc(x.label)}</th>` : `<th>${esc(x.label)}<small>${esc(x.time)}</small></th>`)).join('')}</tr></thead><tbody>`;
@@ -129,7 +136,7 @@
     const map = new Map();
     for (const pl of s.placements) {
       const l = m.lesson.get(pl.lessonId); if (!l) continue;
-      const [r0, r1] = atomMode ? TT.atomRange(tm, TT.lessonSetIdx(s, l, m.cls), pl.start, pl.len) : [pl.start, pl.start + pl.len];
+      const [r0, r1] = atomMode ? TT.atomRange(tm, TT.lessonSetIdx(s, l, m.cls), pl.start, pl.len, pl.day) : [pl.start, pl.start + pl.len];
       for (const id of byClass ? l.classIds : l.teacherIds) for (let r = r0; r < r1; r++) map.set(`${id}|${pl.day}|${r}`, l);
     }
     let h = '<table class="grid master"><thead><tr><th rowspan="2" class="tcol">' + (byClass ? 'Kelas' : 'Guru') + '</th>';
@@ -360,7 +367,8 @@
     const g = UI.gridModel(kind, id), { m, days, rows, lim, at } = g, ent = entities(kind).find((x) => x.id === id) || {};
     const title = `Jadual Waktu ${NAME[kind]}: ${ent.name || ''} · ${S().school.name}`;
     const out = [[title]], merges = [], col = TT.xlsxColName;
-    const text = (d, r) => { const c = at[d][r]; if (r >= lim[d]) return ''; if (c) return c.start ? cellText(kind, m.lesson.get(c.pl.lessonId), m) : null; const un = g.blocked && g.blocked(d, r); return un ? `(${un})` : ''; };
+    // masa ikut hari: jam hari itu ditulis di baris pertama setiap petak
+    const text = (d, r) => { const c = at[d][r]; if (r >= lim[d]) return ''; const tt = g.perDay ? g.dayTime(d, r) + '\n' : ''; if (!c && !g.open(d, r)) return g.perDay ? 'tiada kelas' : ''; if (c) return c.start ? tt + cellText(kind, m.lesson.get(c.pl.lessonId), m) : null; const un = g.blocked && g.blocked(d, r); return tt + (un ? `(${un})` : ''); };
     if (axis === 'left') {
       out.push(['Hari'].concat(rows.map((x) => (x.brk ? x.label : `${x.label}\n${x.time}`))));
       days.forEach((dy, d) => {
@@ -413,7 +421,7 @@
     const out = [];
     s.placements.forEach((p) => {
       const l = m.lesson.get(p.lessonId); if (!l) return;
-      const sl = TT.slots(s, TT.lessonSetIdx(s, l, m.cls));
+      const sl = TT.slots(s, TT.lessonSetIdx(s, l, m.cls), p.day);
       for (let k = 0; k < p.len; k++) out.push([p.day, sl[p.start + k].start, [days[p.day].name, sl[p.start + k].label, sl[p.start + k].start, sl[p.start + k].end, TT.classNames(s, l.classIds), (m.subject.get(l.subjectId) || {}).name, l.teacherIds.map((i) => (m.teacher.get(i) || {}).name).join(' / '), (m.room.get(l.roomId) || {}).name || '']]);
     });
     out.sort((a, b) => a[0] - b[0] || a[1].localeCompare(b[1])).forEach((x) => rows.push(x[2]));

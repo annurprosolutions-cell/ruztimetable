@@ -134,8 +134,29 @@
         <div class="row tight"><button class="pill" data-act="periodGen" data-k="${k}">Jana pantas</button>${multi && k ? `<button class="pill" data-act="setDel" data-k="${k}">Padam set</button>` : ''}</div></div>
       <div class="tablewrap"><table class="tbl"><thead><tr><th>Label</th><th>Mula</th><th>Tamat</th><th>Jenis</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="row"><button class="btn" data-act="periodAdd" data-k="${k}" data-type="lesson">+ Waktu belajar</button><button class="btn" data-act="periodAdd" data-k="${k}" data-type="break">+ Rehat</button></div>
+      ${TT.perDay(s) ? dayTimeEditor(k) : ''}
       <h3 class="sub">Bilangan waktu setiap hari</h3><p class="hint">Contoh: Jumaat lebih pendek, atau Tahap 1 balik lebih awal pada hari tertentu. Waktu selepas had ini tidak digunakan.</p>
       <div class="row">${days.map((d, i) => `<label class="fld sm"><span>${d.name}${slots.length ? ` <small>(${(slots[TT.dayLimits(s, k)[i] - 1] || { end: '-' }).end})</small>` : ''}</span><input type="number" min="0" max="${slots.length}" data-chg="dayLimit" data-k="${k}" data-i="${i}" value="${TT.dayLimits(s, k)[i]}"></label>`).join('')}</div></section>`;
+  }
+
+  // masa ikut hari: baris = waktu dan rehat, lajur = hari. Kosong = ikut masa asas di atas.
+  const cfgOf = (k) => (k ? S().timeSets[k - 1] : S());
+  function dayTimeEditor(k) {
+    const s = S(), days = TT.days(s), ps = setPeriodsArr(k), cfg = cfgOf(k);
+    const on = days.map((_, d) => TT.periodsOn(s, k, d)), off = days.map((_, d) => (cfg.dayOff && cfg.dayOff[d]) || []);
+    let li = -1;
+    const rows = ps.map((p, i) => {
+      if (p.type !== 'break') li++;
+      const slot = li, brk = p.type === 'break';
+      return `<tr class="${brk ? 'brkrow' : ''}"><th>${esc(brk ? p.label || 'Rehat' : 'Waktu ' + p.label)}</th>${days.map((_, d) => {
+        const x = on[d][i], shut = !brk && off[d].includes(slot);
+        return `<td class="${shut ? 'shut' : ''}"><div class="dtm"><input type="time" data-chg="dayTime" data-k="${k}" data-d="${d}" data-i="${i}" data-f="start" value="${esc(x.start)}" aria-label="${esc(days[d].name)} mula"><input type="time" data-chg="dayTime" data-k="${k}" data-d="${d}" data-i="${i}" data-f="end" value="${esc(x.end)}" aria-label="${esc(days[d].name)} tamat"></div>${brk ? '' : `<label class="chk sm"><input type="checkbox" data-chg="dayOff" data-k="${k}" data-d="${d}" data-p="${slot}"${shut ? ' checked' : ''}>tiada kelas</label>`}</td>`;
+      }).join('')}</tr>`;
+    }).join('');
+    return `<h3 class="sub">Masa setiap hari <span class="tag">Beta</span></h3>
+      <p class="hint">Isi jam mula dan tamat bagi setiap hari. Tanda "tiada kelas" untuk waktu yang tidak digunakan hari itu (contoh Khamis waktu 1). Penjana tidak meletak pelajaran pada waktu tiada kelas, dan jadual serta slip dicetak dengan jam hari itu.</p>
+      <div class="tablewrap"><table class="tbl daytimes"><thead><tr><th></th>${days.map((d) => `<th>${esc(d.name)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="row"><button class="btn sm" data-act="dayTimeCopy" data-k="${k}">Salin ${esc(days[0] ? days[0].name : 'hari pertama')} ke semua hari</button><button class="btn sm" data-act="dayTimeReset" data-k="${k}">Set semula ikut masa asas</button></div>`;
   }
 
   function setPeriods() {
@@ -143,6 +164,7 @@
     const mode = `<section class="card"><div class="ch"><div><h2>Susunan waktu</h2><small>Sekolah rendah yang rehat atau waktu balik Tahap 1 dan Tahap 2 berbeza boleh guna set waktu berasingan</small></div></div>
       <div class="row"><label class="chk"><input type="radio" name="tmode" value="0" data-chg="multiTime"${multi ? '' : ' checked'}>Waktu sama untuk semua kelas</label>
       <label class="chk"><input type="radio" name="tmode" value="1" data-chg="multiTime"${multi ? ' checked' : ''}>Waktu berbeza ikut kumpulan kelas <span class="tag">Beta</span></label></div>
+      <div class="row"><label class="chk"><input type="checkbox" data-chg="perDayTime"${TT.perDay(s) ? ' checked' : ''}>Masa berbeza setiap hari (contoh sesi petang: Isnin mula 11:30, Rabu 6:50 pagi) <span class="tag">Beta</span></label></div>
       ${multi ? '<p class="hint">Setiap kelas ikut satu set. Guru yang mengajar dua set disemak bertindih ikut masa sebenar (contoh 10:15-10:45 lawan 10:30-11:00). Waktu "tidak boleh" guru, sekatan serentak dan ketidakhadiran separuh hari direkod ikut waktu set pertama.</p>' : ''}</section>`;
     if (!multi) return mode + periodCard(0, false);
     const list = TT.timeSetList(s);
@@ -193,6 +215,33 @@
     });
   };
   actions.blockDel = (el) => UI.confirm('Padam sekatan ini?', () => { S().blocks = S().blocks.filter((b) => b.id !== el.dataset.id); UI.commit(); }, 'Padam');
+
+  changes.perDayTime = (el) => { S().school.perDayTime = el.checked; UI.commit(); };
+  // simpan jam satu hari: tatasusunan selari dengan senarai waktu set itu
+  const dayArr = (k, d) => {
+    const cfg = cfgOf(k), ps = setPeriodsArr(k);
+    cfg.dayTimes = cfg.dayTimes || {};
+    const cur = Array.isArray(cfg.dayTimes[d]) ? cfg.dayTimes[d] : [];
+    cfg.dayTimes[d] = ps.map((p, i) => ({ start: (cur[i] && cur[i].start) || p.start, end: (cur[i] && cur[i].end) || p.end }));
+    return cfg.dayTimes[d];
+  };
+  changes.dayTime = (el) => { const a = dayArr(+el.dataset.k || 0, +el.dataset.d); a[+el.dataset.i][el.dataset.f] = el.value; UI.commit(); };
+  changes.dayOff = (el) => {
+    const cfg = cfgOf(+el.dataset.k || 0), d = +el.dataset.d, p = +el.dataset.p;
+    cfg.dayOff = cfg.dayOff || {};
+    const list = (cfg.dayOff[d] || []).filter((x) => x !== p);
+    if (el.checked) list.push(p);
+    if (list.length) cfg.dayOff[d] = list.sort((a, b) => a - b); else delete cfg.dayOff[d];
+    UI.commit();
+  };
+  actions.dayTimeCopy = (el) => {
+    const k = +el.dataset.k || 0, cfg = cfgOf(k), first = JSON.parse(JSON.stringify(dayArr(k, 0)));
+    TT.days(S()).forEach((_, d) => { cfg.dayTimes[d] = JSON.parse(JSON.stringify(first)); });
+    UI.commit(); UI.toast('Masa disalin ke semua hari.');
+  };
+  actions.dayTimeReset = (el) => UI.confirm('Set semula masa semua hari ikut masa asas dan buang tanda "tiada kelas"?', () => { const cfg = cfgOf(+el.dataset.k || 0); cfg.dayTimes = {}; cfg.dayOff = {}; UI.commit(); }, 'Set semula');
+  // struktur waktu berubah: selaraskan masa setiap hari supaya baris tidak beralih
+  const dayShift = (k, fn) => { const cfg = cfgOf(k); Object.keys(cfg.dayTimes || {}).forEach((d) => { if (Array.isArray(cfg.dayTimes[d])) fn(cfg.dayTimes[d]); }); };
 
   changes.multiTime = (el) => {
     const s = S(), on = el.value === '1';
@@ -326,6 +375,7 @@
     const s = S(), k = +el.dataset.k || 0, ps = setPeriodsArr(k), last = ps[ps.length - 1], before = TT.slots(s, k).length;
     const n = ps.filter((p) => p.type === 'lesson').length + 1;
     ps.push({ label: el.dataset.type === 'break' ? 'Rehat' : String(n), start: last ? last.end : '07:30', end: last ? addMin(last.end, el.dataset.type === 'break' ? 30 : 40) : '08:10', type: el.dataset.type });
+    dayShift(k, (a) => a.push({ start: '', end: '' }));
     // hari yang sebelum ini penuh turut dapat waktu baharu
     const lim = setLimitsArr(k) || [];
     if (el.dataset.type === 'lesson') setLimitsPut(k, TT.days(s).map((_, i) => (lim[i] == null || lim[i] >= before ? before + 1 : lim[i])));
@@ -333,11 +383,14 @@
   };
   actions.periodDel = (el) => {
     const i = +el.dataset.i, ps = setPeriodsArr(+el.dataset.k || 0);
-    UI.confirm('Padam baris ini? Waktu yang telah diletak selepasnya mungkin dibuang dari jadual.', () => { ps.splice(i, 1); UI.commit(); }, 'Padam');
+    UI.confirm('Padam baris ini? Waktu yang telah diletak selepasnya mungkin dibuang dari jadual.', () => { ps.splice(i, 1); dayShift(+el.dataset.k || 0, (a) => a.splice(i, 1)); cfgOf(+el.dataset.k || 0).dayOff = {}; UI.commit(); }, 'Padam');
   };
   actions.periodMove = (el) => {
     const i = +el.dataset.i, j = i + +el.dataset.dir, ps = setPeriodsArr(+el.dataset.k || 0);
-    if (j < 0 || j >= ps.length) return; [ps[i], ps[j]] = [ps[j], ps[i]]; UI.commit();
+    if (j < 0 || j >= ps.length) return; [ps[i], ps[j]] = [ps[j], ps[i]];
+    dayShift(+el.dataset.k || 0, (a) => { [a[i], a[j]] = [a[j], a[i]]; });
+    if (ps[i].type !== ps[j].type) cfgOf(+el.dataset.k || 0).dayOff = {}; // indeks waktu belajar berubah
+    UI.commit();
   };
   actions.periodGen = (el) => {
     const k = (el && el.dataset && +el.dataset.k) || 0;
