@@ -11,6 +11,9 @@ Working reference: `worker/index.mjs` in `annurprosolutions-cell/ruztimetable`. 
 | DELETE | `/admin/licenses?key=<kvkey>` | admin | Remove any key (licence, trial marker, slug) |
 | POST | `/bcl/<BCL_WEBHOOK_KEY>` | secret in path | BCL webhook; respond fast and process in `ctx.waitUntil` |
 | GET | `/slug/<name>` | origin allow-list | Pretty link lookup `{ok, gid, school}`; 404 `tiada` / `lesen-tamat` |
+| GET | `/stats` | public | Counts only: `{paid: n or null, trial, min}`. `paid` is hidden (null) until it reaches `STATS_MIN` (5) so small numbers never hurt trust; owner/test accounts listed in `STATS_EXCLUDE` are not counted; cached in KV (`stats:cache`) for `STATS_TTL` seconds |
+| GET | `/admin/overview` | admin | Every record with computed status plus `stats` (paid active, trials, MRR, 30-day revenue, trial-to-paid conversion, failed webhooks) for the owner dashboard |
+| POST | `/admin/licenses` + `merge:true` | admin | Change only `school`, `plan` or `expires`, keeping other fields (`day` is recomputed from the new date) |
 | POST/DELETE | `/slug` | Google token, paid plan | Claim/rename (409 taken, 429 too soon: one free rename then once per 30 days) / release |
 
 CORS: only origins in `ALLOWED_ORIGINS`; methods `GET, POST, DELETE, OPTIONS`; `cache-control: no-store` on lookups.
@@ -36,8 +39,11 @@ CORS: only origins in `ALLOWED_ORIGINS`; methods `GET, POST, DELETE, OPTIONS`; `
 - Only accept the configured form (`BCL_FORM_ID`); ignore test transactions unless `BCL_ACCEPT_TEST=1`.
 - Never trust the webhook body for money: re-fetch the transaction (see `bcl.md`).
 
+## Owner dashboard (`/admin/` page on the app site)
+Static page that calls `/admin/*` on the licence Worker. Admin auth accepts either `ADMIN_TOKEN` or a Google access token whose verified e-mail is in `OWNER_EMAILS` (so the owner never pastes secrets into a console again). CORS for `/admin/*` follows `ALLOWED_ORIGINS`. Tabs: customers (search, filter, edit, +1/+3/+12 months, move to another e-mail, delete, add, CSV), needs action (trials ending, renewals, failed webhooks with mailto links), payments, webhook log, slugs, performance (link to Cloudflare metrics). Store the payment `amount` in `bcl:<order>` records from day one, otherwise revenue cannot be shown for old payments. Usage analytics are deliberately absent: the app never sends school data to the vendor.
+
 ## Env
-Secrets: `ADMIN_TOKEN`, `BCL_WEBHOOK_KEY`, `BCL_API_TOKEN`. Vars: `GOOGLE_CLIENT_ID`, `ALLOWED_ORIGINS`, `TRIAL_DAYS`, `GRACE_DAYS`, `BUY_URL`, `BCL_FORM_ID`, `YEARLY_MIN_AMOUNT`, optional `BCL_ACCEPT_TEST`, `BCL_API_URL`. Binding: KV `LICENSES`.
+Secrets: `ADMIN_TOKEN`, `BCL_WEBHOOK_KEY`, `BCL_API_TOKEN`. Vars: `GOOGLE_CLIENT_ID`, `ALLOWED_ORIGINS`, `TRIAL_DAYS`, `GRACE_DAYS`, `BUY_URL`, `BCL_FORM_ID`, `YEARLY_MIN_AMOUNT`, `OWNER_EMAILS`, `STATS_EXCLUDE` (set it to the owner's own e-mail or the counter counts the owner), optional `STATS_MIN`, `STATS_TTL`, `PRICE_MONTH`, `PRICE_YEAR`, `BCL_ACCEPT_TEST`, `BCL_API_URL`. Binding: KV `LICENSES`.
 
 ## Admin console snippets (owner pastes in Chrome DevTools on the Worker URL)
 ```js

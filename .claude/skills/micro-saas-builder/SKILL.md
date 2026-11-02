@@ -68,6 +68,13 @@ Keep the free tier honest: what stops after trial/expiry should be the cloud fea
 ### 6. Operate
 Give the owner browser-console snippets for the licence admin API (list, add months, set expiry, domain licence, delete key) instead of asking them to install tools. Weekly: compare BCL transactions with licences, resend failed webhooks (BCL never retries), follow up trials ending soon. Yearly: renew the BCL API token before it expires, rotate the admin token, renew the domain.
 
+## Growth and operations features worth building early
+- **Sale page** at `/salepage/` (static, same repo): hero with real screenshots, pain points, one section per feature with a screenshot, who-it-is-for, the promo video, 3-step start, pricing, FAQ, sticky mobile CTA, scroll-reveal motion that respects `prefers-reduced-motion`. First CTA is always "try the demo" (`/?demo`), second is the trial. Do not invent testimonials or customer counts; show the live counter only when it is real.
+- **Public counter**: `/stats` counts only, hide the paid number until a threshold, exclude the owner's own accounts. Show it on the login screen and sale page.
+- **Owner dashboard** (see `references/licence-worker.md`): edit licence dates, see who is on trial, MRR, failed webhooks, without touching a console.
+- **Variable timetable shapes**: when a customer sends a real timetable image, check what it assumes (per-day start times, closed periods, split groups) before promising support. Model per-day data as `dayTimes[day]` aligned with the base periods plus `dayOff[day]` for closed periods, and keep every consumer (generator, validator, drag-drop, relief, print, export, Sheets round-trip) on the same `span[set][day][period]` accessor.
+- **Repo visibility**: the shipped front end is public by nature (View Source), so a private repo mainly protects the Worker, tests and history. Scan git history for secrets first. A private repo disables GitHub Pages on free plans (old-host redirects stop working) and breaks raw.githubusercontent links; Workers Builds still deploys if the Cloudflare GitHub app has access.
+
 ## Lessons that cost time (do these right the first time)
 - **Months arithmetic**: anchor the day of month (store `day`) so 31 Jan + 1 month = 28/29 Feb and the next renewal returns to the 31st; multiply months by item quantity; extend from the current expiry when still active.
 - **Trial tests**: a Worker that auto-starts trials makes "not licensed" tests pass for the wrong reason; set `TRIAL_DAYS: '0'` where denial is expected.
@@ -78,6 +85,8 @@ Give the owner browser-console snippets for the licence admin API (list, add mon
 - **drive.file** only sees files the app created; searching by title can match the wrong file, so give archive/other sheets titles that never contain the master sheet's title.
 - **Popups**: Google sign-in must be triggered directly by a click, or browsers block it.
 - **Webhook security**: BCL webhooks are unsigned; keep a long random key in the URL path and always re-fetch the transaction from the API (status success, amount and order match) before granting anything.
+- **Recorder helper bug**: a debug `if (process.env.X) log(...) else await click()` pair silently turned into a double click when the env var was unset; keep debug logging on its own line, never between an `if` and its `else`.
+- **Test boundaries**: "last N days" counts include today, so a date exactly N days ago is inside the window; pick fixtures clearly inside or outside.
 - **Videos**: Playwright's `locator.evaluate` waits up to 30 s when a selector is missing; always pass a short timeout in recording helpers or videos balloon. Record scenes one at a time; parallel recording starves CPU and leaves 10-25 s of frozen screen.
 
 ## Bundled files
