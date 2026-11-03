@@ -70,11 +70,11 @@
     const has = (arr) => new Set(arr.map((x) => low(x.name)));
     if (kinds.includes('subjects')) {
       const h = has(s.subjects);
-      data.subjects.forEach((x) => { if (h.has(low(x.name))) return; s.subjects.push({ id: TT.uid('s'), name: x.name, short: x.code || x.name.slice(0, 3).toUpperCase(), color: PAL[s.subjects.length % PAL.length], heavy: false }); added.subjects++; });
+      data.subjects.forEach((x) => { if (h.has(low(x.name))) return; s.subjects.push({ id: TT.uid('s'), name: x.name, short: x.code || x.name.slice(0, 3).toUpperCase(), color: PAL[s.subjects.length % PAL.length], heavy: !!x.heavy }); added.subjects++; });
     }
     if (kinds.includes('teachers')) {
       const h = has(s.teachers);
-      data.teachers.forEach((x) => { if (h.has(low(x.name))) return; s.teachers.push({ id: TT.uid('t'), name: x.name, short: x.code || initials(x.name), dept: '', role: '', subjectIds: [], maxPerDay: 7, maxPerWeek: 36, unavailable: {}, noRelief: false }); added.teachers++; });
+      data.teachers.forEach((x) => { if (h.has(low(x.name))) return; s.teachers.push({ id: TT.uid('t'), name: x.name, short: x.code || initials(x.name), dept: x.dept || '', role: x.role || '', subjectIds: [], maxPerDay: x.maxPerDay || 7, maxPerWeek: x.maxPerWeek || 36, unavailable: {}, noRelief: false }); added.teachers++; });
     }
     if (kinds.includes('classes')) {
       const h = has(s.classes);
@@ -83,6 +83,15 @@
     if (kinds.includes('rooms')) {
       const h = has(s.rooms);
       data.rooms.forEach((x) => { if (h.has(low(x.name))) return; s.rooms.push({ id: TT.uid('r'), name: x.name, type: /makmal|lab/i.test(x.name) ? 'Makmal' : /bengkel/i.test(x.name) ? 'Bengkel' : '' }); added.rooms++; });
+    }
+    // guru kelas (templat): rujuk guru ikut nama atau kod
+    if (kinds.includes('classes') && data.classes.some((x) => x.homeroom)) {
+      const tk = (n) => { const k = low(n).replace(/\s+/g, ''); return s.teachers.find((t) => low(t.name).replace(/\s+/g, '') === k || low(t.short).replace(/\s+/g, '') === k); };
+      data.classes.forEach((x) => { if (!x.homeroom) return; const c = s.classes.find((y) => low(y.name) === low(x.name)), t = tk(x.homeroom); if (c && t && !c.homeroomId) c.homeroomId = t.id; });
+    }
+    if (kinds.includes('lessons') && data.lessons && data.lessons.length && TT.applyLessons) {
+      const r = TT.applyLessons(s, data.lessons);
+      added.lessons = r.added; added.lessonsUpdated = r.updated; added.lessonsSkipped = r.skipped;
     }
     return added;
   };

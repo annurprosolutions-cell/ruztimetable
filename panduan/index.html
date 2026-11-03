@@ -248,11 +248,22 @@ footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);font-si
   <li>Tampal senarai. Satu rekod setiap baris. Untuk guru: <code>Nama, Kod, Panitia</code>. Untuk kelas: <code>Nama, Tingkatan</code>. Lajur boleh dipisahkan koma atau tab (tampal terus dari Excel). Hanya nama yang wajib.</li>
   <li>Klik <span class="btn">Tambah</span>. Kod yang kosong dijana automatik daripada nama.</li>
 </ol>
-<h3>Import dari aSc / Excel</h3>
-<p>Sekolah yang pernah guna aSc Timetables boleh bawa masuk senarai guru, subjek, kelas dan bilik terus dari fail Excel eksport aSc.</p>
+<h3>Import dari templat Excel (disyorkan)</h3>
+<p>Setiap sekolah ada susunan fail Excel yang berbeza, jadi cara paling mudah ialah guna templat kami. Templat mengandungi tab <b>Guru, Subjek, Kelas, Bilik</b> dan <b>Pelajaran</b> (siapa mengajar apa, di kelas mana, berapa waktu seminggu).</p>
 <ol class="steps">
-  <li>Di halaman Data, klik <span class="btn">Import dari aSc / Excel</span> dan pilih fail <code>.xlsx</code>.</li>
-  <li>Sistem tunjuk pratonton: berapa guru, subjek, kelas dan bilik dijumpai.</li>
+  <li>Di halaman Data, klik <span class="btn">Import dari aSc / Excel</span> dan pilih <span class="btn">Muat turun templat Excel</span>.</li>
+  <li>Buka templat. Baca tab <b>Arahan</b>. Isi tab Guru, Subjek, Kelas dan Bilik, kemudian tab Pelajaran. Padam baris "(contoh)" atau biarkan, kerana ia diabaikan.</li>
+  <li>Dalam tab Pelajaran, tulis nama (atau kod) guru, subjek dan kelas seperti dalam tab lain. Banyak kelas atau banyak guru dalam satu sel dipisahkan dengan <code>;</code>, contoh <code>1 Amanah; 1 Bestari</code>.</li>
+  <li>Simpan fail, kemudian klik <span class="btn">Pilih fail Excel / CSV</span>. Sistem tunjuk pratonton: berapa guru, kelas, subjek dan pelajaran dijumpai.</li>
+  <li>Kalau ada masalah, senarai ralat ditunjuk dengan <b>nombor baris</b> dalam Excel (contoh "Pelajaran, baris 12: Guru 'Ali' tiada dalam senarai Guru"). Betulkan dalam Excel dan import semula, atau teruskan dengan baris yang betul.</li>
+  <li>Klik <span class="btn">Import</span>, semak Data, Pelajaran, kemudian jana jadual.</li>
+</ol>
+<div class="box tip"><b>Eksport dan import semula</b>Sekolah yang sudah ada data boleh klik <span class="btn">Eksport data semasa sebagai templat</span>, sunting dalam Excel (contoh tukar guru atau waktu seminggu untuk banyak pelajaran sekaligus), dan import semula dalam mod "Tambah". Pelajaran yang sama dikemas kini, bukan digandakan.</div>
+<h3>Import terus dari fail aSc</h3>
+<p>Sekolah yang pernah guna aSc Timetables boleh pilih fail Excel eksport aSc terus.</p>
+<ol class="steps">
+  <li>Klik <span class="btn">Import dari aSc / Excel</span>, kemudian <span class="btn">Pilih fail Excel / CSV</span>.</li>
+<li>Sistem tunjuk pratonton: berapa guru, subjek, kelas dan bilik dijumpai.</li>
   <li>Pilih <b>Tambah</b> (gabung dengan data sedia ada, nama sama tidak diduplikasi) atau <b>Ganti</b> (padam data lama dan guna data import), kemudian sahkan.</li>
   <li>Semak tab Pelajaran selepas import. Isi atau betulkan beban mengajar sebelum jana jadual.</li>
 </ol>

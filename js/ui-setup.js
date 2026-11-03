@@ -40,14 +40,27 @@
   };
 
   // ---------------- import senarai daripada aSc (Excel / CSV) ----------------
-  actions.ascImport = () => { const f = document.getElementById('ascFile'); f.value = ''; f.click(); };
+  // pintu masuk import: muat turun templat, eksport data semasa dalam format templat, atau pilih fail
+  actions.ascImport = () => {
+    const has = S().teachers.length || S().classes.length || S().lessons.length;
+    UI.modalOpen('Import data', `<p>Cara paling mudah: muat turun <b>templat Excel</b>, isi tab Guru, Subjek, Kelas, Bilik dan Pelajaran, kemudian pilih fail itu. Sistem tunjuk pratonton dan senarai ralat (dengan nombor baris) sebelum apa-apa disimpan.</p>
+      <div class="impopt"><button class="btn primary" data-act="tplDownload">${UI.icon('download')} Muat turun templat Excel</button>
+      ${has ? `<button class="btn" data-act="tplExport">${UI.icon('download')} Eksport data semasa sebagai templat</button>` : ''}
+      <button class="btn" data-act="ascPick">${UI.icon('upload')} Pilih fail Excel / CSV</button></div>
+      <p class="hint">Fail eksport aSc (senarai Kelas, Subjek, Guru, Bilik) juga boleh dipilih terus. Fail dibaca dalam pelayar anda dan tidak dihantar ke mana-mana pelayan.</p>`,
+      '<button class="btn" data-act="modalClose">Tutup</button>');
+  };
+  actions.ascPick = () => { UI.modalClose(); const f = document.getElementById('ascFile'); f.value = ''; f.click(); };
+  actions.tplDownload = () => { UI.saveXlsx('templat-import-annur-time-table.xlsx', TT.templateSheets(S(), false)); UI.toast('Templat dimuat turun. Isi, kemudian pilih fail itu.'); };
+  actions.tplExport = () => { UI.saveXlsx(`data-${String(S().school.name).replace(/\W+/g, '-').toLowerCase()}.xlsx`, TT.templateSheets(S(), true)); UI.toast('Data semasa dieksport dalam format templat.'); };
   changes.ascFile = async (el) => {
     const f = el.files[0]; if (!f) return;
     try {
       let sheets;
       if (/\.csv$/i.test(f.name) || f.type === 'text/csv') sheets = [{ name: f.name.replace(/\.csv$/i, ''), rows: TT.parseCSV((await f.text()).replace(/^\ufeff/, '')) }];
       else sheets = (await TT.xlsxRead(await f.arrayBuffer())).sheets;
-      UI._imp = TT.importLists(sheets);
+      const tpl = TT.parseTemplate(sheets, S());
+      UI._imp = tpl.isTemplate ? tpl : Object.assign(TT.importLists(sheets), { lessons: [], errors: [], warnings: [] });
       UI._impName = f.name;
       showImport();
     } catch (e) { UI.toast(e.message || 'Fail tidak dapat dibaca.', 'err'); }
@@ -56,19 +69,25 @@
   function showImport() {
     const d = UI._imp, s = S();
     const LBL = { classes: 'Kelas', subjects: 'Subjek', teachers: 'Guru', rooms: 'Bilik' };
-    const kinds = Object.keys(LBL).filter((k) => d[k].length);
+    const kinds = Object.keys(LBL).filter((k) => d[k].length).concat(d.lessons && d.lessons.length ? ['lessons'] : []);
     if (!kinds.length) { UI.toast('Tiada senarai kelas, subjek, guru atau bilik dikenal pasti. Pastikan baris tajuk ada lajur seperti "Kelas", "Mata Pelajaran", "Nama" dan "KOD".', 'err'); return; }
     const exist = { classes: s.classes, subjects: s.subjects, teachers: s.teachers, rooms: s.rooms };
     const card = (k) => {
+      if (k === 'lessons') {
+        const L = d.lessons, key = (l) => [[...l.classes].map((x) => x.toLowerCase()).sort().join('|'), l.subject.toLowerCase(), [...l.teachers].map((x) => x.toLowerCase()).sort().join('|')].join('#');
+        return `<label class="impk"><input type="checkbox" name="impKind" value="lessons" checked><span><b>Pelajaran: ${L.length}</b><small>siapa mengajar apa, kelas dan waktu seminggu</small><em>${L.slice(0, 3).map((l) => esc(`${l.subject} ${l.classes.join('+')}`)).join(', ')}${L.length > 3 ? ', ...' : ''}</em></span></label>`;
+      }
       const have = new Set(exist[k].map((x) => x.name.trim().toLowerCase())), fresh = d[k].filter((x) => !have.has(x.name.trim().toLowerCase())).length;
       return `<label class="impk"><input type="checkbox" name="impKind" value="${k}" checked><span><b>${LBL[k]}: ${d[k].length}</b><small>${fresh} baharu${fresh < d[k].length ? `, ${d[k].length - fresh} sudah ada` : ''}</small><em>${d[k].slice(0, 4).map((x) => esc(x.name) + (x.code ? ` (${esc(x.code)})` : '')).join(', ')}${d[k].length > 4 ? ' ...' : ''}</em></span></label>`;
     };
     const any = s.classes.length || s.teachers.length || s.subjects.length;
-    UI.modalOpen('Import daripada aSc', `<p>Fail: <b>${esc(UI._impName)}</b></p><div class="impgrid">${kinds.map(card).join('')}</div>
+    UI.modalOpen(d.isTemplate ? 'Import daripada templat' : 'Import daripada aSc / Excel', `<p>Fail: <b>${esc(UI._impName)}</b></p><div class="impgrid">${kinds.map(card).join('')}</div>
       ${d.skipped.length ? `<p class="hint">Tab diabaikan: ${d.skipped.map(esc).join(', ')}</p>` : ''}
+      ${d.errors && d.errors.length ? `<div class="banner bad"><b>${d.errors.length} baris ada masalah dan akan dilangkau.</b> Betulkan dalam Excel dan import semula, atau teruskan dengan baris yang betul.<ul class="issues">${d.errors.slice(0, 15).map((e) => `<li class="error">${esc(e.sheet)}${e.row ? `, baris ${e.row}` : ''}: ${esc(e.msg)}</li>`).join('')}</ul>${d.errors.length > 15 ? `<small>dan ${d.errors.length - 15} lagi</small>` : ''}</div>` : ''}
+      ${d.warnings && d.warnings.length ? `<details class="hint"><summary>${d.warnings.length} amaran</summary><ul class="issues">${d.warnings.slice(0, 15).map((e) => `<li class="warn">${esc(e.sheet)}${e.row ? `, baris ${e.row}` : ''}: ${esc(e.msg)}</li>`).join('')}</ul></details>` : ''}
       ${any ? `<div class="fld"><span>Cara import</span><label class="chk"><input type="radio" name="impMode" value="add" checked>Tambah kepada data sedia ada (nama yang sama diabaikan)</label>
         <label class="chk"><input type="radio" name="impMode" value="replace">Ganti senarai yang dipilih (pelajaran, jadual dan rekod relief lama dipadam)</label></div>` : ''}
-      <div class="banner">Fail eksport aSc biasanya hanya senarai nama dan kod. Selepas import, isi <b>Pelajaran</b> (subjek, kelas, guru, waktu seminggu) di Data &gt; Pelajaran, kemudian jana jadual.</div>`,
+      ${d.isTemplate ? '<div class="banner">Selepas import, semak Data &gt; Pelajaran, kemudian jana jadual.</div>' : '<div class="banner">Fail eksport aSc biasanya hanya senarai nama dan kod. Selepas import, isi <b>Pelajaran</b> (subjek, kelas, guru, waktu seminggu) di Data &gt; Pelajaran, atau guna templat Excel untuk mengimport pelajaran sekali gus.</div>'}`,
     '<button class="btn" data-act="modalClose">Batal</button><button class="btn primary" data-act="ascApply">Import</button>', true);
   }
   actions.ascApply = () => {
@@ -77,8 +96,9 @@
     if (!kinds.length) { UI.toast('Pilih sekurang-kurangnya satu senarai.', 'err'); return; }
     const go = () => {
       const n = TT.applyImport(S(), UI._imp, mode, kinds);
-      UI._imp = null; UI.modalClose(); UI.page = 'data'; UI.dataTab = kinds.includes('teachers') ? 'guru' : kinds.includes('classes') ? 'kelas' : 'subjek'; UI.commit();
-      UI.toast(`Diimport: ${n.teachers} guru, ${n.classes} kelas, ${n.subjects} subjek, ${n.rooms} bilik.`);
+      UI._imp = null; UI.modalClose(); UI.page = 'data'; UI.dataTab = kinds.includes('lessons') && (n.lessons || 0) + (n.lessonsUpdated || 0) ? 'pelajaran' : kinds.includes('teachers') ? 'guru' : kinds.includes('classes') ? 'kelas' : 'subjek'; UI.commit();
+      const les = kinds.includes('lessons') ? `, ${n.lessons} pelajaran${n.lessonsUpdated ? ` (${n.lessonsUpdated} dikemas kini)` : ''}${n.lessonsSkipped ? `, ${n.lessonsSkipped} dilangkau` : ''}` : '';
+      UI.toast(`Diimport: ${n.teachers} guru, ${n.classes} kelas, ${n.subjects} subjek, ${n.rooms} bilik${les}.`);
     };
     if (mode === 'replace') UI.confirm('Ganti senarai yang dipilih? Pelajaran, jadual dan rekod relief lama akan dipadam.', go, 'Ganti'); else go();
   };
@@ -471,7 +491,7 @@
           <td>${esc((m.room.get(l.roomId) || {}).name || '')}</td><td><span class="chip-s ${got < l.perWeek ? 'amber' : 'green'}">${got}/${l.perWeek}</span></td><td class="acts">${editBtn('pelajaran', l.id)}${delBtn('pelajaran', l.id)}</td></tr>`;
       }).join('');
       const sel = (key, label, arr, fn) => `<label class="fld sm"><span>${label}</span><select data-chg="lessonFilter" data-k="${key}"><option value="">Semua</option>${UI.optHtml(opts(arr, fn), f[key])}</select></label>`;
-      return `<div class="toolbar"><button class="btn primary" data-act="add-pelajaran">${UI.icon('plus')} Tambah pelajaran</button><span class="grow"></span>
+      return `<div class="toolbar"><button class="btn primary" data-act="add-pelajaran">${UI.icon('plus')} Tambah pelajaran</button><button class="btn" data-act="ascImport">${UI.icon('upload')} Import / templat Excel</button><span class="grow"></span>
         ${sel('cls', 'Kelas', s.classes, (c) => c.name)}${sel('teacher', 'Guru', s.teachers, (t) => t.name)}${sel('subject', 'Subjek', s.subjects, (x) => x.name)}</div>
         <p class="hint">Pelajaran gabungan (contoh Pendidikan Islam / Moral) ialah satu pelajaran dengan beberapa kelas dan beberapa guru yang mengajar serentak.</p>
         <div class="tablewrap"><table class="tbl"><thead><tr><th>Kelas</th><th>Subjek</th><th>Guru</th><th>Waktu/mgg</th><th>Berganda</th><th>Bilik</th><th>Diletak</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="8" class="empty">Tiada pelajaran dipadankan.</td></tr>'}</tbody></table></div>`;

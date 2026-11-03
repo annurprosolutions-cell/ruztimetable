@@ -216,7 +216,7 @@ Ujian beban (`npm run bench`, data sintetik sekolah menengah dengan PI/PM serent
 ## Ujian
 
 ```bash
-npm test                               # 149 ujian unit, tanpa dependency
+npm test                               # 154 ujian unit, tanpa dependency
 npm i playwright && npm run test:e2e   # klik seluruh aliran dalam Chromium
 ```
 
