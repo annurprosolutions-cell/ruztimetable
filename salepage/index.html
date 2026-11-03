@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Annur Time Table · Jadual Waktu dan Relief Guru Ganti untuk Sekolah</title>
-<meta name="description" content="Jana jadual waktu sekolah dalam beberapa saat dan agih guru ganti secara adil. Cuba demo, percubaan percuma 14 hari. RM20 sebulan atau RM200 setahun.">
+<meta name="description" content="Jana jadual waktu sekolah dalam beberapa saat dan agih guru ganti secara adil. Percubaan percuma 14 hari, semua ciri dibuka. RM20 sebulan atau RM200 setahun.">
 <link rel="canonical" href="https://annurtimetable.com/salepage/">
 <link rel="icon" href="/brand/annurpro-icon-64.png">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Annur Time Table: jadual waktu dan relief guru ganti">
-<meta property="og:description" content="Jadual siap dalam beberapa saat. Relief guru ganti yang adil. Cuba demo dan percubaan percuma 14 hari.">
+<meta property="og:description" content="Jadual siap dalam beberapa saat. Relief guru ganti yang adil. Percubaan percuma 14 hari dengan data sekolah sendiri.">
 <meta property="og:image" content="https://annurtimetable.com/salepage/img/poster.jpg">
 <meta property="og:url" content="https://annurtimetable.com/salepage/">
 <meta name="theme-color" content="#0b1b4d">
@@ -68,7 +68,11 @@ nav.top .links a.btn{padding:11px 20px;font-size:14px;color:#1b1200}
 .hero h1{font-size:clamp(36px,5.4vw,62px);font-weight:900;margin:20px 0 18px}
 .hero h1 em{font-style:normal;background:linear-gradient(90deg,#fcd34d,#f59e0b);-webkit-background-clip:text;background-clip:text;color:transparent}
 .hero p.sub{font-size:20px;color:#cdd9f5;max-width:560px}
-.cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:30px}
+.cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:30px;align-items:center}
+.demo-link{color:rgba(255,255,255,.85);font-size:.95rem;text-decoration:underline;text-underline-offset:3px}
+.demo-link:hover{color:#fff}
+.btn .sm{display:none}
+@media(max-width:560px){.btn .lg{display:none}.btn .sm{display:inline}}
 .chips{display:flex;gap:10px 18px;flex-wrap:wrap;margin-top:26px;font-size:14.5px;color:#b9c8ee}
 .chips span::before{content:"✓ ";color:#34d399;font-weight:900}
 .stage{position:relative}
@@ -204,7 +208,7 @@ footer a{color:#b9c8ee}
   <a class="logo" href="#"><img src="/brand/annurpro-icon-128.png" alt="" width="38" height="38">Annur Time Table</a>
   <div class="links">
     <a href="#fungsi">Fungsi</a><a href="#guru">Untuk guru</a><a href="#video">Video</a><a href="#harga">Harga</a><a href="#soalan">Soalan</a>
-    <a class="btn p" href="/?demo">Cuba demo</a>
+    <a class="btn p" href="/"><span class="lg">Mula percubaan 14 hari</span><span class="sm">Cuba percuma</span></a>
   </div>
 </div></nav>
 
@@ -214,8 +218,8 @@ footer a{color:#b9c8ee}
     <h1>Jadual waktu siap dalam <em>beberapa saat</em>. Relief guru ganti tanpa pening.</h1>
     <p class="sub">Sistem untuk penolong kanan dan guru penyedia jadual: jana jadual tanpa pertembungan, agih guru ganti secara adil, dan hantar terus ke WhatsApp.</p>
     <div class="cta">
-      <a class="btn p" href="/?demo">▶ Cuba demo sekarang</a>
-      <a class="btn g" href="/">Mula percubaan 14 hari</a>
+      <a class="btn p" href="/">Mula percubaan percuma 14 hari</a>
+      <a class="demo-link" href="/?demo">atau lihat demo dahulu</a>
     </div>
     <div class="chips"><span>Tiada pemasangan</span><span>Tiada kad kredit untuk mula</span><span>Data dalam Google Sheet sekolah sendiri</span></div>
   </div>
@@ -320,14 +324,14 @@ footer a{color:#b9c8ee}
 <section class="vid" id="video"><div class="wrap center">
   <div class="rv"><span class="eyebrow" style="color:#fcd34d">Tengok sendiri</span><h2>Lihat sistem berfungsi dalam 90 saat</h2><p class="lead">Dan kalau cikgu nak belajar langkah demi langkah, ada 14 video pendek dan panduan lengkap bergambar.</p></div>
   <div class="player rv d1"><video controls preload="none" poster="img/poster.jpg" playsinline><source src="video/promo.mp4" type="video/mp4"></video></div>
-  <div class="vlinks rv d2"><a class="btn p" href="/panduan/">Buka panduan dan 14 video</a><a class="btn g" href="/?demo">Cuba demo sendiri</a></div>
+  <div class="vlinks rv d2"><a class="btn p" href="/panduan/">Buka panduan dan 14 video</a><a class="btn g" href="/">Mula percubaan 14 hari</a></div>
 </div></section>
 
 <section id="cara"><div class="wrap">
   <div class="center rv"><span class="eyebrow">Cara mula</span><h2>Tiga langkah, tanpa komitmen</h2></div>
   <div class="steps">
-    <div class="step rv"><h3>Cuba demo dahulu</h3><p>Buka demo dengan data sekolah contoh. Jana jadual, cuba relief. Tiada log masuk dan tiada apa disimpan.</p></div>
-    <div class="step rv d1"><h3>Mula percubaan 14 hari</h3><p>Log masuk dengan akaun Google sekolah. Semua ciri dibuka selama 14 hari, tanpa bayaran.</p></div>
+    <div class="step rv"><h3>Log masuk dengan Google</h3><p>Guna akaun Google sekolah. Data disimpan dalam Google Sheet sekolah sendiri, bukan di server kami.</p></div>
+    <div class="step rv d1"><h3>Guna percuma 14 hari</h3><p>Masukkan data sekolah, jana jadual dan cuba relief. Semua ciri dibuka selama 14 hari, tanpa bayaran.</p></div>
     <div class="step rv d2"><h3>Jana, kongsi, langgan</h3><p>Masukkan data, jana jadual, kongsi pautan kepada guru. Suka? Langgan bila-bila masa. Tak suka? Data kekal milik anda.</p></div>
   </div>
 </div></section>
@@ -360,14 +364,14 @@ footer a{color:#b9c8ee}
 </div></section>
 
 <section class="final"><div class="wrap">
-  <div class="rv"><h2>Cuba dahulu. Tengok sendiri.</h2><p class="lead">Buka demo dalam seminit, atau mulakan percubaan 14 hari dengan data sekolah cikgu.</p></div>
-  <div class="cta rv d1"><a class="btn p" href="/?demo">▶ Cuba demo sekarang</a><a class="btn g" href="/">Mula percubaan 14 hari</a><a class="btn g" href="https://wa.me/601120879149">WhatsApp 011-2087 9149</a></div>
+  <div class="rv"><h2>Cuba dahulu. Tengok sendiri.</h2><p class="lead">Mulakan percubaan 14 hari dengan data sekolah cikgu. Tiada bayaran untuk mula.</p></div>
+  <div class="cta rv d1"><a class="btn p" href="/">Mula percubaan percuma 14 hari</a><a class="btn g" href="https://wa.me/601120879149">WhatsApp 011-2087 9149</a><a class="demo-link" href="/?demo">atau lihat demo dahulu</a></div>
 </div></section>
 
 <footer><div class="wrap"><div style="display:flex;align-items:center;gap:12px"><img src="/brand/annurpro-logo.png" alt="AnnurPro Solutions" width="64" style="height:auto">Annur Time Table · AnnurPro Solutions, Nibong Tebal, Pulau Pinang</div>
   <div><a href="/panduan/">Panduan</a> · <a href="/privasi.html">Dasar privasi</a> · <a href="mailto:annurprosolutions@gmail.com">annurprosolutions@gmail.com</a></div></div></footer>
 
-<div class="sticky" id="sticky"><a class="btn p" href="/?demo">Cuba demo</a><a class="btn d" href="/">Percubaan 14 hari</a></div>
+<div class="sticky" id="sticky"><a class="btn p" href="/">Mula percubaan 14 hari</a></div>
 
 <script>
 (function () {
