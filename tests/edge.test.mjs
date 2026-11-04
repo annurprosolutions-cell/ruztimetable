@@ -51,3 +51,19 @@ test('selain /s/<nama>: dilayan terus oleh fail statik tanpa diubah', async () =
   assert.ok(!(await (await get('/')).text()).includes('<base'));
   assert.strictEqual((await worker.fetch(new Request('https://annurtimetable.com/s/smkwakanda', { method: 'POST' }), env)).status, 404, 'hanya GET');
 });
+
+test('/artikel/*: diproksi ke Worker lesen, laluan lain tidak', async () => {
+  const calls = [], real = globalThis.fetch;
+  globalThis.fetch = async (u, o) => { calls.push([String(u), o && o.redirect]); return new Response('<h1>artikel</h1>', { headers: { 'content-type': 'text/html', 'cache-control': 'public, max-age=60' } }); };
+  try {
+    const r = await worker.fetch(new Request('https://annurtimetable.com/artikel/cara-agih/?a=1'), {}, {});
+    assert.strictEqual(await r.text(), '<h1>artikel</h1>');
+    assert.deepStrictEqual(calls[0], ['https://jadual-sekolah-lesen.annurprosolutions.workers.dev/artikel/cara-agih/?a=1', 'manual']);
+    await worker.fetch(new Request('https://annurtimetable.com/artikel'), { LICENSE_URL: 'https://lesen.test/' }, {});
+    assert.strictEqual(calls[1][0], 'https://lesen.test/artikel');
+    seen.length = 0;
+    await get('/artikelku');
+    assert.deepStrictEqual(seen, ['/artikelku']);
+    assert.strictEqual(calls.length, 2);
+  } finally { globalThis.fetch = real; }
+});

@@ -108,3 +108,13 @@ Halaman `https://annurtimetable.com/admin/`: senarai pelanggan (cari, tapis, edi
 - Laman app mesti ada dalam `ALLOWED_ORIGINS` (CORS untuk `/admin/*`).
 - `GET /admin/overview`: semua rekod dengan status dikira + `stats`. `POST /admin/licenses` dengan `merge: true`: ubah `school`, `plan` atau `expires` tanpa memadam medan lain.
 - Bayaran baharu kini menyimpan `amount`; bayaran lama tiada jumlah.
+
+## Artikel (`/artikel/` dan tab Artikel di `/admin/`)
+
+- Pemilik menulis artikel dalam tab **Artikel** di dashboard `/admin/` (editor markdown, pratonton, muat naik gambar, 5 versi lama).
+- Disimpan dalam KV yang sama: `artidx` (senarai), `art:<slug>` (artikel), `artredir:<slug-lama>` (pengalihan bila slug ditukar), `artimg:<id>` (gambar, had 1.5 MB).
+- Halaman awam dijana oleh Worker ini sebagai HTML penuh: `/artikel/`, `/artikel/<slug>/`, `/artikel/sitemap.xml`, `/artikel/feed.xml`.
+  `edge/worker.js` (app) memproksi `annurtimetable.com/artikel/*` ke sini dengan cache 60 saat, jadi alamat awam kekal di domain app.
+- Draf tidak kelihatan. Artikel "Terbit" dengan tarikh akan datang muncul sendiri pada tarikh itu.
+- `SITE_URL` (pilihan, lalai `https://annurtimetable.com`) untuk pautan kanonik dan peta laman.
+- Hantar `https://annurtimetable.com/artikel/sitemap.xml` ke Google Search Console (robots.txt sudah menyenaraikannya).

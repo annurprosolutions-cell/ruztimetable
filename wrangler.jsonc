@@ -1,11 +1,11 @@
 // Hos app di Cloudflare (Workers dengan fail statik). Hanya diperlukan jika dashboard Cloudflare
 // menggunakan aliran "Workers" (arahan deploy: npx wrangler deploy). Cloudflare Pages mengabaikan fail ini
 // (di Pages, pautan guru cantik /s/<nama> tidak berfungsi kerana edge/worker.js tidak dijalankan).
-// edge/worker.js menghidangkan /s/<nama> (pautan guru cantik); run_worker_first menghadkan Worker kepada alamat itu sahaja.
+// edge/worker.js menghidangkan /s/<nama> (pautan guru cantik) dan memproksi /artikel/* ke Worker lesen; run_worker_first menghadkan Worker kepada alamat itu sahaja.
 // Pelayan lesen ialah projek berasingan dalam folder worker/.
 {
   "name": "jadual-sekolah",
   "main": "edge/worker.js",
   "compatibility_date": "2025-06-01",
-  "assets": { "directory": ".", "binding": "ASSETS", "run_worker_first": ["/s/*"] }
+  "assets": { "directory": ".", "binding": "ASSETS", "run_worker_first": ["/s/*", "/artikel", "/artikel/*"] }
 }

@@ -17,6 +17,7 @@
 //                  GET /stats (awam): {paid|null, trial, min}; kunci cache "stats:cache"
 //                  OWNER_EMAILS (e-mel pemilik dipisah koma: boleh guna dashboard /admin/ dengan log masuk Google), PRICE_MONTH (20), PRICE_YEAR (200)
 //                  GET /admin/overview: semua rekod + ringkasan prestasi; POST /admin/licenses {merge:true,...}: ubah sekolah, pelan atau tarikh sahaja
+//                  SITE_URL (lalai https://annurtimetable.com): pautan kanonik artikel. /admin/articles (GET/POST/DELETE, /preview, /image); awam /artikel/, /artikel/<slug>/, sitemap.xml, feed.xml
 
 const json = (body, status, extra) => new Response(JSON.stringify(body), { status: status || 200, headers: Object.assign({ 'content-type': 'application/json' }, extra || {}) });
 
@@ -316,7 +317,7 @@ export async function overview(env, now) {
     const page = await env.LICENSES.list({ cursor });
     for (const k of page.keys) {
       const n = k.name;
-      if (n === 'stats:cache' || n.startsWith('slugof:')) continue;
+      if (n === 'stats:cache' || n.startsWith('slugof:') || /^art(idx$|:|img:|redir:)/.test(n)) continue;
       const raw = (await env.LICENSES.get(n)) || '';
       let v; try { v = JSON.parse(raw); } catch (e) { v = raw; }
       let m;
@@ -364,6 +365,7 @@ async function admin(req, env, url, now, fetchFn) {
   const who = await adminAuth(req, env, fetchFn);
   if (!who) return json({ error: 'tidak dibenarkan' }, 401);
   if (url.pathname === '/admin/overview') return req.method === 'GET' ? json(Object.assign({ by: who.by }, await overview(env, now))) : json({ error: 'kaedah tidak disokong' }, 405);
+  if (url.pathname === '/admin/articles' || url.pathname.startsWith('/admin/articles/')) return articlesAdmin(req, env, url, now, who);
   if (url.pathname !== '/admin/licenses') return json({ error: 'tidak dijumpai' }, 404);
   if (req.method === 'GET') {
     const out = [];
@@ -374,6 +376,7 @@ async function admin(req, env, url, now, fetchFn) {
       const page = await env.LICENSES.list({ cursor });
       for (const k of page.keys) {
         if (!all && !/^(email|domain):/.test(k.name)) continue;
+        if (k.name.startsWith('artimg:')) continue;
         const raw = (await env.LICENSES.get(k.name)) || '';
         let value; try { value = JSON.parse(raw || '{}'); } catch (e) { value = raw; }
         out.push({ key: k.name, value });
@@ -423,6 +426,270 @@ async function admin(req, env, url, now, fetchFn) {
   return json({ error: 'kaedah tidak disokong' }, 405);
 }
 
+// ---------- artikel (tab Artikel di /admin/, halaman awam /artikel/) ----------
+// KV: "artidx" senarai ringkas semua artikel; "art:<slug>" rekod penuh (dengan 5 versi lama); "artredir:<lama>" -> slug baharu;
+// "artimg:<id>" gambar {t: jenis, d: base64}. Halaman awam dijana di sini sebagai HTML penuh (boleh diindeks Google) dan
+// dihidangkan di annurtimetable.com/artikel/ melalui edge/worker.js. SITE_URL (lalai https://annurtimetable.com) untuk pautan kanonik.
+const ART_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const ART_IMG_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const ART_IMG_MAX = 1536 * 1024;
+const ART_HISTORY = 5;
+export const artSlugify = (s) => String(s == null ? '' : s).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80).replace(/-+$/, '');
+const escH = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// pautan dibenarkan: http(s), alamat dalam laman (/...), #, mailto. Selain itu (javascript:, data:) dibuang.
+const okUrl = (u) => /^(https?:\/\/|\/(?!\/)|#|mailto:)/i.test(String(u || '').trim());
+
+// Markdown ringkas yang selamat: semua teks di-escape dahulu, kemudian corak dikenal pasti. Tiada HTML mentah dibenarkan.
+function mdInline(raw) {
+  const keep = [];
+  const hold = (html) => '\u0000' + (keep.push(html) - 1) + '\u0000';
+  let s = escH(raw);
+  s = s.replace(/`([^`]+)`/g, (m, c) => hold('<code>' + c + '</code>'));
+  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (m, alt, src) => okUrl(src) ? hold('<img src="' + src + '" alt="' + alt + '" loading="lazy">') : alt);
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, txt, href) => {
+    if (!okUrl(href)) return txt;
+    const ext = /^https?:\/\//i.test(href) && !/^https?:\/\/(www\.)?annurtimetable\.com/i.test(href);
+    return hold('<a href="' + href + '"' + (ext ? ' target="_blank" rel="noopener"' : '') + '>') + txt + hold('</a>');
+  });
+  s = s.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>').replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?!\w)/g, '$1<em>$2</em>')
+    .replace(/(^|[^\w])_([^_\s][^_]*?)_(?!\w)/g, '$1<em>$2</em>');
+  return s.replace(/\u0000(\d+)\u0000/g, (m, i) => keep[+i]);
+}
+export function markdown(src) {
+  const lines = String(src == null ? '' : src).replace(/\r\n?/g, '\n').split('\n'), out = [];
+  let para = [], i = 0;
+  const flush = () => { if (para.length) { out.push('<p>' + mdInline(para.join(' ')) + '</p>'); para = []; } };
+  while (i < lines.length) {
+    const l = lines[i], t = l.trim();
+    let m;
+    if (!t) { flush(); i++; continue; }
+    if (/^```/.test(t)) {
+      flush(); const code = []; i++;
+      while (i < lines.length && !/^```/.test(lines[i].trim())) code.push(lines[i++]);
+      i++; out.push('<pre><code>' + escH(code.join('\n')) + '</code></pre>'); continue;
+    }
+    if ((m = /^(#{1,4})\s+(.+?)\s*#*$/.exec(t))) {
+      flush(); const n = Math.max(2, m[1].length), id = artSlugify(m[2]);
+      out.push('<h' + n + (id ? ' id="' + id + '"' : '') + '>' + mdInline(m[2]) + '</h' + n + '>'); i++; continue;
+    }
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { flush(); out.push('<hr>'); i++; continue; }
+    if (/^>/.test(t)) {
+      flush(); const q = [];
+      while (i < lines.length && /^>/.test(lines[i].trim())) q.push(lines[i++].trim().replace(/^>\s?/, ''));
+      out.push('<blockquote>' + q.join('\n').split(/\n\s*\n/).map((p) => '<p>' + mdInline(p.replace(/\n/g, ' ')) + '</p>').join('') + '</blockquote>'); continue;
+    }
+    const ul = /^[-*+]\s+/, ol = /^\d+[.)]\s+/;
+    if (ul.test(t) || ol.test(t)) {
+      flush(); const re = ul.test(t) ? ul : ol, tag = re === ul ? 'ul' : 'ol', items = [];
+      while (i < lines.length) {
+        const x = lines[i].trim();
+        if (re.test(x)) items.push(x.replace(re, ''));
+        else if (x && items.length && /^\s{2,}/.test(lines[i])) items[items.length - 1] += ' ' + x;
+        else break;
+        i++;
+      }
+      out.push('<' + tag + '>' + items.map((x) => '<li>' + mdInline(x) + '</li>').join('') + '</' + tag + '>'); continue;
+    }
+    para.push(t); i++;
+  }
+  flush();
+  return out.join('\n');
+}
+const plainText = (md) => String(md || '').replace(/```[\s\S]*?```/g, ' ').replace(/!\[[^\]]*\]\([^)]*\)/g, ' ').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[#>*_`|-]/g, ' ').replace(/\s+/g, ' ').trim();
+export const readMinutes = (md) => Math.max(1, Math.round(plainText(md).split(' ').filter(Boolean).length / 200));
+const artMeta = (a) => ({ slug: a.slug, title: a.title, desc: a.desc || '', cover: a.cover || '', tags: a.tags || [], status: a.status, date: a.date || '', updated: a.updated || '', minutes: readMinutes(a.body) });
+export const artVisible = (a, now) => !!a && a.status === 'published' && (!a.date || a.date <= today(now));
+
+async function artIndex(env) { const v = await getJson(env, 'artidx'); return Array.isArray(v) ? v : []; }
+async function artIndexPut(env, list) {
+  list.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.updated).localeCompare(String(a.updated)));
+  await env.LICENSES.put('artidx', JSON.stringify(list));
+}
+
+export async function articlesAdmin(req, env, url, now, who) {
+  const rest = decodeURIComponent(url.pathname.slice('/admin/articles'.length)).replace(/^\/+/, '');
+  if (rest === '' && req.method === 'GET') return json({ articles: await artIndex(env) });
+  if (rest === 'preview' && req.method === 'POST') {
+    let b; try { b = await req.json(); } catch (e) { return json({ error: 'JSON tidak sah' }, 400); }
+    return json({ html: markdown(String((b && b.body) || '').slice(0, 200000)), minutes: readMinutes(b && b.body) });
+  }
+  if (rest === 'image' && req.method === 'POST') {
+    let b; try { b = await req.json(); } catch (e) { return json({ error: 'JSON tidak sah' }, 400); }
+    const type = String((b && b.type) || ''), data = String((b && b.data) || '').replace(/^data:[^,]*,/, '');
+    if (!ART_IMG_TYPES.includes(type)) return json({ error: 'jenis gambar mesti JPG, PNG, WebP atau GIF' }, 400);
+    if (!/^[A-Za-z0-9+/]+=*$/.test(data) || data.length * 3 / 4 > ART_IMG_MAX) return json({ error: 'gambar terlalu besar (had 1.5 MB) atau rosak' }, 400);
+    const rnd = new Uint8Array(8); crypto.getRandomValues(rnd);
+    const id = [...rnd].map((x) => x.toString(16).padStart(2, '0')).join('') + '.' + type.split('/')[1].replace('jpeg', 'jpg');
+    await env.LICENSES.put('artimg:' + id, JSON.stringify({ t: type, d: data, at: today(now) }));
+    return json({ ok: true, url: '/artikel/img/' + id });
+  }
+  if (rest === '' && req.method === 'POST') {
+    let b; try { b = await req.json(); } catch (e) { return json({ error: 'JSON tidak sah' }, 400); }
+    b = b || {};
+    const title = String(b.title || '').trim().slice(0, 150);
+    if (!title) return json({ error: 'tajuk diperlukan' }, 400);
+    const slug = String(b.slug || '').trim().toLowerCase() || artSlugify(title);
+    if (!ART_SLUG.test(slug) || slug.length > 80) return json({ error: 'slug hanya huruf kecil, nombor dan sempang (contoh cara-agih-relief)' }, 400);
+    if (slug === 'img' || slug === 'sitemap-xml' || slug === 'feed') return json({ error: 'slug ini dikhaskan' }, 400);
+    const status = b.status === 'published' ? 'published' : 'draft';
+    if (b.date && !/^\d{4}-\d{2}-\d{2}$/.test(b.date)) return json({ error: 'tarikh mesti YYYY-MM-DD' }, 400);
+    const cover = String(b.cover || '').trim().slice(0, 500);
+    if (cover && !okUrl(cover)) return json({ error: 'pautan gambar utama tidak sah' }, 400);
+    const body = String(b.body || '');
+    if (body.length > 200000) return json({ error: 'isi terlalu panjang' }, 400);
+    const oldSlug = String(b.oldSlug || '').trim().toLowerCase();
+    const cur = await getJson(env, 'art:' + (oldSlug || slug));
+    if (oldSlug && !cur) return json({ error: 'artikel asal tiada (mungkin telah dipadam)' }, 404);
+    if (!oldSlug && cur) return json({ error: 'slug sudah digunakan oleh artikel lain' }, 409);
+    if (oldSlug && oldSlug !== slug && await env.LICENSES.get('art:' + slug)) return json({ error: 'slug sudah digunakan oleh artikel lain' }, 409);
+    if (cur && b.base && cur.updated !== b.base) return json({ error: 'artikel ini telah diubah di tab atau peranti lain. Muat semula dahulu.', conflict: true }, 409);
+    const stamp = new Date(now).toISOString();
+    const history = cur ? [{ at: cur.updated, title: cur.title, desc: cur.desc, body: cur.body }].concat(cur.history || []).slice(0, ART_HISTORY) : [];
+    const rec = {
+      slug, title, desc: String(b.desc || '').trim().slice(0, 300), cover,
+      tags: (Array.isArray(b.tags) ? b.tags : String(b.tags || '').split(',')).map((x) => String(x).trim().slice(0, 30)).filter(Boolean).slice(0, 8),
+      status, date: b.date || (cur && cur.date) || (status === 'published' ? today(now) : ''), body,
+      created: (cur && cur.created) || stamp, updated: stamp, by: (who && who.by) || '', history
+    };
+    await env.LICENSES.put('art:' + slug, JSON.stringify(rec));
+    let list = (await artIndex(env)).filter((x) => x.slug !== slug && x.slug !== oldSlug);
+    list.push(artMeta(rec));
+    if (oldSlug && oldSlug !== slug) {
+      await env.LICENSES.delete('art:' + oldSlug);
+      await env.LICENSES.put('artredir:' + oldSlug, slug);
+    }
+    await env.LICENSES.delete('artredir:' + slug);
+    await artIndexPut(env, list);
+    return json({ ok: true, article: rec });
+  }
+  if (rest && req.method === 'GET') {
+    const a = await getJson(env, 'art:' + rest);
+    return a ? json({ article: a }) : json({ error: 'tidak dijumpai' }, 404);
+  }
+  if (rest && req.method === 'DELETE') {
+    await env.LICENSES.delete('art:' + rest);
+    await artIndexPut(env, (await artIndex(env)).filter((x) => x.slug !== rest));
+    return json({ ok: true });
+  }
+  return json({ error: 'kaedah tidak disokong' }, 405);
+}
+
+const dmyMs = (iso) => {
+  if (!iso) return '';
+  const b = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
+  return (+iso.slice(8, 10)) + ' ' + b[+iso.slice(5, 7) - 1] + ' ' + iso.slice(0, 4);
+};
+const ART_CSS = ':root{--ink:#0b1220;--mut:#51607a;--line:#e3e8f2;--soft:#f4f7fc;--brand:#1d4ed8;--brand2:#0b1b4d;--accent:#f59e0b}' +
+  '*{box-sizing:border-box}body{margin:0;background:#fff;color:var(--ink);font:17px/1.75 Inter,"Segoe UI",system-ui,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}' +
+  'a{color:var(--brand)}img{max-width:100%;height:auto}' +
+  '.top{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}' +
+  '.top .in{max-width:1080px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}' +
+  '.logo{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--ink);text-decoration:none;font-size:16px}.logo img{width:34px;height:34px}' +
+  '.top nav{margin-left:auto;display:flex;gap:16px;align-items:center;font-size:15px}.top nav a{color:var(--ink);text-decoration:none;font-weight:500}' +
+  '.btn{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:10px 18px;font-weight:700;text-decoration:none;font-size:15px;line-height:1.2}' +
+  '.btn.p{background:var(--accent);color:#1b1200!important}.btn.o{border:1.5px solid var(--brand);color:var(--brand)}' +
+  '.wrap{max-width:720px;margin:0 auto;padding:0 16px}' +
+  '.hd{padding:44px 0 18px}.crumb{font-size:14px;color:var(--mut)}.crumb a{color:var(--mut)}' +
+  'h1{font-size:clamp(30px,5vw,44px);line-height:1.15;letter-spacing:-.02em;margin:12px 0 14px}' +
+  '.meta{color:var(--mut);font-size:15px;display:flex;gap:8px;flex-wrap:wrap}.tags{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}' +
+  '.tags span{background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;color:var(--mut)}' +
+  '.cover{margin:22px 0 6px;border-radius:18px;overflow:hidden;background:var(--soft)}.cover img{display:block;width:100%}' +
+  '.body h2{font-size:26px;line-height:1.3;margin:38px 0 10px;letter-spacing:-.01em}.body h3{font-size:21px;margin:28px 0 8px}.body h4{font-size:18px;margin:22px 0 6px}' +
+  '.body p{margin:0 0 18px}.body ul,.body ol{padding-left:24px;margin:0 0 18px}.body li{margin:4px 0}' +
+  '.body blockquote{margin:22px 0;padding:14px 20px;border-left:4px solid var(--accent);background:#fffbeb;border-radius:0 14px 14px 0}.body blockquote p{margin:0}' +
+  '.body img{border-radius:14px;display:block;margin:22px auto}.body hr{border:0;border-top:1px solid var(--line);margin:34px 0}' +
+  '.body code{background:var(--soft);border-radius:6px;padding:1px 6px;font-size:.92em}.body pre{background:#0b1220;color:#e2e8f0;padding:16px;border-radius:14px;overflow:auto}.body pre code{background:none;padding:0}' +
+  '.cta{margin:44px 0;padding:28px;border-radius:22px;background:linear-gradient(160deg,#0b1b4d,#0a1230);color:#fff;text-align:center}' +
+  '.cta h2{margin:0 0 8px;font-size:24px;line-height:1.3}.cta p{margin:0 0 18px;color:#c3cfee}.cta .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.cta .btn.o{border-color:#9db4ff;color:#fff}' +
+  '.list{display:grid;gap:18px;padding:10px 0 50px}.card{display:grid;grid-template-columns:220px 1fr;gap:18px;border:1px solid var(--line);border-radius:20px;overflow:hidden;text-decoration:none;color:var(--ink);transition:box-shadow .2s}' +
+  '.card:hover{box-shadow:0 12px 30px rgba(15,23,42,.08)}.card .im{background:linear-gradient(135deg,#dbe6ff,#f4f7fc);min-height:150px;background-size:cover;background-position:center}' +
+  '.card .tx{padding:18px 20px 18px 0}.card h2{font-size:21px;line-height:1.3;margin:0 0 6px}.card p{margin:0 0 8px;color:var(--mut);font-size:15.5px;line-height:1.6}.card small{color:var(--mut);font-size:13.5px}' +
+  '.lead{color:var(--mut);margin:0 0 20px}.empty{color:var(--mut);padding:40px 0}' +
+  'footer{border-top:1px solid var(--line);margin-top:30px;padding:26px 0;color:var(--mut);font-size:14px}footer .wrap{display:flex;gap:10px 20px;flex-wrap:wrap;justify-content:space-between;max-width:1080px}footer a{color:var(--mut)}' +
+  '@media(max-width:640px){body{font-size:16.5px}.top nav a.hide{display:none}.card{grid-template-columns:1fr}.card .tx{padding:0 16px 16px}.card .im{min-height:160px}.hd{padding-top:28px}}';
+
+function artPage(env, o) {
+  const site = String(env.SITE_URL || 'https://annurtimetable.com').replace(/\/$/, '');
+  const img = o.image ? (/^https?:/i.test(o.image) ? o.image : site + o.image) : site + '/icons/icon-512.png';
+  return '<!doctype html><html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<title>' + escH(o.title) + '</title><meta name="description" content="' + escH(o.desc) + '">' +
+    '<link rel="canonical" href="' + escH(site + o.path) + '"><link rel="icon" href="/brand/annurpro-icon-64.png">' +
+    '<meta property="og:type" content="' + (o.article ? 'article' : 'website') + '"><meta property="og:title" content="' + escH(o.ogTitle || o.title) + '">' +
+    '<meta property="og:description" content="' + escH(o.desc) + '"><meta property="og:url" content="' + escH(site + o.path) + '"><meta property="og:image" content="' + escH(img) + '">' +
+    '<meta property="og:site_name" content="Annur Time Table"><meta name="twitter:card" content="summary_large_image">' +
+    (o.noindex ? '<meta name="robots" content="noindex">' : '') +
+    '<link rel="alternate" type="application/rss+xml" title="Artikel Annur Time Table" href="/artikel/feed.xml">' +
+    (o.jsonld ? '<script type="application/ld+json">' + JSON.stringify(o.jsonld).replace(/</g, '\\u003c') + '</script>' : '') +
+    '<style>' + ART_CSS + '</style></head><body>' +
+    '<header class="top"><div class="in"><a class="logo" href="/salepage/"><img src="/brand/annurpro-icon-64.png" alt="" width="34" height="34">Annur Time Table</a>' +
+    '<nav><a href="/artikel/">Artikel</a><a class="hide" href="/panduan/">Panduan</a><a class="btn p" href="/">Cuba percuma</a></nav></div></header>' +
+    o.main +
+    '<footer><div class="wrap"><span>Annur Time Table · AnnurPro Solutions</span><span><a href="/salepage/">Tentang sistem</a> · <a href="/panduan/">Panduan</a> · <a href="/privasi.html">Dasar privasi</a></span></div></footer></body></html>';
+}
+const ART_CTA = '<section class="cta"><h2>Cuba Annur Time Table percuma 14 hari</h2><p>Jana jadual waktu tanpa pertembungan dan agih guru ganti secara adil. Data kekal dalam Google Sheet sekolah sendiri.</p>' +
+  '<div class="row"><a class="btn p" href="/">Mula percubaan percuma</a><a class="btn o" href="/salepage/">Lihat cara ia berfungsi</a></div></section>';
+const htmlRes = (body, status, cache) => new Response(body, { status: status || 200, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': cache || 'public, max-age=60' } });
+const notFound = (env) => htmlRes(artPage(env, { title: 'Artikel tidak dijumpai · Annur Time Table', desc: '', path: '/artikel/', noindex: true,
+  main: '<main class="wrap"><div class="hd"><h1>Artikel tidak dijumpai</h1><p class="lead">Artikel ini mungkin telah dipindahkan atau belum diterbitkan.</p><p><a class="btn o" href="/artikel/">Lihat semua artikel</a></p></div></main>' }), 404, 'public, max-age=30');
+
+export async function artikelPublic(req, env, url, now) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return json({ error: 'kaedah tidak disokong' }, 405);
+  const site = String(env.SITE_URL || 'https://annurtimetable.com').replace(/\/$/, '');
+  const rest = decodeURIComponent(url.pathname.slice('/artikel'.length)).replace(/^\/+|\/+$/g, '');
+  if (url.pathname === '/artikel') return new Response(null, { status: 301, headers: { location: '/artikel/' } });
+  if (rest.startsWith('img/')) {
+    const id = rest.slice(4);
+    if (!/^[a-f0-9]{16}\.(jpg|png|webp|gif)$/.test(id)) return new Response('tidak dijumpai', { status: 404 });
+    const v = await getJson(env, 'artimg:' + id);
+    if (!v || !v.d) return new Response('tidak dijumpai', { status: 404 });
+    const bin = atob(v.d), u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return new Response(u8, { headers: { 'content-type': v.t, 'cache-control': 'public, max-age=31536000, immutable' } });
+  }
+  const pub = (await artIndex(env)).filter((a) => artVisible(a, now));
+  if (rest === 'sitemap.xml') {
+    const urls = [['/artikel/', pub[0] ? pub[0].updated : '']].concat(pub.map((a) => ['/artikel/' + a.slug + '/', a.updated]));
+    return new Response('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+      urls.map(([p, u]) => '<url><loc>' + escH(site + p) + '</loc>' + (u ? '<lastmod>' + escH(String(u).slice(0, 10)) + '</lastmod>' : '') + '</url>').join('\n') + '\n</urlset>\n',
+      { headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=300' } });
+  }
+  if (rest === 'feed.xml') {
+    const items = pub.slice(0, 30).map((a) => '<item><title>' + escH(a.title) + '</title><link>' + escH(site + '/artikel/' + a.slug + '/') + '</link><guid>' + escH(site + '/artikel/' + a.slug + '/') + '</guid>' +
+      (a.date ? '<pubDate>' + new Date(a.date + 'T00:00:00+08:00').toUTCString() + '</pubDate>' : '') + '<description>' + escH(a.desc) + '</description></item>').join('');
+    return new Response('<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>Artikel Annur Time Table</title><link>' + escH(site + '/artikel/') + '</link><description>Panduan jadual waktu dan relief untuk sekolah</description><language>ms</language>' + items + '</channel></rss>\n',
+      { headers: { 'content-type': 'application/rss+xml; charset=utf-8', 'cache-control': 'public, max-age=300' } });
+  }
+  if (!rest) {
+    const cards = pub.map((a) => '<a class="card" href="/artikel/' + escH(a.slug) + '/"><div class="im"' + (a.cover ? ' style="background-image:url(\'' + escH(a.cover) + '\')"' : '') + '></div>' +
+      '<div class="tx"><h2>' + escH(a.title) + '</h2><p>' + escH(a.desc) + '</p><small>' + escH(dmyMs(a.date)) + ' · ' + a.minutes + ' minit bacaan</small></div></a>').join('');
+    return htmlRes(artPage(env, { title: 'Artikel · Annur Time Table', desc: 'Panduan praktikal jadual waktu, relief guru ganti dan pengurusan sekolah untuk penolong kanan dan penyelaras jadual.', path: '/artikel/',
+      main: '<main class="wrap"><div class="hd"><div class="crumb"><a href="/salepage/">Annur Time Table</a> / Artikel</div><h1>Artikel</h1>' +
+        '<p class="lead">Panduan praktikal jadual waktu dan relief guru ganti, untuk penolong kanan dan penyelaras jadual.</p></div>' +
+        '<div class="list">' + (cards || '<p class="empty">Belum ada artikel diterbitkan.</p>') + '</div></main>' }));
+  }
+  const slug = rest.toLowerCase();
+  if (!ART_SLUG.test(slug)) return notFound(env);
+  const a = await getJson(env, 'art:' + slug);
+  if (!artVisible(a, now)) {
+    const to = await env.LICENSES.get('artredir:' + slug);
+    return to ? new Response(null, { status: 301, headers: { location: '/artikel/' + to + '/' } }) : notFound(env);
+  }
+  if (!url.pathname.endsWith('/')) return new Response(null, { status: 301, headers: { location: '/artikel/' + slug + '/' } });
+  const more = pub.filter((x) => x.slug !== slug).slice(0, 3);
+  const jsonld = { '@context': 'https://schema.org', '@type': 'Article', headline: a.title, description: a.desc || '', datePublished: a.date || undefined, dateModified: String(a.updated || '').slice(0, 10) || undefined,
+    image: a.cover ? (/^https?:/i.test(a.cover) ? a.cover : site + a.cover) : undefined, mainEntityOfPage: site + '/artikel/' + slug + '/',
+    author: { '@type': 'Organization', name: 'AnnurPro Solutions' }, publisher: { '@type': 'Organization', name: 'AnnurPro Solutions', logo: { '@type': 'ImageObject', url: site + '/brand/annurpro-icon-256.png' } } };
+  return htmlRes(artPage(env, { title: a.title + ' · Annur Time Table', ogTitle: a.title, desc: a.desc || plainText(a.body).slice(0, 160), path: '/artikel/' + slug + '/', image: a.cover, article: true, jsonld,
+    main: '<main class="wrap"><article><div class="hd"><div class="crumb"><a href="/artikel/">Artikel</a></div><h1>' + escH(a.title) + '</h1>' +
+      '<div class="meta"><span>' + escH(dmyMs(a.date)) + '</span><span>·</span><span>' + readMinutes(a.body) + ' minit bacaan</span></div>' +
+      (a.tags && a.tags.length ? '<div class="tags">' + a.tags.map((t) => '<span>' + escH(t) + '</span>').join('') + '</div>' : '') +
+      (a.cover ? '<div class="cover"><img src="' + escH(a.cover) + '" alt=""></div>' : '') + '</div>' +
+      '<div class="body">' + markdown(a.body) + '</div></article>' + ART_CTA +
+      (more.length ? '<h2 style="font-size:22px">Artikel lain</h2><div class="list">' + more.map((x) => '<a class="card" href="/artikel/' + escH(x.slug) + '/"><div class="im"' + (x.cover ? ' style="background-image:url(\'' + escH(x.cover) + '\')"' : '') + '></div><div class="tx"><h2>' + escH(x.title) + '</h2><p>' + escH(x.desc) + '</p><small>' + x.minutes + ' minit bacaan</small></div></a>').join('') + '</div>' : '') +
+      '</main>' }));
+}
+
 export async function handle(req, env, opts) {
   opts = opts || {};
   const now = opts.now != null ? opts.now : Date.now();
@@ -439,6 +706,7 @@ export async function handle(req, env, opts) {
   const cors = corsHeaders(req, env);
   if (req.method === 'OPTIONS') return new Response(null, { status: cors ? 204 : 403, headers: cors || {} });
   if (url.pathname === '/health') return json({ ok: true });
+  if (url.pathname === '/artikel' || url.pathname.startsWith('/artikel/')) return artikelPublic(req, env, url, now);
   if (url.pathname === '/stats' && req.method === 'GET') {
     // awam dan tanpa data peribadi: bilangan sahaja
     return json(await publicStats(env, now), 200, { 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=600' });
