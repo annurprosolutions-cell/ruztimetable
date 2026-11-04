@@ -1,7 +1,7 @@
 // Service worker: app boleh dibuka luar talian dan menerima klik notifikasi.
 // Strategi "rangkaian dahulu": versi terbaharu sentiasa diambil bila ada internet,
 // salinan dalam cache hanya digunakan bila luar talian. Permintaan ke Google tidak disentuh.
-const CACHE = 'jadual-sekolah-v12';
+const CACHE = 'jadual-sekolah-v13';
 // tanpa 'index.html': Cloudflare menghantar /index.html ke / (307), dan respons yang dialih tidak boleh dipakai untuk navigasi
 const SHELL = ['./', 'config.js', 'css/app.css', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/badge-96.png',
   'js/redirect.js', 'js/core.js', 'js/engine.js', 'js/runner.js', 'js/sample.js', 'js/relief.js', 'js/insights.js', 'js/license.js', 'js/access.js', 'js/slug.js', 'js/stats.js', 'js/survey.js', 'js/brand.js',
