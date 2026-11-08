@@ -407,6 +407,23 @@ footer a{color:#b9c8ee}
     var el = document.getElementById('liveStat');
     if (p.length && el) { el.innerHTML = '🟢 Sekarang: ' + p.join(' · '); el.style.display = 'flex'; }
   }).catch(function () {});
+
+  // kiraan tanpa data peribadi: pelawat, klik demo, klik percubaan, klik langgan, klik WhatsApp. Sekali sehari setiap peranti.
+  var HIT = 'https://jadual-sekolah-lesen.annurprosolutions.workers.dev/hit';
+  function hit(e) {
+    var k = 'hit-' + new Date().toISOString().slice(0, 10) + '-' + e;
+    try { if (localStorage.getItem(k)) return; localStorage.setItem(k, '1'); } catch (x) { /* tiada storan: kira juga */ }
+    try { fetch(HIT, { method: 'POST', body: JSON.stringify({ e: e }), keepalive: true, headers: { 'content-type': 'text/plain' } }).catch(function () {}); } catch (x) { /* senyap */ }
+  }
+  hit('view');
+  document.addEventListener('click', function (ev) {
+    var a = ev.target.closest && ev.target.closest('a[href]'); if (!a) return;
+    var h = a.getAttribute('href') || '';
+    if (/^\/\?demo/.test(h)) hit('demo');
+    else if (h === '/') hit('trial');
+    else if (/bcl\.my/.test(h)) hit('buy');
+    else if (/wa\.me/.test(h)) hit('wa');
+  });
 })();
 </script>
 </body>

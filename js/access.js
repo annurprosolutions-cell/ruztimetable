@@ -63,7 +63,7 @@
   };
   TT.unpackBlob = (rows) => {
     const cells = (rows || []).map((r) => String((r && r[0]) || ''));
-    if (cells[0] !== TT.GURU_FORMAT) throw new Error('Pautan ini bukan data guru Jadual Sekolah.');
+    if (cells[0] !== TT.GURU_FORMAT) throw new Error('Pautan ini bukan data guru Annur Time Table.');
     return JSON.parse(cells.slice(1).join(''));
   };
 

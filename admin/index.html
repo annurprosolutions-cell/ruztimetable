@@ -332,8 +332,19 @@ h4{margin:0 0 10px;font-size:17px;font-weight:600}
     return '<div class="tw"><table><thead><tr><th>Nama pautan</th><th>Pemilik</th><th>Sekolah</th><th></th></tr></thead><tbody>' +
       (d.slugs.map(function (x) { return '<tr><td><a href="https://annurtimetable.com/s/' + esc(x.slug) + '" target="_blank" rel="noopener">/s/' + esc(x.slug) + '</a></td><td>' + esc(x.owner || '') + '</td><td>' + esc(x.school || '') + '</td><td><button class="btn sm d" data-a="delslug" data-k="' + esc(x.slug) + '" data-o="' + esc(x.owner || '') + '">Padam</button></td></tr>'; }).join('') || '<tr><td colspan="4" class="empty">Tiada nama pautan.</td></tr>') + '</tbody></table></div>';
   }
+  function funnel(d) {
+    var h = d.hits || { d7: {}, d30: {} }, st = d.stats || {};
+    var pct = function (a, b) { return b ? Math.round(a / b * 100) + '%' : '-'; };
+    var row = function (t, x, trialsN) {
+      var v = x.view || 0, de = x.demo || 0, tr = x.trial || 0;
+      return '<tr><td><b>' + t + '</b></td><td>' + v + '</td><td>' + de + ' <small style="color:var(--mut)">(' + pct(de, v) + ')</small></td><td>' + tr + ' <small style="color:var(--mut)">(' + pct(tr, v) + ')</small></td><td>' + (x.buy || 0) + '</td><td>' + (x.wa || 0) + '</td><td><b>' + trialsN + '</b></td></tr>';
+    };
+    return '<div class="card"><h4>Corong sale page</h4><div class="tw"><table><thead><tr><th></th><th>Pelawat</th><th>Klik demo</th><th>Klik percubaan</th><th>Klik langgan</th><th>Klik WhatsApp</th><th>Percubaan bermula</th></tr></thead><tbody>' +
+      row('7 hari', h.d7, st.trials7 || 0) + row('30 hari', h.d30, st.trials30 || 0) + '</tbody></table></div>' +
+      '<p class="note">Pelawat dikira sekali sehari bagi setiap peranti, tanpa data peribadi. "Percubaan bermula" ialah akaun Google baharu yang benar-benar log masuk (angka sebenar dari lesen), jadi bandingkan dengan "Klik percubaan" untuk lihat berapa yang berhenti di tengah jalan. Kaunter berhenti selepas 400 kejadian sehari (had tulis KV percuma); kejadian tidak dikira lagi sehingga esok.</p></div>';
+  }
   function perf() {
-    return '<div class="card"><h4>Prestasi teknikal</h4><p>Kadar ralat, bilangan permintaan dan masa tindak balas Worker dipapar oleh Cloudflare: dashboard Cloudflare, Workers &amp; Pages, pilih <b>annurtimetable</b> (app) atau <b>jadual-sekolah-lesen</b> (lesen), tab Metrics.</p>' +
+    return funnel(S.data) + '<div class="card" style="margin-top:18px"><h4>Prestasi teknikal</h4><p>Kadar ralat, bilangan permintaan dan masa tindak balas Worker dipapar oleh Cloudflare: dashboard Cloudflare, Workers &amp; Pages, pilih <b>annurtimetable</b> (app) atau <b>jadual-sekolah-lesen</b> (lesen), tab Metrics.</p>' +
       '<p class="note">App tidak menghantar data penggunaan sekolah kepada kita (data kekal dalam Google Drive sekolah), jadi statistik seperti bilangan jadual dijana tidak tersedia.</p>' +
       '<p><a class="btn" href="https://dash.cloudflare.com/?to=/:account/workers-and-pages" target="_blank" rel="noopener">Buka Cloudflare Workers</a></p></div>';
   }

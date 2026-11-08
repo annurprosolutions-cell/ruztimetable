@@ -97,7 +97,7 @@
 
   UI.surveyHtml = () => {
     const p = part(), list = secs(), n = list.length, step = V.step;
-    const brand = `<div class="gbrand"><span class="mark">${UI.icon('calendar')}</span><span><b>${esc(CFG.appName || 'Jadual Sekolah')}</b><small>${p === 1 ? 'Survey sebelum cuba demo' : 'Maklum balas selepas cuba demo'}</small></span></div>`;
+    const brand = `<div class="gbrand"><span class="mark">${UI.icon('calendar')}</span><span><b>${esc(CFG.appName || 'Annur Time Table')}</b><small>${p === 1 ? 'Survey sebelum cuba demo' : 'Maklum balas selepas cuba demo'}</small></span></div>`;
     let body;
     if (step < 0) {
       body = p === 1
@@ -117,7 +117,7 @@
         <div class="row end"><button class="btn" data-act="svyBack">Kembali</button><button class="btn primary big" data-act="${last ? 'svySubmit' : 'svyNext'}">${last ? (p === 1 ? 'Hantar dan mula demo' : 'Hantar maklum balas') : 'Seterusnya'}</button></div>`;
     }
     return `<div class="gate svy"><div class="gate-card svycard">${brand}${body}</div>
-      <p class="gate-foot"><a href="privasi.html" target="_blank" rel="noopener">Privasi</a> · ${esc(CFG.appName || 'Jadual Sekolah')} ${esc(CFG.version || '')}${CFG.vendor ? ' · ' + esc(CFG.vendor) : ''}</p></div>`;
+      <p class="gate-foot"><a href="privasi.html" target="_blank" rel="noopener">Privasi</a> · ${esc(CFG.appName || 'Annur Time Table')} ${esc(CFG.version || '')}${CFG.vendor ? ' · ' + esc(CFG.vendor) : ''}</p></div>`;
   };
 
   // pasang semula paparan tanpa kehilangan kedudukan skrol

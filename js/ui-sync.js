@@ -75,7 +75,7 @@
       }
       await ensureGuru();
       const now = new Date().toISOString();
-      const r = await sync.store.save(id, S(), { updatedAt: now, by: UI.writerId, app: `${CFG.appName || 'Jadual Sekolah'} ${CFG.version || ''}`.trim() });
+      const r = await sync.store.save(id, S(), { updatedAt: now, by: UI.writerId, app: `${CFG.appName || 'Annur Time Table'} ${CFG.version || ''}`.trim() });
       Object.assign(UI.prefs.sheet, { syncedAt: now, url: r.url, title: r.title, dirty: false });
       UI.prefs.lastBackup = now; UI.savePrefs();
       await publishGuru(now);

@@ -110,7 +110,7 @@
     st.setProperty('--blue', p.accent); st.setProperty('--blue2', p.accent2); st.setProperty('--blue-soft', p.soft);
     const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.content = p.navy;
     const fav = document.getElementById('favicon'); if (fav) fav.href = TT.validLogo(sc.logo) ? sc.logo : FAVICON;
-    document.title = `${sc.name} · ${CFG.appName || 'Jadual Sekolah'}${UI.demo ? ' · Demo' : ''}`;
+    document.title = `${sc.name} · ${CFG.appName || 'Annur Time Table'}${UI.demo ? ' · Demo' : ''}`;
   };
   // kepala cetakan: logo + nama sekolah
   UI.sheetHead = () => { const sc = UI.state.school; return `<div class="shead">${TT.validLogo(sc.logo) ? `<img src="${sc.logo}" alt="">` : ''}<h2>${esc(sc.name)}</h2></div>`; };

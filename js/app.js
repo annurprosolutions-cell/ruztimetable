@@ -84,7 +84,7 @@
   function header() {
     const s = UI.state, role = UI.prefs.role, urgent = UI.items.filter((i) => i.sev !== 'info').length;
     return `<header class="topbar">
-      <div class="brand"><span class="mark${TT.validLogo(s.school.logo) ? ' logo' : ''}">${TT.validLogo(s.school.logo) ? `<img src="${s.school.logo}" alt="Logo ${esc(s.school.name)}">` : UI.icon('calendar')}</span><span class="bname">${esc(s.school.name)}<small>${esc(CFG.appName || 'Jadual Sekolah')}</small></span></div>
+      <div class="brand"><span class="mark${TT.validLogo(s.school.logo) ? ' logo' : ''}">${TT.validLogo(s.school.logo) ? `<img src="${s.school.logo}" alt="Logo ${esc(s.school.name)}">` : UI.icon('calendar')}</span><span class="bname">${esc(s.school.name)}<small>${esc(CFG.appName || 'Annur Time Table')}</small></span></div>
       <nav class="seg main">${navList(role).map(([k, t, ic]) => `<button class="${UI.page === k ? 'on' : ''}" data-act="goto" data-p="${k}">${UI.icon(ic)}<span>${t}</span></button>`).join('')}</nav>
       <div class="tb-right">${syncPill()}
         <button class="role${UI.menu === 'role' ? ' open' : ''}" data-act="menu" data-m="role" aria-haspopup="true" aria-expanded="${UI.menu === 'role'}">${UI.icon(role === 'guru' ? 'user' : 'shield')}<span><small>PERANAN</small><b>${UI.isAdmin() && role === 'guru' ? 'Pratonton guru' : ROLE[role]}</b></span>${UI.icon('chevDown')}</button>
@@ -96,7 +96,7 @@
 
   function demoBar() {
     if (!UI.demo) return '';
-    const sup = CFG.support || {}, wa = sup.whatsapp ? `https://wa.me/${UI.waNumber(sup.whatsapp)}?text=${encodeURIComponent('Saya berminat dengan Jadual Sekolah (selepas cuba demo).')}` : '';
+    const sup = CFG.support || {}, wa = sup.whatsapp ? `https://wa.me/${UI.waNumber(sup.whatsapp)}?text=${encodeURIComponent('Saya berminat dengan Annur Time Table (selepas cuba demo).')}` : '';
     return `<div class="demobar"><span><b>MOD DEMO</b> · Data contoh sahaja. Klik, ubah dan jana jadual dengan bebas. Data demo disimpan dalam pelayar anda sahaja. Hanya jawapan survey dihantar kepada kami.</span>
       <span class="dbtns"><button class="pill o" data-act="demoReset">${UI.icon('refresh')} Set semula</button>${wa ? `<a class="pill w" href="${wa}" target="_blank" rel="noopener">${UI.icon('message')} Berminat? WhatsApp kami</a>` : sup.email ? `<a class="pill w" href="mailto:${esc(sup.email)}">Berminat? Hubungi kami</a>` : ''}</span></div>`;
   }
@@ -119,7 +119,7 @@
     UI.items = computeItems();
     const where = UI.sync && UI.sync.linked() ? 'dalam pelayar ini dan Google Sheet anda' : 'dalam pelayar ini sahaja';
     $('app').innerHTML = `${demoBar()}${header()}<main class="pg-${UI.page}">${UI.pages[UI.page]()}</main>
-      <footer class="foot">${esc(CFG.appName || 'Jadual Sekolah')} ${esc(CFG.version || '')}${CFG.vendor ? ' · ' + esc(CFG.vendor) : ''} · ${esc(s.school.name)} · Data disimpan ${where}</footer>${UI.surveyFab ? UI.surveyFab() : ''}`;
+      <footer class="foot">${esc(CFG.appName || 'Annur Time Table')} ${esc(CFG.version || '')}${CFG.vendor ? ' · ' + esc(CFG.vendor) : ''} · ${esc(s.school.name)} · Data disimpan ${where}</footer>${UI.surveyFab ? UI.surveyFab() : ''}`;
     window.scrollTo(0, y);
   };
 

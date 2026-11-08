@@ -17,6 +17,7 @@
 //                  GET /stats (awam): {paid|null, trial, min}; kunci cache "stats:cache"
 //                  OWNER_EMAILS (e-mel pemilik dipisah koma: boleh guna dashboard /admin/ dengan log masuk Google), PRICE_MONTH (20), PRICE_YEAR (200)
 //                  GET /admin/overview: semua rekod + ringkasan prestasi; POST /admin/licenses {merge:true,...}: ubah sekolah, pelan atau tarikh sahaja
+//                  HITS_MAX_DAY (lalai 400): had tulis KV sehari bagi kaunter sale page (POST /hit)
 //                  SITE_URL (lalai https://annurtimetable.com): pautan kanonik artikel. /admin/articles (GET/POST/DELETE, /preview, /image); awam /artikel/, /artikel/<slug>/, sitemap.xml, feed.xml
 
 const json = (body, status, extra) => new Response(JSON.stringify(body), { status: status || 200, headers: Object.assign({ 'content-type': 'application/json' }, extra || {}) });
@@ -311,7 +312,7 @@ export async function overview(env, now) {
   const t = today(now), grace = numEnv(env.GRACE_DAYS, 7);
   const skip = new Set(String(env.STATS_EXCLUDE || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean));
   const priceM = numEnv(env.PRICE_MONTH, 20), priceY = numEnv(env.PRICE_YEAR, 200);
-  const licences = [], trials = [], payments = [], debits = [], mandates = [], logs = [], slugs = [];
+  const licences = [], trials = [], payments = [], debits = [], mandates = [], logs = [], slugs = [], hits = [];
   let cursor;
   do {
     const page = await env.LICENSES.list({ cursor });
@@ -331,6 +332,7 @@ export async function overview(env, now) {
       else if (n.startsWith('mandate:')) mandates.push(Object.assign({ order: n.slice(8) }, v));
       else if (n.startsWith('log:')) logs.push(Object.assign({ key: n, at: n.slice(4, 28) }, typeof v === 'object' ? v : { raw: v }));
       else if (n.startsWith('slug:')) slugs.push(Object.assign({ slug: n.slice(5) }, v));
+      else if (n.startsWith('hit:') && v && typeof v === 'object') hits.push(Object.assign({ date: n.slice(4) }, v));
     }
     cursor = page.list_complete ? null : page.cursor;
   } while (cursor);
@@ -358,7 +360,8 @@ export async function overview(env, now) {
   licences.sort((a, b) => (a.expires || '9999').localeCompare(b.expires || '9999'));
   logs.sort((a, b) => b.at.localeCompare(a.at));
   payments.sort((a, b) => String(b.at).localeCompare(String(a.at)));
-  return { today: t, stats, licences, trials, payments, debits, mandates, logs: logs.slice(0, 200), slugs };
+  const hsum = (n) => HIT_EVENTS.reduce((o, k) => { o[k] = hits.filter((h) => h.date >= since(n)).reduce((a, h) => a + (h[k] || 0), 0); return o; }, {});
+  return { today: t, stats, licences, trials, payments, debits, mandates, logs: logs.slice(0, 200), slugs, hits: { d7: hsum(7), d30: hsum(30) } };
 }
 
 async function admin(req, env, url, now, fetchFn) {
@@ -690,6 +693,20 @@ export async function artikelPublic(req, env, url, now) {
       '</main>' }));
 }
 
+// ---------- kaunter sale page (tanpa data peribadi) ----------
+// POST /hit {e:"view|demo|trial|buy|wa"} dari salepage. Satu kunci setiap hari "hit:YYYY-MM-DD" -> {view,demo,trial,buy,wa,n}.
+// KV percuma had 1,000 tulis sehari, jadi jumlah tulis kaunter dihadkan kepada HITS_MAX_DAY (lalai 400) sehari; selepas itu diabaikan.
+const HIT_EVENTS = ['view', 'demo', 'trial', 'buy', 'wa'];
+export async function recordHit(env, ev, now) {
+  if (!HIT_EVENTS.includes(ev)) return { ok: false, reason: 'event-tidak-sah' };
+  const key = 'hit:' + today(now), max = numEnv(env.HITS_MAX_DAY, 400);
+  const cur = (await getJson(env, key)) || {};
+  if ((cur.n || 0) >= max) return { ok: true, capped: true };
+  cur[ev] = (cur[ev] || 0) + 1; cur.n = (cur.n || 0) + 1;
+  await env.LICENSES.put(key, JSON.stringify(cur), { expirationTtl: 400 * 864e2 });
+  return { ok: true };
+}
+
 export async function handle(req, env, opts) {
   opts = opts || {};
   const now = opts.now != null ? opts.now : Date.now();
@@ -706,6 +723,13 @@ export async function handle(req, env, opts) {
   const cors = corsHeaders(req, env);
   if (req.method === 'OPTIONS') return new Response(null, { status: cors ? 204 : 403, headers: cors || {} });
   if (url.pathname === '/health') return json({ ok: true });
+  if (url.pathname === '/hit' && req.method === 'POST') {
+    // awam dan tanpa data peribadi; hanya dikira jika datang dari laman kita (ALLOWED_ORIGINS)
+    if (!cors) return new Response(null, { status: 204 });
+    let b = {}; try { b = JSON.parse(await req.text()); } catch (e) { b = {}; }
+    const r = await recordHit(env, String((b && b.e) || ''), now).catch(() => ({ ok: false }));
+    return new Response(null, { status: r.ok ? 204 : 400, headers: cors });
+  }
   if (url.pathname === '/artikel' || url.pathname.startsWith('/artikel/')) return artikelPublic(req, env, url, now);
   if (url.pathname === '/stats' && req.method === 'GET') {
     // awam dan tanpa data peribadi: bilangan sahaja

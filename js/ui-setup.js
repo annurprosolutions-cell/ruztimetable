@@ -33,7 +33,7 @@
         const obj = JSON.parse(rd.result);
         if (!obj || !Array.isArray(obj.teachers) || !Array.isArray(obj.lessons)) throw new Error('format');
         UI.state = TT.migrate(obj); delete UI.state.auth; UI.state.school.guruSheet = ''; UI.state = UI.carry(UI.state); UI.commit(); UI.toast('Import berjaya.');
-      } catch (e) { UI.toast('Fail JSON tidak sah atau bukan fail Jadual Sekolah.', 'err'); }
+      } catch (e) { UI.toast('Fail JSON tidak sah atau bukan fail Annur Time Table.', 'err'); }
       el.value = '';
     };
     rd.readAsText(f);

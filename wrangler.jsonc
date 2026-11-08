@@ -4,7 +4,7 @@
 // edge/worker.js menghidangkan /s/<nama> (pautan guru cantik) dan memproksi /artikel/* ke Worker lesen; run_worker_first menghadkan Worker kepada alamat itu sahaja.
 // Pelayan lesen ialah projek berasingan dalam folder worker/.
 {
-  "name": "jadual-sekolah",
+  "name": "annurtimetable",
   "main": "edge/worker.js",
   "compatibility_date": "2025-06-01",
   "assets": { "directory": ".", "binding": "ASSETS", "run_worker_first": ["/s/*", "/artikel", "/artikel/*"] }

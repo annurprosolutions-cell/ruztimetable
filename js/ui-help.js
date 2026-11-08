@@ -30,7 +30,7 @@
       <section class="card"><div class="ch"><h2>Panduan penuh</h2></div><p>Manual lengkap bergambar, langkah demi langkah, dan senarai video panduan.</p>
         <div class="row"><a class="btn primary" href="${guide}" target="_blank" rel="noopener">Buka panduan</a><a class="btn" href="panduan/Panduan-Annur-Time-Table.pdf" target="_blank" rel="noopener">PDF</a></div></section>
       <section class="card"><div class="ch"><h2>Langkah kerja</h2></div><ol class="steps">${steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol></section>
-      <section class="card"><div class="ch"><h2>Tentang</h2></div><p><b>${esc(cfg.appName || 'Jadual Sekolah')}</b> versi ${esc(cfg.version || '')}${cfg.vendor ? `<br>${esc(cfg.vendor)}` : ''}</p>${contact}</section></div>
+      <section class="card"><div class="ch"><h2>Tentang</h2></div><p><b>${esc(cfg.appName || 'Annur Time Table')}</b> versi ${esc(cfg.version || '')}${cfg.vendor ? `<br>${esc(cfg.vendor)}` : ''}</p>${contact}</section></div>
       <div class="col-r"><section class="card"><div class="ch"><h2>Soalan lazim</h2></div>${FAQ.map(([q, a]) => `<details class="faq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</section></div></div>`;
   };
 })();
