@@ -17,6 +17,45 @@
   window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); P.prompt = e; if (UI.render && UI.state) UI.render(); });
   window.addEventListener('appinstalled', () => { P.prompt = null; P.standalone = true; UI.toast('App dipasang. Buka dari skrin utama telefon.'); });
 
+  // ---------- nama dan ikon app ikut sekolah (prototaip) ----------
+  // Manifest dijana semasa app berjalan: nama = nama sekolah, ikon = logo sekolah. Pelayar membaca manifest semasa pemasangan,
+  // jadi sekolah yang memasang selepas menetapkan nama dan logo mendapat app bernama sekolah mereka di skrin utama.
+  // Pemasangan lama tidak berubah serta-merta (Android mengemas kini nama/ikon app secara berkala, iOS tidak).
+  const LOGO_BG = '#ffffff';
+  const shortName = (n) => { const w = String(n || '').trim(); if (w.length <= 12) return w; const cut = w.slice(0, 12), i = cut.lastIndexOf(' '); return (i >= 6 ? cut.slice(0, i) : cut).trim(); };
+  function iconFrom(img, size, pad) {
+    const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d');
+    g.fillStyle = LOGO_BG; g.fillRect(0, 0, size, size);
+    const box = size * (1 - 2 * pad), r = Math.min(box / img.naturalWidth, box / img.naturalHeight), w = img.naturalWidth * r, h = img.naturalHeight * r;
+    g.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+    return c.toDataURL('image/png');
+  }
+  let brandKey = '';
+  P.brand = async (sc) => {
+    if (UI.demo || !sc || !sc.name || sc.name === 'Sekolah Saya') return;
+    const key = [sc.name, sc.logo ? sc.logo.length : 0, sc.color].join('|');
+    if (key === brandKey) return; brandKey = key;
+    const base = location.origin + '/', icons = [];
+    try {
+      if (TT.validLogo(sc.logo)) {
+        const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = sc.logo; });
+        if (img.naturalWidth && img.naturalHeight) {
+          icons.push({ src: iconFrom(img, 192, 0.1), sizes: '192x192', type: 'image/png', purpose: 'any' }, { src: iconFrom(img, 512, 0.1), sizes: '512x512', type: 'image/png', purpose: 'any' },
+            { src: iconFrom(img, 512, 0.22), sizes: '512x512', type: 'image/png', purpose: 'maskable' });
+          const ap = document.querySelector('link[rel="apple-touch-icon"]'); if (ap) ap.href = iconFrom(img, 180, 0.1);
+        }
+      }
+    } catch (e) { /* logo rosak: guna ikon asal */ }
+    if (!icons.length) icons.push({ src: base + 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' }, { src: base + 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }, { src: base + 'icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' });
+    const theme = (document.querySelector('meta[name="theme-color"]') || {}).content || '#0b1d4d';
+    const man = { name: sc.name, short_name: shortName(sc.name), description: `Jadual waktu dan relief guru ganti ${sc.name}`, lang: 'ms', id: '/', start_url: base, scope: base, display: 'standalone', orientation: 'any', background_color: '#edf0f5', theme_color: theme, icons };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(man)], { type: 'application/manifest+json' }));
+    const link = document.querySelector('link[rel="manifest"]'); if (!link) return;
+    const old = link.href; link.href = url; if (old.startsWith('blob:')) URL.revokeObjectURL(old);
+    const t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = shortName(sc.name);
+    P.manifest = man;
+  };
+
   UI.canInstall = () => !UI.demo && !P.standalone && (!!P.prompt || P.ios);
   actions.install = async () => {
     if (P.prompt) {
