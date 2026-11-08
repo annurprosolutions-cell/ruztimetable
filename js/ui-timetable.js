@@ -38,6 +38,19 @@
   // Guru/bilik bila waktu berbeza ikut set: baris = potongan masa (atom), supaya kelas Tahap 1 dan 2 tersusun ikut masa.
   // axis 'top' = hari di atas (lalai), 'left' = hari di sebelah kiri.
   UI.dayAxis = () => (UI.prefs.dayAxis === 'left' ? 'left' : 'top');
+  // nama sekatan serentak "Semua guru" (cth Perhimpunan) yang menutup waktu ini bagi kelas; kosong jika tiada
+  UI.schoolBlockName = (s, tm, k, d, r) => {
+    for (const b of s.blocks || []) {
+      if ((b.teacherIds && b.teacherIds.length) || b.dept || !b.days.includes(d)) continue;
+      const lo = Math.min(b.from, b.to), hi = Math.max(b.from, b.to), mine = tm.span[k] && tm.span[k][d] && tm.span[k][d][r];
+      for (let p = lo; p <= hi; p++) {
+        if (!tm.multi) { if (p === r) return b.name || 'Sekatan'; continue; }
+        const base = tm.span[0][d] && tm.span[0][d][p];
+        if (mine && base && mine[0] < base[1] && base[0] < mine[1]) return b.name || 'Sekatan';
+      }
+    }
+    return '';
+  };
   UI.gridModel = (kind, id) => {
     const s = S(), m = TT.maps(s), tm = TT.timeModel(s), days = TT.days(s);
     const atomMode = tm.multi && kind !== 'class';
@@ -72,6 +85,7 @@
         };
       }
     }
+    if (kind === 'class' && !atomMode) blocked = (d, r) => UI.schoolBlockName(s, tm, k, d, r);
     // masa ikut hari: jam dipapar dalam setiap petak, waktu tiada kelas dikelabukan
     const perDay = TT.perDay(s) && !atomMode, st = tm.sets[k];
     const dayTime = (d, r, n) => { const a = st.daySlots[d] && st.daySlots[d][r], b = st.daySlots[d] && st.daySlots[d][r + (n || 1) - 1]; return a ? `${a.start}-${(b || a).end}` : ''; };
@@ -98,7 +112,8 @@
         return `<td class="cell filled${bad.has(c.pl.unit) ? ' bad' : ''}${c.pl.locked ? ' locked' : ''}" ${span}${editable ? ' draggable="true"' : ''} data-unit="${c.pl.unit}" data-day="${d}" data-p="${r}" style="${tint(sub.color)}">${tt}${cellInner(kind, l, m)}${btns}</td>`;
       }
       const un = g.blocked && g.blocked(d, r);
-      return `<td class="cell empty${un ? ' unav' : ''}"${editable ? ` data-day="${d}" data-p="${r}"` : ''}>${tt}${un ? `<span>${esc(un)}</span>` : ''}</td>`;
+      const cls = un ? (kind === 'class' ? ' blk' : ' unav') : '';
+      return `<td class="cell empty${cls}"${editable ? ` data-day="${d}" data-p="${r}"` : ''}${un && kind === 'class' ? ` title="${esc(un)}"` : ''}>${tt}${un ? `<span>${esc(un)}</span>` : ''}</td>`;
     };
     if (axis === 'left') {
       let h = `<table class="grid left${g.atomMode ? ' atoms' : ''}"><thead><tr><th class="tcol">Hari</th>${rows.map((x) => (x.brk ? `<th class="brkh">${esc(x.label)}</th>` : `<th>${esc(x.label)}<small>${esc(x.time)}</small></th>`)).join('')}</tr></thead><tbody>`;
@@ -149,7 +164,10 @@
       days.forEach((_, d) => {
         for (let p = 0; p < lim[d]; p++) {
           const l = map.get(`${e.id}|${d}|${p}`), f = p === 0 ? ' first' : '';
-          if (!l) { h += `<td class="cell empty${f}"></td>`; continue; }
+          if (!l) {
+            const bn = byClass && !atomMode ? UI.schoolBlockName(s, tm, k, d, p) : '';
+            h += bn ? `<td class="cell empty blk${f}" title="${esc(bn)}"><span>${esc(bn)}</span></td>` : `<td class="cell empty${f}"></td>`; continue;
+          }
           const sub = m.subject.get(l.subjectId) || {};
           const other = byClass ? l.teacherIds.map((i) => (m.teacher.get(i) || {}).short).join('/') : l.classIds.map((i) => (m.cls.get(i) || {}).name).join(',');
           h += `<td class="cell filled${f}" style="${tint(sub.color)}"><div class="sub">${esc(sub.short)}</div><div class="meta">${esc(other)}</div></td>`;
