@@ -303,6 +303,8 @@
       <div class="grid3">${rw('maxPerDay', 'Had relief sehari seorang guru (waktu)', '0 = tiada had')}
         ${rw('maxPerWeek', 'Had relief seminggu seorang guru (waktu)', '0 = tiada had. Contoh: 3')}
         ${rw('maxTeachDay', 'Had jumlah waktu sehari (mengajar + relief)', '0 = tiada had. Contoh 6: guru yang sudah mengajar 6 waktu hari itu tidak dicadangkan')}
+        ${rw('maxStreak', 'Had waktu berturut-turut (kelas sendiri + relief)', '0 = tiada had. Contoh 2: guru yang mengajar Waktu 3 tidak diberi relief Waktu 4-5 kerana jadi 3 waktu berturut-turut. Rehat memutuskan urutan.')}
+        <label class="fld chk"><input type="checkbox" data-chg="reliefBool" data-k="splitDouble"${r.splitDouble ? ' checked' : ''}><span>Pecah pelajaran berganda: setiap waktu relief diberi kepada guru berlainan (cth Waktu 1-2 jadi dua guru). Relief yang sudah disimpan tidak berubah.</span></label>
         <label class="fld chk"><input type="checkbox" data-chg="reliefBool" data-k="needGap"${r.needGap ? ' checked' : ''}><span>Mesti ada waktu kosong sebelum atau selepas relief (guru sempat berehat)</span></label>
         <label class="fld chk"><input type="checkbox" data-chg="reliefBool" data-k="respectUnavailable"${r.respectUnavailable ? ' checked' : ''}><span>Hormati waktu guru tidak boleh (profil guru)</span></label></div></section>
       <section class="card"><div class="ch"><div><h2>Guru yang dikecualikan</h2><small>Contoh: Guru Besar, PK, Kaunselor, guru UBK</small></div></div>

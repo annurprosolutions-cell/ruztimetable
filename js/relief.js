@@ -76,10 +76,17 @@
         const periods = [];
         for (let j = 0; j < pl.len; j++) { const p = pl.start + j; if (p < lim && TT.absCovers(tm, a, k, p, day)) periods.push(p); }
         if (!periods.length) continue;
-        out.push({
-          key: `${iso}|${a.teacherId}|${pl.unit}`, date: iso, day, k, absenceId: a.id, absentTeacherId: a.teacherId,
-          unitId: pl.unit, lessonId: l.id, classIds: l.classIds, subjectId: l.subjectId, roomId: l.roomId, periods
-        });
+        const base = `${iso}|${a.teacherId}|${pl.unit}`;
+        const mk = (key, ps) => ({ key, base, date: iso, day, k, absenceId: a.id, absentTeacherId: a.teacherId,
+          unitId: pl.unit, lessonId: l.id, classIds: l.classIds, subjectId: l.subjectId, roomId: l.roomId, periods: ps });
+        // pecah waktu berganda: setiap waktu satu keperluan sendiri supaya boleh diberi kepada guru berlainan.
+        // Rekod sedia ada dihormati: relief yang sudah disimpan sebagai satu blok kekal satu blok (dan sebaliknya).
+        const cfgR = s.settings.relief || {};
+        const hasWhole = s.reliefs.some((r) => r.date === iso && r.key === base);
+        const hasSplit = s.reliefs.some((r) => r.date === iso && r.key.startsWith(base + '|p'));
+        const split = periods.length > 1 && (hasSplit || (cfgR.splitDouble && !hasWhole));
+        if (split) periods.forEach((p) => out.push(mk(`${base}|p${p}`, [p])));
+        else out.push(mk(base, periods));
       }
     }
     const t0 = (n) => (tm.multi ? TT.atomRange(tm, n.k, n.periods[0], 1, n.day)[0] : n.periods[0]);
@@ -163,6 +170,8 @@
     const atomsOf = (p) => { const [a0, a1] = TT.atomRange(tm, k, p, 1, day); const out = []; for (let a = a0; a < a1; a++) out.push(a); return out; };
     const busyAt = (t, p) => atomsOf(p).some((a) => grid.get(t.id)[day][a] || (relBusy.get(t.id) && relBusy.get(t.id).has(a)));
     const p0 = need.periods[0], p1 = need.periods[need.periods.length - 1];
+    const baseOf = (key) => String(key).replace(/\|p\d+$/, '');
+    const sibTeachers = new Set(others.filter((r) => baseOf(r.key) === (need.base || need.key)).map((r) => r.reliefTeacherId));
     const cands = [];
     for (const t of s.teachers) {
       if (t.id === need.absentTeacherId || TT.reliefExempt(s, t)) continue;
@@ -193,6 +202,13 @@
         const freeAfter = p1 + 1 >= lim || st.slots[p1 + 1].breakBefore || !busyAt(t, p1 + 1);
         if (!freeBefore && !freeAfter) continue;
       }
+      // had waktu berturut-turut: kelas sendiri + relief (rehat memutuskan urutan)
+      if (cfg.maxStreak > 0) {
+        let run = need.periods.length, a = p0, b = p1;
+        while (a > 0 && !st.slots[a].breakBefore && busyAt(t, a - 1)) { run++; a--; }
+        while (b + 1 < lim && !st.slots[b + 1].breakBefore && busyAt(t, b + 1)) { run++; b++; }
+        if (run > cfg.maxStreak) continue;
+      }
       const month = mine.filter((r) => monthOf(r.date) === monthOf(iso)).reduce((a, r) => a + r.periods.length, 0);
       const total = mine.reduce((a, r) => a + r.periods.length, 0);
       const parts = []; let score = 0;
@@ -201,7 +217,8 @@
       if (absent && t.dept && t.dept === absent.dept) add('Panitia sama', cfg.wDept);
       if (teachesClass.has(t.id)) add('Mengajar kelas ini', cfg.wKnows);
       if (homerooms.has(t.id)) add('Guru kelas', cfg.wHome);
-      const adj = others.some((r) => r.reliefTeacherId === t.id && r.classIds.some((c) => need.classIds.includes(c)) &&
+      const part = !!need.base && need.base !== need.key; // waktu yang dipecah daripada blok berganda
+      const adj = !part && others.some((r) => r.reliefTeacherId === t.id && r.classIds.some((c) => need.classIds.includes(c)) &&
         r.periods.some((p) => p === p0 - 1 || p === p1 + 1));
       if (adj) add('Sambung kelas sama', cfg.wCont);
       add(`Relief bulan ini: ${month}`, -cfg.wFair * month);
@@ -212,9 +229,12 @@
       if (t.subjectIds.includes(need.subjectId)) tag.push('subjek sama');
       if (teachesClass.has(t.id)) tag.push('ajar kelas ini');
       if (absent && t.dept && t.dept === absent.dept) tag.push('panitia sama');
-      cands.push({ teacher: t, score: Math.round(score * 10) / 10, parts, month, total, today, tag });
+      // waktu lain pelajaran yang sama sudah diberi kepada guru ini: calon dikemudiankan supaya guru berlainan didahulukan
+      const sib = part && sibTeachers.has(t.id);
+      if (sib) tag.push('sudah ambil waktu lain pelajaran ini');
+      cands.push({ teacher: t, score: Math.round(score * 10) / 10, parts, month, total, today, tag, sib });
     }
-    cands.sort((a, b) => b.score - a.score || a.total - b.total || a.teacher.name.localeCompare(b.teacher.name));
+    cands.sort((a, b) => (a.sib - b.sib) || b.score - a.score || a.total - b.total || a.teacher.name.localeCompare(b.teacher.name));
     return cands;
   };
 

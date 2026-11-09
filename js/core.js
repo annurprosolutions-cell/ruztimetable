@@ -44,6 +44,7 @@
   // banyak hari itu, wajib ada waktu kosong sebelum atau selepas, dan jawatan yang dikecualikan
   TT.defaultRelief = () => ({
     maxPerDay: 3, maxPerWeek: 0, maxTeachDay: 0, needGap: false, excludeRoles: '', respectUnavailable: true,
+    splitDouble: false, maxStreak: 0,
     wSubject: 30, wDept: 10, wKnows: 15, wHome: 10, wCont: 20,
     wFair: 8, wTotal: 0.5, wToday: 12, wLoad: 0.5
   });
