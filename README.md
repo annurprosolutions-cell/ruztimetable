@@ -71,6 +71,7 @@ Aliran kerja pentadbir:
 - Slip cetak (ringkasan harian + slip setiap guru), slip peribadi untuk guru, dan mesej WhatsApp.
 
 **Import dan muat turun**
+- Import pangkalan data aSc (Excel dengan tab Pelajaran: Guru, Kelas, Kumpulan, Subjek, Panjang, Bil. seminggu): guru, kelas, subjek, guru kelas dan pelajaran diimport sekali. Guru berkongsi dan kelas gabungan dipecah, kad yang sama dijumlahkan (Double = waktu berganda, Triple = berganda + tunggal), kumpulan serentak (lelaki/perempuan, PI/PM, elektif) digabung jadi satu pelajaran dengan beberapa guru. Baris tanpa guru (rehat, perhimpunan) dan tanpa kelas (tugas) dilaporkan dan dilangkau; Masa Off tidak diimport kerana nombor waktu aSc berbeza ikut sekolah (`js/ascdb.js`).
 - Import Excel eksport aSc (atau mana-mana Excel/CSV dengan lajur nama dan KOD): tab Kelas, Subjek, Guru, Bilik dikenal pasti ikut tajuk. Nama yang sudah ada tidak berganda. Tingkatan diambil daripada nama kelas. Fail aSc jenis ini hanya senarai; pelajaran diisi selepas import.
 - Laporan > Cetak dan muat turun: guru sahaja, kelas sahaja, bilik sahaja (makmal, bengkel). Excel satu tab setiap guru, kelas atau bilik.
 - Hari di atas atau di kiri, untuk paparan, cetakan dan Excel.
@@ -169,6 +170,7 @@ js/insights.js            data dashboard: perlu tindakan, kalendar, hari guru
 js/sheets.js              format Google Sheets, akses API, log masuk Google
 js/xlsx.js                baca dan tulis fail Excel (.xlsx) tanpa pustaka luar
 js/import.js              kenal pasti senarai daripada Excel eksport aSc
+js/ascdb.js               import pangkalan data aSc (tab Pelajaran) termasuk pelajaran dan kumpulan serentak
 js/archive.js             arkib dan bersih sejarah relief
 tools/bench.js            ujian beban penjana (npm run bench)
 js/license.js             keputusan lesen di sisi app

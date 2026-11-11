@@ -156,6 +156,8 @@
       const roomId = l.room ? idOf(s.rooms, l.room) : null;
       const k = [[...classIds].sort().join('|'), subjectId, [...teacherIds].sort().join('|')].join('#');
       const ex = s.lessons.find((x) => [[...x.classIds].sort().join('|'), x.subjectId, [...x.teacherIds].sort().join('|')].join('#') === k);
+      // subjek yang diajar direkod pada profil guru (digunakan oleh cadangan relief "subjek sama")
+      teacherIds.forEach((id) => { const t = s.teachers.find((x) => x.id === id); if (t && Array.isArray(t.subjectIds) && !t.subjectIds.includes(subjectId)) t.subjectIds.push(subjectId); });
       if (ex) { ex.perWeek = l.perWeek; ex.doubles = l.doubles; ex.roomId = roomId; res.updated++; continue; }
       s.lessons.push({ id: uid('l'), classIds, subjectId, teacherIds, perWeek: l.perWeek, doubles: l.doubles, roomId });
       res.added++;
