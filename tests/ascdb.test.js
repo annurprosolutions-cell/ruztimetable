@@ -106,6 +106,29 @@ test('laporan: rehat dan perhimpunan, tugas tanpa kelas, Triple, Masa Off', () =
   assert.match(all, /1 guru ada "Masa Off"/);
 });
 
+test('had guru ikut beban: minimum 7, beban tinggi dinaikkan, had seminggu tidak kurang daripada beban', () => {
+  const sh = sheets();
+  for (let i = 0; i < 9; i++) sh[0].rows.push(L('USTAZAH AINA', '1 BETA', 'Seluruh kelas', 'BM', 'Double', 2));
+  sh[0].rows.push(L('USTAZAH AINA', '1 BETA', 'Seluruh kelas', 'BI', 'Double', 1));
+  const d = TT.parseAscDb(sh), T = (n) => d.teachers.find((t) => t.name === n);
+  assert.strictEqual(T('PN ROSNAH').maxPerDay, 7);
+  assert.strictEqual(T('PN ROSNAH').maxPerWeek, 36);
+  // AINA: BM 4 waktu (kad sama dijumlahkan) + BI 2 + PI/PM 4 = 10 -> 7; tambah beban untuk uji had tinggi
+  const big = sheets(); big[0].rows.push(...Array.from({ length: 12 }, (_, i) => L('USTAZAH AINA', '1 BETA', 'Seluruh kelas', 'S' + i, 'Double', 2)));
+  const d2 = TT.parseAscDb(big), aina = d2.teachers.find((t) => t.name === 'USTAZAH AINA');
+  assert.strictEqual(aina.maxPerWeek, 52); // 48 + PI/PM 4
+  assert.strictEqual(aina.maxPerDay, 13); // ceil(52/5)=11 + 2
+  assert.ok(d2.warnings.some((w) => /had mengajar sehari lebih daripada 7 \(hingga 13\)/.test(w.msg)));
+  const s = { classes: [], subjects: [], teachers: [], rooms: [], lessons: [], placements: [], absences: [], reliefs: [] };
+  TT.applyImport(s, d2, 'add', ['classes', 'subjects', 'teachers', 'rooms', 'lessons']);
+  const t = s.teachers.find((x) => x.name === 'USTAZAH AINA');
+  assert.deepStrictEqual([t.maxPerDay, t.maxPerWeek], [13, 52]);
+  // import semula ke data sedia ada (mod tambah): had dinaikkan, tidak diturunkan
+  t.maxPerDay = 7; t.maxPerWeek = 36; const ros = s.teachers.find((x) => x.name === 'PN ROSNAH'); ros.maxPerDay = 9;
+  TT.applyImport(s, d2, 'add', ['teachers']);
+  assert.deepStrictEqual([t.maxPerDay, t.maxPerWeek, ros.maxPerDay], [13, 52, 9]);
+});
+
 test('diterap ke data sekolah: pelajaran, guru kelas dan subjek guru', () => {
   const d = TT.parseAscDb(sheets());
   const s = { classes: [], subjects: [], teachers: [], rooms: [], lessons: [], placements: [], absences: [], reliefs: [] };

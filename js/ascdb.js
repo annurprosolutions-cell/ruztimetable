@@ -211,15 +211,28 @@
     out.lessons = lessons.map((l) => ({ classes: l.classes, subject: l.subject.name, teachers: l.teachers, perWeek: l.perWeek, doubles: l.doubles, room: l.room || '', row: l.row }));
     out.subjects.sort((a, b) => a.name.localeCompare(b.name));
 
+    // had guru: aSc tidak menyimpan had harian, jadi had diambil daripada beban sebenar (seminggu / 5 hari + 2, minimum 7,
+    // maksimum 14) supaya guru berbeban tinggi tidak terus ditolak oleh semakan kapasiti. Had seminggu sekurang-kurangnya beban.
+    const loadOf = new Map();
+    out.lessons.forEach((l) => l.teachers.forEach((t) => loadOf.set(t, (loadOf.get(t) || 0) + l.perWeek)));
+    let raised = 0, topDay = 7;
+    out.teachers.forEach((t) => {
+      const w = loadOf.get(t.name) || 0;
+      t.maxPerDay = Math.min(14, Math.max(7, Math.ceil(w / 5) + 2));
+      t.maxPerWeek = Math.max(36, w);
+      if (t.maxPerDay > 7) { raised++; topDay = Math.max(topDay, t.maxPerDay); }
+    });
+
     // ---- laporan ----
     const S = les.sh.name, fmt = (m) => [...m.entries()].map(([k, n]) => `${k || '(tiada nama)'}${n > 1 ? ` x${n}` : ''}`).join(', ');
     if (noTeacher.size) warn(S, 0, `Baris tanpa guru tidak diimport (${[...noTeacher.values()].reduce((a, b) => a + b, 0)}): ${fmt(noTeacher)}. Rehat ditetapkan di Tetapan > Waktu & rehat; perhimpunan dan aktiviti sekolah di Tetapan > Sekatan serentak.`);
     if (noClass.size) warn(S, 0, `Tugas tanpa kelas tidak diimport (${[...noClass.values()].reduce((a, b) => a + b, 0)}): ${fmt(noClass)}.`);
     if (triples) warn(S, 0, `${triples} kad 3 waktu (Triple) diimport sebagai 1 waktu berganda + 1 waktu tunggal.`);
     if (mergedFrom) warn(S, 0, `${mergedFrom} pelajaran kumpulan (cth lelaki/perempuan, PI/PM, elektif) digabung menjadi pelajaran serentak dengan beberapa guru.`);
+    if (raised) warn(gr ? gr.sh.name : 'Guru', 0, `${raised} guru diberi had mengajar sehari lebih daripada 7 (hingga ${topDay}) ikut beban seminggu dalam aSc. Ubah di Data > Guru jika perlu.`);
     if (withOff) warn(gr ? gr.sh.name : 'Guru', 0, `${withOff} guru ada "Masa Off" dalam aSc. Tidak diimport kerana nombor waktu aSc mungkin berbeza dengan susunan waktu sekolah dalam app; isi waktu tidak boleh di profil guru.`);
     out.skipped = (sheets || []).map((x) => x.name).filter((n) => !used.has(n));
-    out.info = { rows: les.rows.length - les.head - 1, noTeacher: [...noTeacher.values()].reduce((a, b) => a + b, 0), noClass: [...noClass.values()].reduce((a, b) => a + b, 0), triples, mergedFrom, withOff };
+    out.info = { raised, rows: les.rows.length - les.head - 1, noTeacher: [...noTeacher.values()].reduce((a, b) => a + b, 0), noClass: [...noClass.values()].reduce((a, b) => a + b, 0), triples, mergedFrom, withOff };
     return out;
   };
 

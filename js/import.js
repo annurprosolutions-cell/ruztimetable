@@ -74,7 +74,12 @@
     }
     if (kinds.includes('teachers')) {
       const h = has(s.teachers);
-      data.teachers.forEach((x) => { if (h.has(low(x.name))) return; s.teachers.push({ id: TT.uid('t'), name: x.name, short: x.code || initials(x.name), dept: x.dept || '', role: x.role || '', subjectIds: [], maxPerDay: x.maxPerDay || 7, maxPerWeek: x.maxPerWeek || 36, unavailable: {}, noRelief: false }); added.teachers++; });
+      data.teachers.forEach((x) => {
+        if (h.has(low(x.name))) {
+          // import aSc ke data sedia ada: had guru hanya dinaikkan (tidak diturunkan) supaya beban dari aSc muat
+          if (data.isAsc) { const t = s.teachers.find((y) => low(y.name) === low(x.name)); if (t) { if (x.maxPerDay > (t.maxPerDay || 0)) t.maxPerDay = x.maxPerDay; if (x.maxPerWeek > (t.maxPerWeek || 0)) t.maxPerWeek = x.maxPerWeek; } }
+          return;
+        } s.teachers.push({ id: TT.uid('t'), name: x.name, short: x.code || initials(x.name), dept: x.dept || '', role: x.role || '', subjectIds: [], maxPerDay: x.maxPerDay || 7, maxPerWeek: x.maxPerWeek || 36, unavailable: {}, noRelief: false }); added.teachers++; });
     }
     if (kinds.includes('classes')) {
       const h = has(s.classes);
