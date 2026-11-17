@@ -77,7 +77,7 @@ footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);font-si
     <div class="k">Annur Time Table · Panduan Pengguna</div>
     <h1>Jadual waktu dan relief guru ganti, dalam satu sistem</h1>
     <p>Panduan lengkap untuk pentadbir jadual dan guru: dari log masuk pertama sampai jadual siap dicetak dan relief harian dihantar ke WhatsApp.</p>
-    <div class="meta">Versi app 2.2 · November 2026 · annurtimetable.com · AnnurPro Solutions</div>
+    <div class="meta">Versi app 2.5 · November 2026 · annurtimetable.com · AnnurPro Solutions</div>
   </div>
 </header>
 
@@ -188,7 +188,7 @@ footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);font-si
 <h2 id="tetapan"><span class="n">5.</span> Tetapan sekolah dan waktu</h2>
 <h3>Tab Sekolah</h3>
 <figure><img src="img/tetapan-sekolah.jpg" alt="Tetapan sekolah"><figcaption>Tetapan, tab Sekolah</figcaption></figure>
-<p>Isi nama sekolah, minggu persekolahan (Isnin hingga Jumaat, atau Ahad hingga Khamis untuk Kedah, Kelantan, Terengganu dan Johor), warna tema dan logo. Nama dan logo dipapar pada cetakan jadual dan paparan guru.</p>
+<p>Isi nama sekolah, minggu persekolahan (Isnin hingga Jumaat, atau Ahad hingga Khamis untuk Kedah, Kelantan, Terengganu dan Johor), warna tema dan logo. Nama dan logo dipapar pada cetakan jadual dan paparan guru. Nama dan logo yang sama juga menjadi <b>nama dan ikon app</b> bila app dipasang ke skrin utama telefon atau komputer. Tetapkan nama dan logo dahulu, kemudian pasang. Pemasangan yang dibuat sebelum itu mungkin tidak berubah serta-merta (iPhone tidak mengemas kini ikon lama; pasang semula jika perlu).</p>
 <h3>Tab Waktu &amp; rehat</h3>
 <figure><img src="img/tetapan-waktu.jpg" alt="Tetapan waktu"><figcaption>Senarai waktu pelajaran dan rehat</figcaption></figure>
 <ol class="steps">
@@ -260,14 +260,35 @@ footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);font-si
 </ol>
 <div class="box tip"><b>Eksport dan import semula</b>Sekolah yang sudah ada data boleh klik <span class="btn">Eksport data semasa sebagai templat</span>, sunting dalam Excel (contoh tukar guru atau waktu seminggu untuk banyak pelajaran sekaligus), dan import semula dalam mod "Tambah". Pelajaran yang sama dikemas kini, bukan digandakan.</div>
 <h3>Import terus dari fail aSc</h3>
-<p>Sekolah yang pernah guna aSc Timetables boleh pilih fail Excel eksport aSc terus.</p>
+<p>Sekolah yang pernah guna aSc Timetables boleh pilih fail Excel daripada aSc terus. Ada dua jenis fail, dan sistem mengenal pastinya sendiri:</p>
+<ul>
+  <li><b>Senarai biasa</b> (tab Kelas, Subjek, Guru, Bilik): kelas, subjek, guru dan bilik diimport.</li>
+  <li><b>Pangkalan data aSc</b> (ada tab <b>Pelajaran</b> dengan lajur Guru, Kelas, Kumpulan, Subjek, Panjang): guru, kelas, subjek, guru kelas <b>dan pelajaran</b> (siapa mengajar apa, berapa waktu seminggu) diimport sekali gus. Tonton video 16.</li>
+</ul>
+<div class="duo">
+  <figure><img src="img/import-asc-pintu.jpg" alt="Pintu import"><figcaption>Data, Import dari aSc / Excel</figcaption></figure>
+  <figure><img src="img/import-asc-pratonton.jpg" alt="Pratonton import aSc"><figcaption>Pratonton sebelum apa-apa disimpan</figcaption></figure>
+</div>
 <ol class="steps">
   <li>Klik <span class="btn">Import dari aSc / Excel</span>, kemudian <span class="btn">Pilih fail Excel / CSV</span>.</li>
-<li>Sistem tunjuk pratonton: berapa guru, subjek, kelas dan bilik dijumpai.</li>
-  <li>Pilih <b>Tambah</b> (gabung dengan data sedia ada, nama sama tidak diduplikasi) atau <b>Ganti</b> (padam data lama dan guna data import), kemudian sahkan.</li>
-  <li>Semak tab Pelajaran selepas import. Isi atau betulkan beban mengajar sebelum jana jadual.</li>
+  <li>Sistem tunjuk pratonton: berapa kelas, guru, subjek, bilik dan pelajaran dijumpai, dan apa yang tidak akan diimport.</li>
+  <li>Pilih <b>Tambah</b> (gabung dengan data sedia ada, nama sama tidak diduplikasi) atau <b>Ganti</b> (padam data lama dan guna data import), kemudian sahkan. Untuk mula semula dari aSc, guna <b>Ganti</b>.</li>
+  <li>Ikut nota di hujung pratonton: tetapkan <b>Waktu &amp; rehat</b>, tetapkan perhimpunan di <b>Sekatan serentak</b>, semak tab Pelajaran, kemudian jana jadual.</li>
 </ol>
-<div class="box note"><b>Fail dibaca dalam pelayar anda</b>Fail Excel tidak dihantar ke mana-mana pelayan. Ia dibaca terus dalam pelayar.</div>
+<figure><img src="img/import-asc-amaran.jpg" alt="Amaran import aSc"><figcaption>Amaran menyenaraikan apa yang tidak diimport dan apa yang digabung</figcaption></figure>
+<table>
+  <tr><th>Dalam fail aSc</th><th>Apa yang sistem buat</th></tr>
+  <tr><td>Dua guru dalam satu baris pelajaran (dipisah koma)</td><td>Satu pelajaran dengan dua guru.</td></tr>
+  <tr><td>Banyak kelas dalam satu baris</td><td>Satu pelajaran gabungan untuk kelas-kelas itu.</td></tr>
+  <tr><td>Kad yang sama berulang (contoh Double 2 kali dan Single 1 kali)</td><td>Dijumlahkan: 5 waktu seminggu, 2 waktu berganda.</td></tr>
+  <tr><td>Panjang <i>Triple</i></td><td>Satu waktu berganda dan satu waktu tunggal (sistem belum sokong 3 waktu bersambung).</td></tr>
+  <tr><td>Kumpulan serentak: lelaki dan perempuan, Pendidikan Islam dan Moral, elektif</td><td>Digabung menjadi satu pelajaran serentak dengan beberapa guru, contoh <b>PI/PM</b> atau <b>PJPK</b>. Jika guru yang sama berada dalam dua kumpulan, ia tidak digabung dan anda diberi amaran.</td></tr>
+  <tr><td>Baris <i>Tanpa guru</i> (rehat, perhimpunan, Yasin) dan <i>Tanpa kelas</i> (tugas)</td><td>Tidak diimport. Rehat ditetapkan di Waktu &amp; rehat. Perhimpunan dan aktiviti sekolah di Sekatan serentak.</td></tr>
+  <tr><td>Masa Off guru</td><td>Tidak diimport kerana nombor waktu aSc berbeza ikut sekolah. Isi waktu tidak boleh di profil guru.</td></tr>
+  <tr><td>Had mengajar guru</td><td>aSc tidak menyimpan had harian. Sistem tetapkan ikut beban seminggu (beban dibahagi 5, tambah 2, sekurang-kurangnya 7). Ubah di Data, Guru jika perlu.</td></tr>
+</table>
+<div class="box warn"><b>Susunan waktu tidak ada dalam fail aSc</b>Fail aSc membawa pelajaran, bukan jam waktu sekolah. Sebelum jana jadual, pastikan jumlah waktu seminggu di Tetapan, Waktu &amp; rehat mencukupi untuk kelas yang paling padat (pratonton menyatakannya). Jika tidak, penjana akan memaparkan ralat "waktu tetapi jadual cuma ada ... slot". Sekolah yang waktunya 30 minit biasanya ada lebih banyak waktu sehari berbanding yang 40 minit.</div>
+<div class="box note"><b>Fail dibaca dalam pelayar anda</b>Fail Excel tidak dihantar ke mana-mana pelayan. Ia dibaca terus dalam pelayar. Jadual yang sudah disusun dalam aSc tidak dibawa masuk; jadual dijana semula oleh sistem.</div>
 <div class="duo">
   <figure><img src="img/data-kelas.jpg" alt="Senarai kelas"><figcaption>Tab Kelas: nama, tingkatan/tahun, guru kelas</figcaption></figure>
   <figure><img src="img/data-pelajaran.jpg" alt="Senarai pelajaran"><figcaption>Tab Pelajaran</figcaption></figure>
@@ -324,6 +345,13 @@ footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);font-si
   <li>Simpan, kemudian <b>jana semula jadual</b> supaya sekatan baharu dipatuhi.</li>
 </ol>
 <p>Guru yang terlibat juga tidak akan dicadangkan sebagai guru ganti pada waktu sekatan.</p>
+<h3>Contoh: perhimpunan pagi</h3>
+<p>Perhimpunan setiap Isnin? Tambah sekatan bernama <b>Perhimpunan</b>, hari Isnin, waktu 1 hingga waktu 1, guru terlibat <b>Semua guru</b>. Perhimpunan setiap pagi? Pilih semua hari. Jika perhimpunan berlaku <i>sebelum</i> waktu 1 dan bukan sebahagian jadual, anda tidak perlu sekatan: cukup tetapkan waktu 1 bermula selepas perhimpunan di Tetapan, Waktu &amp; rehat.</p>
+<div class="duo">
+  <figure><img src="img/sekatan-perhimpunan.jpg" alt="Borang sekatan perhimpunan"><figcaption>Sekatan Perhimpunan: Isnin, waktu 1, semua guru</figcaption></figure>
+  <figure><img src="img/jadual-label-perhimpunan.jpg" alt="Label perhimpunan dalam jadual"><figcaption>Selepas jana semula, petak itu bertanda Perhimpunan</figcaption></figure>
+</div>
+<p>Sekatan untuk <b>semua guru</b> dilabel dengan namanya pada petak jadual kelas dan jadual induk (jalur biru kelabu), dan masuk dalam eksport Excel. Sekatan untuk satu panitia atau guru tertentu tidak dilabel pada jadual kelas kerana kelas itu tidak tertutup sepenuhnya; ia dipaparkan dalam jadual guru yang terlibat. Jika sekatan baharu jatuh pada waktu yang sudah ada pelajaran, sistem memberi amaran. Jana semula jadual atau alih pelajaran itu.</p>
 
 <h2 id="cetak"><span class="n">10.</span> Cetak dan muat turun Excel</h2>
 <figure><img src="img/cetak-jadual-kelas.jpg" alt="Contoh cetakan"><figcaption>Contoh cetakan jadual kelas (satu jadual satu halaman)</figcaption></figure>
@@ -386,8 +414,27 @@ footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);font-si
   <tr><td>Perlu rehat antara waktu</td><td>Guru tidak diberi relief jika waktu sebelum dan selepas sudah mengajar.</td></tr>
   <tr><td>Jawatan dikecualikan</td><td>Contoh GPK, Kaunselor. Ditulis dipisahkan koma.</td></tr>
   <tr><td>Hormati waktu guru tidak boleh</td><td>Waktu tidak boleh mengajar dalam profil guru turut dikira untuk relief.</td></tr>
+  <tr><td>Had waktu berturut-turut</td><td>Kelas sendiri dan relief dikira bersama. Contoh 2: guru yang mengajar Waktu 3 tidak diberi relief Waktu 4-5 kerana jadi 3 waktu berturut-turut. Rehat memutuskan urutan. 0 bermaksud tiada had. Cadangan: 2.</td></tr>
+  <tr><td>Pecah pelajaran berganda</td><td>Setiap waktu dalam pelajaran berganda menjadi keperluan relief sendiri, supaya Waktu 1-2 boleh diberi kepada dua guru berlainan.</td></tr>
 </table>
 <p>Sekatan serentak sentiasa dipatuhi. Klik <span class="btn">Pulihkan nilai asal</span> untuk kembali ke nilai lalai.</p>
+<h3>Guru berlainan untuk waktu berganda, dan elak 3 atau 4 waktu berturut-turut</h3>
+<p>Secara lalai, pelajaran berganda (contoh Sains Waktu 1-2) diberi kepada seorang guru ganti untuk kedua-dua waktu, dan guru yang sudah mengajar boleh jadi 3 atau 4 waktu berturut-turut dengan relief. Dua tetapan baharu menyelesaikannya. Kedua-duanya <b>mati secara lalai</b>. Tonton video 15.</p>
+<div class="duo">
+  <figure><img src="img/peraturan-relief-berturut.jpg" alt="Had waktu berturut-turut"><figcaption>Had waktu berturut-turut dan Pecah pelajaran berganda</figcaption></figure>
+  <figure><img src="img/relief-pecah-diagih.jpg" alt="Relief dipecah"><figcaption>Waktu 1 dan Waktu 2 diberi kepada guru berlainan</figcaption></figure>
+</div>
+<ol class="steps">
+  <li>Tetapan, tab <b>Peraturan relief</b>. Isi <b>Had waktu berturut-turut</b> dengan <code>2</code>.</li>
+  <li>Tandakan <b>Pecah pelajaran berganda</b>.</li>
+  <li>Di Relief, tekan <span class="btn">Agih automatik</span>. Setiap waktu dalam pelajaran berganda kini baris sendiri, dengan guru ganti berlainan.</li>
+</ol>
+<ul>
+  <li>Guru yang sudah mengambil satu waktu pelajaran itu diletak paling bawah dalam senarai calon, tetapi masih boleh dipilih secara manual.</li>
+  <li>Relief yang <b>sudah diagih</b> sebelum tetapan dihidupkan kekal satu blok. Tekan <span class="btn">Kosongkan</span> untuk tarikh itu, kemudian <span class="btn">Agih automatik</span> semula.</li>
+  <li>Had berturut-turut ialah syarat keras. Jika terlalu ketat (contoh 1) pada sekolah kecil, sesetengah waktu mungkin tiada calon dan perlu dipilih manual. Mula dengan 2.</li>
+  <li>Slip relief dan mesej WhatsApp ditulis satu waktu setiap guru.</li>
+</ul>
 
 <h2 id="laporan"><span class="n">13.</span> Laporan</h2>
 <figure><img src="img/laporan.jpg" alt="Laporan"><figcaption>Halaman Laporan</figcaption></figure>
@@ -506,7 +553,7 @@ footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);font-si
 <h3>Boleh guna di lebih daripada satu komputer?</h3>
 <p>Boleh. Log masuk dengan akaun Google yang sama. Elakkan dua orang menyunting serentak; jika berlaku, sistem tunjuk dialog konflik dan anda pilih data mana yang hendak dikekalkan.</p>
 <h3>Boleh import jadual penuh dari aSc?</h3>
-<p>Buat masa ini import membawa masuk senarai guru, subjek, kelas dan bilik. Beban mengajar diisi di tab Pelajaran, kemudian jadual dijana oleh sistem.</p>
+<p>Import membawa masuk senarai guru, subjek, kelas dan bilik. Jika fail Excel aSc anda ada tab <b>Pelajaran</b> (pangkalan data aSc), pelajaran dan guru kelas turut diimport (<a href="#data">Bab 6</a>, video 16). Jadual yang sudah disusun dalam aSc tidak dibawa masuk; jadual dijana semula oleh sistem. Jika ada ralat "waktu tetapi jadual cuma ada ... slot" selepas import, tambah waktu di Tetapan, Waktu &amp; rehat.</p>
 <h3>Waktu kelas Tahap 1 dan Tahap 2 berbeza</h3>
 <p>Guna pilihan <i>Waktu berbeza ikut kumpulan kelas</i> di Tetapan, Waktu &amp; rehat (<a href="#tetapan">Bab 5</a>). Ciri ini masih Beta; laporkan kepada kami jika ada yang tidak kena.</p>
 </div>
@@ -522,7 +569,7 @@ footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);font-si
 </ul>
 
 <h2 id="video"><span class="n">20.</span> Senarai video panduan</h2>
-<p>Setiap video kurang satu minit, mengikut turutan kerja sebenar. Tekan butang main pada video. Dalam versi PDF, tonton di annurtimetable.com/panduan/.</p>
+<p>Setiap video sekitar satu minit, mengikut turutan kerja sebenar. Tekan butang main pada video. Dalam versi PDF, tonton di annurtimetable.com/panduan/.</p>
 <div class="vid">
   <div><b>01</b> Kenali Annur Time Table<video class="noprint" controls preload="none" playsinline src="video/01-kenali-annur-time-table.mp4" style="width:100%;margin-top:8px;border-radius:8px;background:#0f172a"></video></div>
   <div><b>02</b> Log masuk dan percubaan 14 hari<video class="noprint" controls preload="none" playsinline src="video/02-log-masuk-dan-percubaan-14-hari.mp4" style="width:100%;margin-top:8px;border-radius:8px;background:#0f172a"></video></div>
@@ -538,6 +585,8 @@ footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);font-si
   <div><b>12</b> Paparan guru di telefon<video class="noprint" controls preload="none" playsinline src="video/12-paparan-guru-di-telefon.mp4" style="width:100%;margin-top:8px;border-radius:8px;background:#0f172a"></video></div>
   <div><b>13</b> Langganan dan lesen<video class="noprint" controls preload="none" playsinline src="video/13-langganan-dan-lesen.mp4" style="width:100%;margin-top:8px;border-radius:8px;background:#0f172a"></video></div>
   <div><b>14</b> Masa berbeza setiap hari<video class="noprint" controls preload="none" playsinline src="video/14-masa-berbeza-setiap-hari.mp4" style="width:100%;margin-top:8px;border-radius:8px;background:#0f172a"></video></div>
+  <div><b>15</b> Relief: guru berlainan untuk waktu berganda<video class="noprint" controls preload="none" playsinline src="video/15-relief-pecah-waktu-berganda.mp4" style="width:100%;margin-top:8px;border-radius:8px;background:#0f172a"></video></div>
+  <div><b>16</b> Import pangkalan data aSc<video class="noprint" controls preload="none" playsinline src="video/16-import-pangkalan-data-asc.mp4" style="width:100%;margin-top:8px;border-radius:8px;background:#0f172a"></video></div>
 </div>
 
 <h2 id="hubungi"><span class="n">21.</span> Hubungi kami</h2>
@@ -548,7 +597,7 @@ footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);font-si
   <tr><td>Laman</td><td><a href="https://annurtimetable.com">annurtimetable.com</a></td></tr>
 </table>
 <p>Bila menghubungi kami, sertakan: nama sekolah, e-mel Google yang digunakan, tangkapan skrin masalah, dan langkah yang dibuat sebelum masalah berlaku.</p>
-<footer>Annur Time Table · AnnurPro Solutions, Nibong Tebal, Pulau Pinang · Panduan ini untuk versi app 2.2 (November 2026). Gambar skrin menggunakan data sekolah contoh.</footer>
+<footer>Annur Time Table · AnnurPro Solutions, Nibong Tebal, Pulau Pinang · Panduan ini untuk versi app 2.5 (November 2026). Gambar skrin menggunakan data sekolah contoh.</footer>
 </main>
 </body>
 </html>
