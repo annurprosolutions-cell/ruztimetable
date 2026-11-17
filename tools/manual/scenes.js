@@ -2,6 +2,34 @@
 'use strict';
 const nextYear = '2027-11-01';
 
+// fail Excel pangkalan data aSc tiruan untuk video import (nama rekaan sahaja)
+function fakeAsc() {
+  require('../../js/core.js'); require('../../js/xlsx.js');
+  const TT = globalThis.TT;
+  const HEAD = ['Guru', 'Kelas', 'Kumpulan', 'Subjek', 'Panjang', 'Bil. Pelajaran/Minggu', 'Bilik tersedia', 'Kitaran'];
+  const L = (g, k, kp, sj, pj, n) => [g, k, kp, sj, pj, String(n), 'Bilik Kelas', ' Semua minggu'];
+  const T = { AINA: 'CIKGU AINA BINTI ALI', KUMAR: 'CIKGU KUMAR A/L RAJAN', LIM: 'CIKGU LIM MEI LING', HAFIZ: 'CIKGU HAFIZ BIN OMAR', SALMA: 'USTAZAH SALMA BINTI YUSOF', TAN: 'CIKGU TAN WEI JIE',
+    NURUL: 'CIKGU NURUL BINTI HASSAN', RAVI: 'CIKGU RAVI A/L SAMY', FARAH: 'CIKGU FARAH BINTI IDRIS', AZLAN: 'CIKGU AZLAN BIN KAMAL' };
+  const four = '4 ALFA,4 BETA,5 ALFA,5 BETA', whole4 = 'Seluruh kelas,Seluruh kelas,Seluruh kelas,Seluruh kelas';
+  const rows = [HEAD, L('Tanpa guru', four, whole4, 'R', 'Single', 1), L('Tanpa guru', four, whole4, 'PERH', 'Single', 1), L(T.AZLAN, 'Tanpa kelas', '', 'GPM', 'Double', 3)];
+  [['4 ALFA', 'AINA', 'LIM', 'KUMAR', 'HAFIZ'], ['4 BETA', 'AINA', 'LIM', 'KUMAR', 'HAFIZ'], ['5 ALFA', 'SALMA', 'TAN', 'RAVI', 'NURUL'], ['5 BETA', 'SALMA', 'TAN', 'RAVI', 'NURUL']].forEach(([c, bm, bi, mt, sn]) => {
+    rows.push(L(T[bm], c, 'Seluruh kelas', 'BM', 'Double', 1), L(T[bm], c, 'Seluruh kelas', 'BM', 'Single', 1), L(T[bi], c, 'Seluruh kelas', 'BI', 'Double', 1), L(T[bi], c, 'Seluruh kelas', 'BI', 'Single', 1),
+      L(T[mt], c, 'Seluruh kelas', 'MATH', 'Double', 1), L(T[mt], c, 'Seluruh kelas', 'MATH', 'Single', 1), L(T[sn], c, 'Seluruh kelas', 'SN', 'Double', 1), L(T.FARAH, c, 'Seluruh kelas', 'SEJ', 'Single', 2));
+  });
+  rows.push(L(T.TAN + ',' + T.RAVI, '4 ALFA', 'Seluruh kelas', 'RBT', 'Double', 2));
+  rows.push(L(T.AZLAN, '4 ALFA,4 BETA', 'Boys,Boys', 'PJPK', 'Double', 1), L(T.NURUL, '4 BETA,4 ALFA', 'Girls,Girls', 'PJPK', 'Double', 1));
+  rows.push(L(T.HAFIZ, '4 ALFA', 'ISLAM', 'PI', 'Double', 2), L(T.SALMA, '4 BETA', 'ISLAM', 'PI', 'Double', 2), L(T.FARAH, '4 ALFA,4 BETA', 'BUKAN ISLAM,BUKAN ISLAM', 'PM', 'Double', 2));
+  const sheet = (name, r) => ({ name, rows: r });
+  return Buffer.from(TT.xlsxWrite([
+    sheet('Pelajaran', rows),
+    sheet('Kelas', [['Kelas', 'Singkatan', 'Masa Off'], ['4 ALFA', '4 A', ''], ['4 BETA', '4 B', ''], ['5 ALFA', '5 A', ''], ['5 BETA', '5 B', '']]),
+    sheet('Bilik', [['', 'Nama', 'Singkatan', 'Jenis']]),
+    sheet('Subjek', [['', 'Subjek', 'Singkatan']].concat(['BM', 'BI', 'MATH', 'SN', 'SEJ', 'PI', 'PM', 'PJPK', 'RBT', 'R', 'PERH', 'GPM'].map((x) => ['', x, x]))),
+    sheet('Guru', [['', 'Nama', 'Singkatan', 'Guru kelas', 'Kebenaran', 'Kontrak', 'Masa Lapang', 'Masa Off']].concat(Object.entries(T).map(([k, n], i) => ['', n, k, i < 4 ? ['4 A', '4 B', '5 A', '5 B'][i] : '', '', '12', '-', k === 'AZLAN' ? 'ISNIN: 11-14' : '']))),
+    sheet('Kontrak', [['Guru', 'Kelas', 'Kumpulan', 'Subjek', 'Panjang', 'Bil. Pelajaran/Minggu']])
+  ]));
+}
+
 module.exports = [
   {
     id: 'V01', file: '01-kenali-annur-time-table', title: 'Kenali Annur Time Table', sub: 'Jadual waktu dan relief guru ganti dalam satu sistem',
@@ -64,6 +92,7 @@ module.exports = [
       await h.nav('tetapan'); await h.tab('setTab', 'sekolah');
       await h.shot('tetapan-sekolah');
       await h.say('Tab Sekolah: nama, logo, warna tema dan minggu persekolahan.');
+      await h.say('Nama dan logo sekolah juga menjadi nama dan ikon app bila dipasang di telefon atau komputer.');
       await h.tab('setTab', 'waktu');
       await h.shot('tetapan-waktu');
       await h.say('Tab Waktu & rehat: senarai waktu pelajaran setiap hari, termasuk rehat.');
@@ -172,11 +201,28 @@ module.exports = [
       await h.select('#theForm [name="from"]', { index: 6 });
       await h.select('#theForm [name="to"]', { index: 7 });
       await h.select('#theForm [name="scope"]', 'dept');
+      await h.select('#theForm [name="dept"]', { index: 1 });
       await h.shot('sekatan-borang');
       await h.say('Pilih semua guru, satu panitia, atau guru tertentu.');
       await h.click('[data-act="formSave"]', { after: 1200 });
       await h.say('Penjana tidak letak kelas pada waktu itu, dan guru terlibat tidak diberi relief.');
       await h.say('Jana semula jadual selepas tambah sekatan.');
+      await h.say('Perhimpunan pagi? Tambah satu lagi sekatan: Isnin, waktu 1, semua guru.');
+      await h.click('button[data-act="blockEdit"]:not([data-id])', { after: 900 });
+      await h.type('#theForm [name="name"]', 'Perhimpunan', { delay: 40 });
+      await h.click('#theForm input[name="days"][value="0"]', { after: 400 });
+      await h.select('#theForm [name="from"]', { index: 0 });
+      await h.select('#theForm [name="to"]', { index: 0 });
+      await h.shot('sekatan-perhimpunan');
+      await h.click('[data-act="formSave"]', { after: 1200 });
+      await h.nav('jadual', { after: 600 });
+      await h.click('button[data-act="generate"]', { after: 600 });
+      await h.pg.selectOption('#gMode', 'fresh'); await h.pg.selectOption('#gEffort', '2000');
+      await h.click('button[data-act="genStart"]', { after: 600 });
+      await h.pg.waitForFunction(() => !document.querySelector('.overlay') && UI.lastGen, null, { timeout: 30000 }).catch(() => {});
+      await h.W(700);
+      await h.shot('jadual-label-perhimpunan', { wait: 6500 });
+      await h.say('Selepas jana semula, petak Isnin waktu 1 bagi setiap kelas bertanda Perhimpunan.');
       await h.end('Seterusnya: Cetak dan muat turun Excel');
     }
   },
@@ -245,6 +291,12 @@ module.exports = [
       await h.nav('tetapan'); await h.tab('setTab', 'relief');
       await h.shot('peraturan-relief');
       await h.say('Peraturan relief: had sehari dan seminggu, had jumlah waktu, rehat antara waktu.');
+      await h.scrollTo('input[data-k="maxStreak"]', 1000);
+      await h.hl('input[data-k="maxStreak"]', 1500);
+      await h.shot('peraturan-relief-berturut');
+      await h.say('Had waktu berturut-turut: kelas sendiri dan relief dikira bersama. Contoh 2, tiada guru jadi 3 waktu berturut-turut.');
+      await h.hl('input[data-k="splitDouble"]', 1500);
+      await h.say('Pecah pelajaran berganda: Waktu 1-2 boleh diberi kepada dua guru berlainan. Lihat video 15.');
       await h.scroll(350, 1200);
       await h.say('Jawatan tertentu (contoh GPK) boleh dikecualikan daripada relief.');
       await h.end('Seterusnya: Google Sheets, backup dan pautan guru');
@@ -377,6 +429,63 @@ module.exports = [
       await h.shot('masa-hari-jadual');
       await h.say('Jana jadual semula. Penjana tidak akan meletak pelajaran pada waktu tiada kelas.');
       await h.say('Setiap petak kini tunjuk jam hari itu. Cetakan, Excel, slip dan relief WhatsApp pun guna jam yang sama.');
+      await h.end('Seterusnya: Relief, guru berlainan untuk waktu berganda');
+    }
+  },
+  {
+    id: 'V15', file: '15-relief-pecah-waktu-berganda', title: 'Relief: guru berlainan untuk waktu berganda', sub: 'Pecah Waktu 1-2 kepada dua guru dan had waktu berturut-turut',
+    async run(h) {
+      const { pg } = h;
+      await h.title('Relief: guru berlainan untuk waktu berganda', 'Pecah Waktu 1-2 kepada dua guru, dan had waktu berturut-turut');
+      await h.nav('tetapan', { after: 500 }); await h.tab('setTab', 'relief');
+      await h.scrollTo('input[data-k="maxStreak"]', 900);
+      await h.shot('relief-tetapan-pecah');
+      await h.say('Masalah: pelajaran berganda diberi kepada seorang guru ganti, dan guru boleh jadi 3 atau 4 waktu berturut-turut.');
+      await h.say('Tetapan, Peraturan relief. Isi "Had waktu berturut-turut" dengan 2.');
+      await h.type('input[data-k="maxStreak"]', '2');
+      await pg.dispatchEvent('input[data-k="maxStreak"]', 'change');
+      await h.say('Kemudian tandakan "Pecah pelajaran berganda".');
+      await h.click('input[data-k="splitDouble"]', { after: 700 });
+      const tid = await pg.evaluate(() => { const s = UI.state, m = TT.maps(s); const pl = s.placements.find((p) => p.day === 0 && p.len >= 2 && m.lesson.get(p.lessonId).teacherIds.length === 1); return pl ? m.lesson.get(pl.lessonId).teacherIds[0] : null; });
+      await h.nav('relief');
+      await h.click('button[data-act="absenceAdd"]', { after: 900 });
+      await h.say('Rekod seorang guru yang ada pelajaran berganda hari ini tidak hadir.');
+      if (tid) await h.select('#theForm [name="teacherId"]', tid);
+      await h.click('[data-act="formSave"]', { after: 1300 });
+      await h.say('Relief yang sudah diagih sebelum tetapan dihidupkan kekal satu blok. Tekan "Kosongkan" dahulu untuk agih semula.');
+      await h.click('button[data-act="reliefClear"]', { after: 700 });
+      await h.confirmIf();
+      await h.click('button[data-act="reliefAuto"]', { after: 1500 });
+      await h.scroll(380, 1200);
+      await h.shot('relief-pecah-diagih', { wait: 5500 });
+      await h.say('Waktu 1 dan Waktu 2 kini dua keperluan berasingan, dengan guru ganti berlainan.');
+      await h.say('Guru yang sudah ambil satu waktu pelajaran itu diletak paling bawah. Slip dan WhatsApp ditulis satu waktu setiap guru.');
+      await h.end('Seterusnya: Import dari aSc');
+    }
+  },
+  {
+    id: 'V16', file: '16-import-pangkalan-data-asc', title: 'Import pangkalan data aSc', sub: 'Guru, kelas, subjek dan pelajaran dalam satu fail Excel',
+    async run(h) {
+      const { pg } = h;
+      await h.title('Import pangkalan data aSc', 'Guru, kelas, subjek dan pelajaran dalam satu fail Excel');
+      await h.nav('data'); await h.tab('dataTab', 'guru');
+      await h.say('Sekolah yang guna aSc boleh import guru, kelas, subjek dan pelajaran sekali gus.');
+      await h.click('button[data-act="ascImport"]', { after: 900 });
+      await h.shot('import-asc-pintu');
+      await h.say('Eksport data aSc ke Excel (tab Pelajaran, Guru, Kelas, Subjek), kemudian pilih fail itu.');
+      await h.hl('[data-act="ascPick"]', 1300);
+      await pg.setInputFiles('#ascFile', { name: 'pangkalan-data-asc.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: fakeAsc() });
+      await h.W(1800);
+      await h.shot('import-asc-pratonton');
+      await h.say('Pratonton: bilangan kelas, guru, subjek dan pelajaran sebelum apa-apa disimpan.');
+      await h.scrollDlg(1400);
+      await h.shot('import-asc-amaran');
+      await h.say('Amaran menyenaraikan apa yang tidak diimport: rehat, perhimpunan dan tugas tanpa kelas.');
+      await h.say('Kumpulan seperti PI dan PM, atau lelaki dan perempuan, digabung menjadi satu pelajaran serentak.');
+      await h.click('[data-act="ascApply"]', { after: 1800 });
+      await h.shot('import-asc-selesai');
+      await h.say('Siap. Guru kelas dan subjek setiap guru turut diisi, dan had mengajar guru ikut beban.');
+      await h.say('Seterusnya: tetapkan Waktu & rehat, tetapkan perhimpunan di Sekatan serentak, kemudian jana jadual.');
       await h.end('Terima kasih. WhatsApp 011-2087 9149');
     }
   }
