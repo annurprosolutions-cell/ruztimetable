@@ -132,6 +132,15 @@
   "guru": false
  },
  {
+  "id": "karakter-satu-tahun",
+  "topic": "Tetapan",
+  "q": "Pembentukan karakter hanya untuk Tahun 1, Tahun 2 dan 3 tiada. Boleh tambah set masa khas?",
+  "a": "Boleh. Set waktu tiada had dua, jadi anda boleh tambah set baharu. Tetapan > Waktu & rehat > \"Waktu berbeza ikut kumpulan kelas\": buat satu set untuk Tahun 1 dan tambah baris jenis Rehat berlabel Pembentukan karakter (contoh 3.00 hingga 3.15 petang). Set untuk Tahun 2 dan 3 tidak ada baris itu, dan satu set boleh dikongsi untuk dua tahun jika waktu lain mereka sama (jadi biasanya dua set, bukan tiga). Di jadual \"Kelas mengikut set\", tetapkan kelas Tahun 1 ke set Tahun 1 dan kelas Tahun 2 dan 3 ke set mereka (butang cepat ikut tahun: 1, atau 2,3). Guru yang mengajar dua set disemak ikut jam sebenar. Lakukan sebelum jana jadual.",
+  "tags": "pembentukan karakter tahun 1 sahaja tahun 2 3 tiada set masa khas satu tahun tiga set masa tambah set kelas tertentu hanya sebahagian kelas 15 minit 2027 kumpulan kelas",
+  "link": "#tetapan",
+  "guru": false
+ },
+ {
   "id": "perhimpunan",
   "topic": "Tetapan",
   "q": "Macam mana nak set perhimpunan pagi?",

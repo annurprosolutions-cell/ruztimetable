@@ -21,6 +21,8 @@ test('soalan sebenar pengguna dijawab oleh entri yang betul', () => {
     ['sekolah kami dua sesi, nak setting waktu kat mana?', 'dua-sesi'],
     ['sek saya ada 4 waktu rehat yang berbeza ppki tahun 4 tahun 5 tahun 6', 'rehat-berbeza'],
     ['pembentukan karakter 15 minit nak lock jadual', 'karakter-15'],
+    ['tahun 1 sahaja ada pembentukan karakter, tahun 2 dan 3 tiada, boleh tambah set masa khas untuk tahun 1 jadi 3 set masa', 'karakter-satu-tahun'],
+    ['pembentukan karakter 15 minit nak lock jadual', 'karakter-15'],
     ['macam mana nak set perhimpunan hari isnin', 'perhimpunan'],
     ['apa yang dimaksudkan dengan berganda?', 'berganda-apa'],
     ['BM 10 waktu nak jadikan 4 waktu double dan 2 waktu single', 'berganda-bil'],
