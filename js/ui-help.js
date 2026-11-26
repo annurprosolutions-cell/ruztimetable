@@ -2,19 +2,24 @@
   'use strict';
   const { esc, pages } = UI;
 
-  const FAQ = [
-    ['Data saya disimpan di mana?', 'Dalam pelayar (browser) peranti ini. Jika Google Sheets disambung di Tetapan > Storan, satu salinan turut disimpan dalam Google Sheet milik akaun anda sendiri. Pembekal sistem tidak menerima data anda.'],
-    ['Macam mana nak pindah ke komputer lain?', 'Tetapan > Storan > Eksport JSON, kemudian Import JSON di komputer baharu. Jika guna Google Sheets, log masuk dengan akaun yang sama dan tekan "Muat dari Sheet".'],
-    ['Kenapa ada waktu yang tidak dapat diletak?', 'Biasanya beban guru terlalu padat, guru banyak slot "tidak boleh", atau bilik khas penuh. Semakan awal sebelum jana dan sebab di atas jadual menunjukkan puncanya. Waktu yang tinggal boleh diseret secara manual.'],
-    ['Bagaimana skor cadangan relief dikira?', 'Bonus untuk subjek sama, panitia sama, mengajar kelas itu, guru kelas, dan sambungan kelas yang sama. Penalti untuk bilangan relief bulan ini, relief keseluruhan, relief hari ini dan beban mengajar. Semua pemberat boleh diubah di Tetapan > Peraturan relief.'],
-    ['Apa beza peranan Pentadbir dan Guru?', 'Pentadbir log masuk dengan Google dan kata laluan, dan mengurus data, jadual serta relief. Guru membuka pautan guru, pilih nama, dan hanya boleh melihat jadual, tugas relief dan slip sendiri. Guru membaca salinan "Data Guru" yang berasingan, jadi mereka tidak boleh mengubah data sekolah.'],
-    ['Macam mana guru dapat jadual di telefon?', 'Pentadbir: Tetapan > Storan > Pautan guru > Salin atau WhatsApp. Guru buka pautan itu, pilih nama, kemudian tekan "Pasang app" supaya ia ada di skrin utama telefon. Data guru dikemas kini setiap kali pentadbir menyimpan.'],
-    ['Kenapa perlu log masuk semula?', 'Sesi pada peranti kekal 30 hari. Sambungan Google pula hanya sah kira-kira 1 jam setiap kali (peraturan Google untuk app tanpa pelayan). Bila tamat, data masih boleh diguna dan disimpan dalam pelayar; tekan "Sambung semula" sekali dan semua perubahan dihantar ke Sheet.'],
-    ['Notifikasi tidak keluar?', 'Tekan "Hidupkan notifikasi" dan benarkan. Pada iPhone, pasang app ke skrin utama dahulu (iOS 16.4 ke atas). Notifikasi dihantar bila app dibuka atau masih berjalan di latar; app yang ditutup sepenuhnya belum menerima notifikasi.'],
-    ['Sekolah saya Ahad hingga Khamis. Boleh?', 'Boleh. Tetapan > Sekolah > Minggu persekolahan. Hari dan relief akan mengikut tetapan itu.'],
-    ['Pendidikan Islam dan Moral serentak, macam mana nak masukkan?', 'Di Data > Pelajaran > Tambah, pilih mod "Gabungan serentak". Pilih kelas yang belajar serentak dan semua guru yang mengajar kumpulan masing-masing. Ia dikira satu slot untuk semua kelas dan semua guru itu.'],
-    ['Macam mana nak dapat PDF?', 'Tekan butang Cetak, kemudian pilih "Save as PDF" dalam dialog cetak pelayar.']
-  ];
+  const { actions } = UI;
+  const sup = () => UI.cfg.support || {};
+  const SUGGEST = ['dua sesi pagi petang', 'rehat berbeza ikut tahun', 'perhimpunan pagi', 'waktu berganda', 'relief guru berlainan', 'import dari aSc', 'lesen tamat', 'lupa kata laluan'];
+
+  const faqItem = (e, open) => `<details class="faq"${open ? ' open' : ''}><summary>${esc(e.q)}</summary><p>${esc(e.a)}</p>${e.link && !UI.isGuru() ? `<p class="faqlink"><a href="panduan/${e.link}" target="_blank" rel="noopener">Baca lebih lanjut dalam panduan</a></p>` : ''}</details>`;
+  const topicList = () => TT.faqTopics(UI.isGuru()).map(([t, a]) => `<h3 class="faqtopic">${esc(t)}</h3>${a.map((e) => faqItem(e, false)).join('')}`).join('');
+  // hasil carian (atau senarai mengikut topik bila kosong). Tiada AI: padanan kata kunci pada pangkalan soalan.
+  UI.faqHtml = (query) => {
+    const q = String(query || '').trim();
+    if (!q) return topicList();
+    const res = TT.faqSearch(q, { guruOnly: UI.isGuru(), limit: 5 });
+    if (res.length) return `<p class="hint">${res.length} jawapan dijumpai</p>${res.map((r, i) => faqItem(r.entry, i === 0)).join('')}`;
+    const s = sup(), wa = s.whatsapp ? `https://wa.me/${UI.waNumber(s.whatsapp)}?text=${encodeURIComponent('Soalan tentang Annur Time Table: ' + q)}` : '';
+    return `<div class="banner">Tiada jawapan yang sesuai untuk "<b>${esc(q)}</b>". Cuba kata kunci lain (contoh: rehat, relief, import), atau tanya kami.${wa ? `<div class="row"><a class="btn primary" href="${wa}" target="_blank" rel="noopener">Tanya melalui WhatsApp</a></div>` : ''}</div>${topicList()}`;
+  };
+  document.addEventListener('input', (e) => { if (e.target && e.target.id === 'faqQ') { const o = document.getElementById('faqOut'); if (o) o.innerHTML = UI.faqHtml(e.target.value); } });
+  actions.faqAsk = (el) => { const i = document.getElementById('faqQ'), o = document.getElementById('faqOut'); if (!i || !o) return; i.value = el.dataset.q; o.innerHTML = UI.faqHtml(i.value); i.focus(); };
+
 
   pages.bantuan = () => {
     const cfg = UI.cfg, sup = cfg.support || {};
@@ -31,6 +36,6 @@
         <div class="row"><a class="btn primary" href="${guide}" target="_blank" rel="noopener">Buka panduan</a><a class="btn" href="panduan/Panduan-Annur-Time-Table.pdf" target="_blank" rel="noopener">PDF</a></div></section>
       <section class="card"><div class="ch"><h2>Langkah kerja</h2></div><ol class="steps">${steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol></section>
       <section class="card"><div class="ch"><h2>Tentang</h2></div><p><b>${esc(cfg.appName || 'Annur Time Table')}</b> versi ${esc(cfg.version || '')}${cfg.vendor ? `<br>${esc(cfg.vendor)}` : ''}</p>${contact}</section></div>
-      <div class="col-r"><section class="card"><div class="ch"><h2>Soalan lazim</h2></div>${FAQ.map(([q, a]) => `<details class="faq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</section></div></div>`;
+      <div class="col-r"><section class="card"><div class="ch"><h2>Tanya soalan</h2></div><label class="fld"><span>Taip soalan anda, contoh "dua sesi", "waktu berganda" atau "lupa kata laluan"</span><input id="faqQ" type="search" autocomplete="off" placeholder="Cari jawapan..."></label><div class="row tight faqchips">${SUGGEST.map((x) => `<button class="pill" data-act="faqAsk" data-q="${esc(x)}">${esc(x)}</button>`).join('')}</div><div id="faqOut">${UI.faqHtml('')}</div></section></div></div>`;
   };
 })();
