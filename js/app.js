@@ -119,7 +119,7 @@
     UI.items = computeItems();
     const where = UI.sync && UI.sync.linked() ? 'dalam pelayar ini dan Google Sheet anda' : 'dalam pelayar ini sahaja';
     $('app').innerHTML = `${demoBar()}${header()}<main class="pg-${UI.page}">${UI.pages[UI.page]()}</main>
-      <footer class="foot">${esc(CFG.appName || 'Annur Time Table')} ${esc(CFG.version || '')}${CFG.vendor ? ' · ' + esc(CFG.vendor) : ''} · ${esc(s.school.name)} · Data disimpan ${where}</footer>${UI.surveyFab ? UI.surveyFab() : ''}`;
+      <footer class="foot">${esc(CFG.appName || 'Annur Time Table')} ${esc(CFG.version || '')}${CFG.vendor ? ' · ' + esc(CFG.vendor) : ''} · ${esc(s.school.name)} · Data disimpan ${where}</footer>${UI.surveyFab ? UI.surveyFab() : ''}${UI.helpFab ? `<div id="helpfabWrap">${UI.helpFab()}</div>` : ''}`;
     window.scrollTo(0, y);
   };
 

@@ -541,3 +541,14 @@ label.impk small { color: var(--mute); } label.impk em { font-style: normal; fon
 .faqchips { flex-wrap: wrap; margin: 6px 0 12px; }
 .faqtopic { margin: 18px 0 6px; font-size: .95rem; color: var(--navy, #0b1d4d); }
 .faqlink { margin-top: 4px; font-size: .9rem; }
+
+/* butang bantuan terapung (pentadbir: menu; guru: terus carian) */
+.helpfab { position: fixed; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 34; width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--navy, #0b1d4d); color: #fff; font: inherit; font-weight: 700; font-size: 1.25rem; cursor: pointer; box-shadow: 0 10px 24px rgba(15, 23, 42, .28); display: grid; place-items: center; }
+.helpfab:hover { filter: brightness(1.15); }
+.helpfab:focus-visible { outline: 3px solid var(--blue, #2563eb); outline-offset: 2px; }
+#app:has(.fab) .helpfab { bottom: calc(82px + env(safe-area-inset-bottom)); }
+.helpmenu { position: fixed; right: 16px; bottom: calc(74px + env(safe-area-inset-bottom)); z-index: 36; background: #fff; border-radius: 16px; box-shadow: 0 16px 40px rgba(15, 23, 42, .22); padding: 6px; min-width: 230px; display: grid; gap: 2px; }
+#app:has(.fab) .helpmenu { bottom: calc(138px + env(safe-area-inset-bottom)); }
+.helpmenu .mi { text-decoration: none; color: inherit; }
+#app:has(.helpfab) .foot { padding-bottom: 76px; }
+@media print { .helpfab, .helpmenu { display: none !important; } }

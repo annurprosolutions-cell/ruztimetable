@@ -17,8 +17,31 @@
     const s = sup(), wa = s.whatsapp ? `https://wa.me/${UI.waNumber(s.whatsapp)}?text=${encodeURIComponent('Soalan tentang Annur Time Table: ' + q)}` : '';
     return `<div class="banner">Tiada jawapan yang sesuai untuk "<b>${esc(q)}</b>". Cuba kata kunci lain (contoh: rehat, relief, import), atau tanya kami.${wa ? `<div class="row"><a class="btn primary" href="${wa}" target="_blank" rel="noopener">Tanya melalui WhatsApp</a></div>` : ''}</div>${topicList()}`;
   };
-  document.addEventListener('input', (e) => { if (e.target && e.target.id === 'faqQ') { const o = document.getElementById('faqOut'); if (o) o.innerHTML = UI.faqHtml(e.target.value); } });
-  actions.faqAsk = (el) => { const i = document.getElementById('faqQ'), o = document.getElementById('faqOut'); if (!i || !o) return; i.value = el.dataset.q; o.innerHTML = UI.faqHtml(i.value); i.focus(); };
+  const OUTS = { faqQ: 'faqOut', faqQm: 'faqOutM' };
+  document.addEventListener('input', (e) => { const id = e.target && OUTS[e.target.id]; if (id) { const o = document.getElementById(id); if (o) o.innerHTML = UI.faqHtml(e.target.value); } });
+  actions.faqAsk = (el) => {
+    const inM = !!el.closest('.overlay'), i = document.getElementById(inM ? 'faqQm' : 'faqQ'), o = document.getElementById(inM ? 'faqOutM' : 'faqOut');
+    if (!i || !o) return; i.value = el.dataset.q; o.innerHTML = UI.faqHtml(i.value); i.focus();
+  };
+
+  // ---------- butang bantuan terapung ----------
+  // Pentadbir: menu kecil (Cari jawapan, Panduan penuh). Guru: terus buka carian jawapan.
+  UI.helpFab = () => `<button class="helpfab" data-act="helpFab" aria-label="Bantuan" title="Bantuan">?</button>${UI.helpMenu ? `<div class="helpmenu" role="menu">
+      <button class="mi" data-act="faqModal" role="menuitem">${UI.icon('message')}<span><b>Cari jawapan</b><small>Soalan lazim</small></span></button>
+      <a class="mi" href="panduan/" target="_blank" rel="noopener" role="menuitem" data-act="helpClose">${UI.icon('book')}<span><b>Panduan penuh</b><small>Manual bergambar dan video</small></span></a></div>` : ''}`;
+  const redrawFab = () => { const w = document.getElementById('helpfabWrap'); if (w) w.innerHTML = UI.helpFab(); };
+  actions.helpFab = () => { if (UI.isGuru()) { actions.faqModal(); return; } UI.helpMenu = !UI.helpMenu; redrawFab(); };
+  actions.helpClose = () => { UI.helpMenu = false; redrawFab(); };
+  actions.faqModal = () => {
+    UI.helpMenu = false; redrawFab();
+    const chips = UI.isGuru() ? ['pasang app', 'notifikasi', 'jadual tidak berubah'] : SUGGEST;
+    UI.modalOpen('Cari jawapan', `<label class="fld"><span>Taip soalan anda</span><input id="faqQm" type="search" autocomplete="off" placeholder="Contoh: ${UI.isGuru() ? 'pasang app' : 'dua sesi, waktu berganda'}"></label>
+      <div class="row tight faqchips">${chips.map((x) => `<button class="pill" data-act="faqAsk" data-q="${esc(x)}">${esc(x)}</button>`).join('')}</div><div id="faqOutM">${UI.faqHtml('')}</div>`,
+    '<button class="btn" data-act="modalClose">Tutup</button>', true);
+    setTimeout(() => { const i = document.getElementById('faqQm'); if (i) i.focus(); }, 50);
+  };
+  // tutup menu bila klik di luar
+  document.addEventListener('click', (e) => { if (UI.helpMenu && !e.target.closest('#helpfabWrap')) { UI.helpMenu = false; redrawFab(); } });
 
 
   pages.bantuan = () => {
